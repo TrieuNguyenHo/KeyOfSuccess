@@ -5,6 +5,7 @@ import { Brand } from '../../components/Brand.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
 import { DialogHost } from '../../components/Dialog.jsx';
 import { LanguageSwitch, ThemeSwitch } from '../../components/Preferences.jsx';
+import InviteUserCard from './InviteUserCard.jsx';
 import PermissionsCard from './PermissionsCard.jsx';
 import UsersCard from './UsersCard.jsx';
 import { tr } from '../../i18n.js';
@@ -28,9 +29,11 @@ export default function SystemConfigPage({ user, onLogout }) {
     load().catch((e) => setError(e.message));
   }, [load]);
 
-  async function updateUser(u, patch) {
+  const updateUser = (u, patch) => change(() => api(`/admin/users/${u.id}`, { method: 'PATCH', body: patch }));
+  const revokeInvite = (u) => change(() => api(`/admin/users/${u.id}`, { method: 'DELETE' }));
+  async function change(request) {
     try {
-      await api(`/admin/users/${u.id}`, { method: 'PATCH', body: patch });
+      await request();
       setError('');
     } catch (e) {
       setError(e.message);
@@ -67,12 +70,13 @@ export default function SystemConfigPage({ user, onLogout }) {
                 <section className="admin-card">
                   <p className="muted card-sub">
                     {tr(
-                      'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn đặt quyền cho từng vai trò, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.'
+                      'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn đặt quyền cho từng vai trò, mời người dùng mới, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.'
                     )}
                   </p>
                 </section>
                 <PermissionsCard />
-                <UsersCard user={user} users={users} teams={teams} updateUser={updateUser} />
+                <InviteUserCard user={user} teams={teams} onInvited={() => load().catch(() => {})} />
+                <UsersCard user={user} users={users} teams={teams} updateUser={updateUser} revokeInvite={revokeInvite} />
               </div>
             </div>
           </div>

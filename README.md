@@ -75,6 +75,7 @@ Bảng dưới mô tả hành vi với quyền mặc định:
 - Leader bắt buộc thuộc ít nhất một team; Member chỉ thuộc một team (đổi Leader/Manager nhiều team thành Member thì giữ team đầu tiên). Manager và Director không thể tự đổi vai trò hay tự khoá mình.
 - Tài khoản bị khoá bị đăng xuất ngay ở request kế tiếp.
 - **Root** (email trong `ROOT_EMAILS`): tài khoản kỹ thuật, không thuộc công ty. Chỉ thấy màn **Cấu hình hệ thống**: gán vai trò (kể cả Director), duyệt / khoá tài khoản, xếp team. Không mở được project, task, dashboard, thông báo hay thông tin cá nhân của ai (server trả 403). Root không có team, không hiện trong bất kỳ danh sách người nào, và không ai sửa / khoá được root trong app; xoá email khỏi `ROOT_EMAILS` là thu hồi ngay. Chỉ root và Director cấp được vai trò Director.
+- **Lời mời** (Quản lý team, Sửa team, hoặc thẻ "Mời người dùng mới" của root): tạo sẵn tài khoản cho email, app không gửi email. Tài khoản ở trạng thái **"Đã mời, chưa tham gia"** tới lần đầu người đó đăng nhập Google bằng email ấy (đó là lúc họ chấp nhận). Trong lúc đó họ chưa được giao task, thêm vào project, theo dõi hay tính vào workload; người mời (hoặc người có `users.manage`, root) **huỷ lời mời** được, tức xoá hẳn tài khoản chưa dùng. Người đã tham gia thì chỉ khoá được.
 - Email trong `DIRECTOR_EMAILS` luôn đăng nhập với vai trò Director (dùng để tạo Director đầu tiên); email trong `MANAGER_EMAILS` luôn đăng nhập với vai trò Manager, trừ người đã là Director.
 - Director làm được mọi việc của Manager, cộng thêm: là "Quản lý task" và có quyền như owner trên mọi project (đổi tên, xoá, thành viên, đổi team), giao task cho bất kỳ ai thuộc team của project; xem hồ sơ của mọi người. Hồ sơ của Director chỉ Director xem được.
 
@@ -172,6 +173,7 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `director.test.js` | Director: toàn quyền mọi project, quyền Manager, chỉ Director cấp vai trò Director / sửa tài khoản Director, hồ sơ, không nhận thông báo task xong, migration v22 |
 | `root.test.js` | Root: chỉ dùng API cấu hình, ẩn khỏi mọi danh sách, cấp Director, không ai sửa được root, thu hồi khi bỏ khỏi `ROOT_EMAILS`, migration v23 |
 | `permissions.test.js` | Bảng quyền: `/me` trả quyền, chỉ root đọc / sửa, kiểm tra phạm vi, đổi quyền có hiệu lực ngay, khôi phục mặc định, quyền theo team, thông báo, cấp bậc vai trò |
+| `invitations.test.js` | Lời mời: "Đã mời, chưa tham gia" tới lần đăng nhập đầu, chưa giao task / thêm vào project / theo dõi / tính workload được, huỷ lời mời |
 | `i18n.test.js` | Giao diện tiếng Anh đủ: mọi khoá `tr()` có bản tiếng Anh, không chữ tiếng Việt nào nằm ngoài `tr()`, mọi thông báo lỗi của server dịch được (không bật server) |
 
 - Mỗi file tự bật một server riêng trên port trống với **database tạm**, nên test **không bao giờ đụng tới `server/data/app.db`** và các file chạy song song. Dev server đang chạy không bị ảnh hưởng.
@@ -193,6 +195,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v25**: cột `users.joined_at`, ghi ở lần đăng nhập đầu (đăng nhập = chấp nhận lời mời). Tài khoản đã có trước v25 được coi là đã tham gia.
 - **v24**: bảng `roles` (key, tên, `level`) và `role_permissions` (vai trò, quyền, phạm vi `none` / `team` / `all`). Quyền nào thiếu được điền giá trị mặc định mỗi khi server khởi động, nên quyền thêm ở bản sau tự có mặc định; ô root đã đặt được giữ nguyên.
 - **v23**: vai trò `root` (bảng `users` dựng lại như v22). Tài khoản có sẵn với email trong `ROOT_EMAILS` thành root và rời mọi team.
 - **v22**: vai trò `director` (bảng `users` được dựng lại vì SQLite không sửa được ràng buộc CHECK; giữ nguyên id và mọi cột). Email trong `DIRECTOR_EMAILS` thành Director ngay khi chuyển.
@@ -277,6 +280,7 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | POST, PATCH, DELETE | `/api/teams`, `/api/teams/:id` | Manager. Không xoá được team còn người |
 | GET | `/api/channels` | mọi người; Manager thấy thêm `task_count` |
 | POST, PATCH, DELETE | `/api/channels`, `/api/channels/:id` | Manager. `{ name, color? }` (màu `#rrggbb`, bỏ trống thì lấy màu kế tiếp trong bảng màu); tên không trùng (không phân biệt hoa thường) |
+| DELETE | `/api/admin/users/:id` | huỷ lời mời chưa ai nhận (tài khoản chưa đăng nhập lần nào bị xoá): người mời, hoặc `users.manage` / root với tài khoản không cao cấp hơn mình. 400 nếu người đó đã tham gia (chỉ khoá được) |
 | GET | `/api/roles` | mọi người đã đăng nhập: `[{ key, name, level }]`, cấp cao trước |
 | GET, PATCH | `/api/admin/permissions` | chỉ root. GET: `{ roles, permissions: [{ key, scopes }], grants: { role: { quyền: phạm vi } } }`; PATCH `{ role, permission, scope }` (400 nếu phạm vi không hợp lệ cho quyền đó) |
 | POST | `/api/admin/permissions/reset` | chỉ root: `{ role }`, về quyền mặc định |
@@ -286,7 +290,7 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | POST | `/api/teams/:id/members` | `{ user_id }`: thêm vào team; tài khoản đang chờ thì được duyệt luôn (người do Leader mời chỉ Manager duyệt). Leader chỉ thêm Member chưa có team |
 | DELETE | `/api/teams/:id/members/:userId` | bỏ khỏi team. Leader chỉ bỏ Member; Leader luôn giữ ít nhất 1 team |
 | POST | `/api/teams/:id/invite` | `{ email, name? }`: tạo tài khoản Member trong team. Manager mời: hoạt động ngay; Leader mời: chờ Manager duyệt. Không gửi email |
-| POST | `/api/admin/users` | Manager mời người chưa có tài khoản: `{ email, name?, team_id }`. Tạo tài khoản Member đang hoạt động trong team đó; lần đầu đăng nhập Google bằng email này là vào thẳng. Không gửi email. 409 nếu email đã có tài khoản |
+| POST | `/api/admin/users` | `users.manage` hoặc root (thẻ "Mời người dùng mới" trên màn Cấu hình hệ thống) mời người chưa có tài khoản: `{ email, name?, role? (mặc định member, không cao hơn cấp của người mời), team_id? (bắt buộc với Member / Leader) }`. Tạo tài khoản đang hoạt động; lần đầu đăng nhập Google bằng email này là vào thẳng. Không gửi email. 409 nếu email đã có tài khoản |
 | GET | `/api/tasks?assignee=me\|<id>` `&team=<id>` `&mine=1` `&all=1` | task xuyên project, kèm `can_edit`. `mine=1`: mọi team của Leader |
 | GET | `/api/dashboard?team=<id>`, `?mine=1` hoặc `?all=1` | Leader (các team của mình) / Manager: `{ summary, people, trend, projects, channels, no_channel }`; `people[].team_name` là tên các team nối bằng dấu phẩy |
 | GET | `/api/projects/:id/dashboard[?team=<id>]` | Ai mở được project: `{ project, teams, summary, requirements, sections, people, trend, channels, no_channel }` (`channels`: kênh có task trong phạm vi, mỗi dòng có `total`, `done`, `open`, `overdue`…; `no_channel`: task chưa gắn kênh). `team` chỉ tính task giao cho người của team đó |

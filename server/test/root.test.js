@@ -50,7 +50,6 @@ test("root never reaches the company's work", async () => {
   }
   assert.equal((await api.post('/projects', root, { name: 'X' })).status, 403);
   assert.equal((await api.post('/teams', root, { name: 'X' })).status, 403);
-  assert.equal((await api.post('/admin/users', root, { email: 'x@t.test', team_id: content })).status, 403);
 });
 
 test('root sets roles, status and teams, the Director role included', async () => {
@@ -65,6 +64,23 @@ test('root sets roles, status and teams, the Director role included', async () =
   assert.equal((await api.patch(`/admin/users/${chief.id}`, root, { status: 'active' })).body.status, 'active');
   // Managers still cannot.
   assert.equal((await api.patch(`/admin/users/${mem.id}`, boss, { role: 'director' })).status, 403);
+});
+
+test('root invites new people with any role; Members and Leaders need a team', async () => {
+  const res = await api.post('/admin/users', root, { email: 'Vice@T.test', name: 'Vice', role: 'director' });
+  assert.equal(`${res.status}/${res.body.role}/${res.body.status}/${res.body.team_ids.length}`, '201/director/active/0');
+  assert.ok((await api.get('/admin/users', chief)).body.some((u) => u.email === 'vice@t.test' && u.invited_by === root.id));
+  assert.equal((await api.post('/admin/users', root, { email: 'm1@t.test' })).status, 400);
+  assert.equal((await api.post('/admin/users', root, { email: 'l1@t.test', role: 'leader' })).status, 400);
+  assert.equal((await api.post('/admin/users', root, { email: 'l1@t.test', role: 'leader', team_id: content })).body.role, 'leader');
+  assert.equal((await api.post('/admin/users', root, { email: 'r1@t.test', role: 'root' })).status, 400);
+  // The first sign-in with that email lands in the app with the role given.
+  assert.equal((await api.user('Vice')).role, 'director');
+});
+
+test('invitations respect role levels', async () => {
+  assert.equal((await api.post('/admin/users', boss, { email: 'd2@t.test', role: 'director' })).status, 403);
+  assert.equal((await api.post('/admin/users', boss, { email: 'm2@t.test', role: 'manager' })).body.role, 'manager');
 });
 
 test('nobody changes a root account in the app, and root cannot be given', async () => {

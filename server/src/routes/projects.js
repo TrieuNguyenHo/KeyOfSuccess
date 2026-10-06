@@ -62,7 +62,7 @@ router.post('/projects', requirePermission('projects.create'), (req, res) => {
     if (body.add_team) {
       const addTeam = db.prepare(
         `INSERT OR IGNORE INTO project_members (project_id, user_id)
-         SELECT ?, u.id FROM users u WHERE u.id ${IN_TEAM} AND u.status = 'active'`
+         SELECT ?, u.id FROM users u WHERE u.id ${IN_TEAM} AND u.status = 'active' AND u.joined_at IS NOT NULL`
       );
       teamIds.forEach((teamId) => addTeam.run(lastInsertRowid, teamId));
     }
@@ -148,7 +148,7 @@ router.post('/projects/:id/members', (req, res) => {
   if (!project) return;
   const email = req.body?.email?.trim().toLowerCase();
   if (!email) return badRequest(res, 'Cần nhập email');
-  const user = db.prepare("SELECT id, name, email FROM users WHERE email = ? AND status = 'active' AND role != 'root'").get(email);
+  const user = db.prepare("SELECT id, name, email FROM users WHERE email = ? AND status = 'active' AND role != 'root' AND joined_at IS NOT NULL").get(email);
   if (!user) return res.status(404).json({ error: 'Chưa có tài khoản đang hoạt động nào dùng email này' });
   if (isMember(project.id, user.id)) return res.status(409).json({ error: 'Người này đã là thành viên' });
   db.prepare('INSERT INTO project_members (project_id, user_id) VALUES (?, ?)').run(project.id, user.id);

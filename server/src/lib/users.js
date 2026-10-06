@@ -2,7 +2,9 @@ import { db } from '../db.js';
 import { outranks, permissionsOf, scopeOf } from './permissions.js';
 import { isRoot } from './roles.js';
 
-export const USER_SELECT = `SELECT u.id, u.name, u.email, u.role, u.status, u.language, u.invited_by, inv.name AS invited_by_name
+// joined: 0 while an invited person has not signed in yet (v25).
+export const USER_SELECT = `SELECT u.id, u.name, u.email, u.role, u.status, u.language, u.invited_by, inv.name AS invited_by_name,
+  (u.joined_at IS NOT NULL) AS joined
   FROM users u LEFT JOIN users inv ON inv.id = u.invited_by`;
 // Users carry their teams (user_teams) as `teams`, their ids as `team_ids`, and the names joined as `team_name`.
 export function withUserTeams(user) {

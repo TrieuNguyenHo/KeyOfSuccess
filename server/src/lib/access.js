@@ -119,10 +119,11 @@ export const membersOf = (project) =>
 
 // Only people of the project's teams (of any team for a department-wide project) are given its tasks. Members from
 // other teams still view and comment, but are not assigned and do not add tasks for themselves. Tasks assigned
-// before this rule keep their assignee.
+// before this rule keep their assignee. Invited people who have not signed in yet are not given tasks either.
 export function canBeAssigned(userId, project) {
   const teamIds = project.teams.map((t) => t.id);
   const inTeams = teamIds.length ? ` AND team_id IN (${placeholders(teamIds)})` : '';
+  if (!db.prepare('SELECT 1 FROM users WHERE id = ? AND joined_at IS NOT NULL').get(userId)) return false;
   return Boolean(db.prepare(`SELECT 1 FROM user_teams WHERE user_id = ?${inTeams}`).get(userId, ...teamIds));
 }
 
@@ -147,7 +148,7 @@ export function assignableBy(user, project) {
       `SELECT u.id, u.name, u.email,
          EXISTS (SELECT 1 FROM project_members m WHERE m.project_id = ? AND m.user_id = u.id) AS is_member
        FROM users u
-       WHERE u.status = 'active'
+       WHERE u.status = 'active' AND u.joined_at IS NOT NULL
          AND (u.id = ? OR u.id IN (SELECT user_id FROM user_teams WHERE team_id IN (${placeholders(teamIds)})))
        ORDER BY is_member DESC, u.name`
     )

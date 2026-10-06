@@ -40,6 +40,7 @@ export default function AdminPage({ user, onChanged }) {
   }
 
   const updateUser = (u, patch) => act(() => api(`/admin/users/${u.id}`, { method: 'PATCH', body: patch }));
+  const revokeInvite = (u) => act(() => api(`/admin/users/${u.id}`, { method: 'DELETE' }));
 
   const toggleTeam = (id) => setTeamFilter((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   const inTeams = teamFilter.length ? users.filter((u) => u.team_ids.some((id) => teamFilter.includes(id))) : users;
@@ -187,7 +188,7 @@ export default function AdminPage({ user, onChanged }) {
           </section>
         )}
 
-        <UsersCard user={user} users={inTeams} teams={teams} updateUser={updateUser} />
+        <UsersCard user={user} users={inTeams} teams={teams} updateUser={updateUser} revokeInvite={revokeInvite} />
       </div>
 
       {editingTeam && (

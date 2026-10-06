@@ -146,7 +146,7 @@ router.post('/teams/:id/invite', (req, res) => {
 // The people this user may watch (people.watch): everyone, or the people of their teams.
 router.get('/people', (req, res) => {
   const me = req.user;
-  const base = `${USER_SELECT} WHERE u.status = 'active' AND u.role != 'root'`;
+  const base = `${USER_SELECT} WHERE u.status = 'active' AND u.role != 'root' AND u.joined_at IS NOT NULL`;
   const watch = scopeOf(me, 'people.watch');
   let rows = [];
   if (watch === 'all') rows = db.prepare(`${base} ORDER BY u.name`).all();

@@ -146,6 +146,12 @@ img.avatar { object-fit: cover; }
 .admin-row .team-picker > summary { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .admin-row .team-picker-menu { left: auto; right: 0; }
 
+/* Invite form (System configuration): email and name take the room, role / team / button their own width. */
+.invite-form { display: flex; flex-wrap: wrap; gap: 8px; }
+.invite-form input { flex: 1 1 200px; min-width: 0; border-radius: var(--rounded-pill); padding: 8px 16px; }
+.invite-form select { flex: 0 0 auto; }
+.invite-form + .error, .invite-form + .notice { margin-top: 12px; }
+
 /* Role × permission table (System configuration, root). Scrolls sideways inside its card on narrow screens. */
 .perm-table { overflow-x: auto; }
 .perm-grid {

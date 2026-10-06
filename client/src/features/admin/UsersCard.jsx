@@ -8,8 +8,9 @@ import { ProfilePopover } from '../profile/ProfilePage.jsx';
 import { tr } from '../../i18n.js';
 
 // The people of the company with their status, role and teams, for users.manage (User management) and for root
-// (System configuration). Nobody changes the account of, or gives, a role above their own level.
-export default function UsersCard({ user, users, teams, updateUser }) {
+// (System configuration). Nobody changes the account of, or gives, a role above their own level. Invited people who
+// have not signed in yet show as such, and their invitation can be revoked (the account is deleted).
+export default function UsersCard({ user, users, teams, updateUser, revokeInvite }) {
   const [filter, setFilter] = useState('all');
   const roles = useRoles();
   const isRoot = user.role === 'root';
@@ -57,7 +58,8 @@ export default function UsersCard({ user, users, teams, updateUser }) {
             </span>
             <span>
               <span className={`tag status-${u.status}`}>{STATUSES[u.status]}</span>
-              {u.status === 'pending' && u.invited_by_name && (
+              {!u.joined && <span className="muted small invited-by">{tr('Đã mời, chưa tham gia')}</span>}
+              {(u.status === 'pending' || !u.joined) && u.invited_by_name && (
                 <span className="muted small invited-by">{tr('{name} mời', { name: u.invited_by_name })}</span>
               )}
             </span>
@@ -131,7 +133,7 @@ export default function UsersCard({ user, users, teams, updateUser }) {
                   </button>
                 </>
               )}
-              {u.status === 'active' && !self && !locked && (
+              {u.status === 'active' && !self && !locked && u.joined && (
                 <button
                   className="link-btn danger"
                   onClick={async () =>
@@ -140,6 +142,21 @@ export default function UsersCard({ user, users, teams, updateUser }) {
                   }
                 >
                   {tr('Khoá')}
+                </button>
+              )}
+              {!u.joined && !locked && (
+                <button
+                  className="link-btn danger"
+                  onClick={async () =>
+                    (await askConfirm({
+                      title: tr('Huỷ lời mời {email}?', { email: u.email }),
+                      message: tr('Tài khoản chưa dùng này sẽ bị xoá. Bạn mời lại được sau.'),
+                      confirmLabel: tr('Huỷ lời mời'),
+                      danger: true,
+                    })) && revokeInvite(u)
+                  }
+                >
+                  {tr('Huỷ lời mời')}
                 </button>
               )}
               {u.status === 'disabled' && !locked && (

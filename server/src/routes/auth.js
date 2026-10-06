@@ -37,10 +37,14 @@ function signIn(res, { email, name, googleSub }) {
   let id = existing?.id;
   if (!id) {
     ({ lastInsertRowid: id } = db
-      .prepare('INSERT INTO users (name, email, google_sub, role, status) VALUES (?, ?, ?, ?, ?)')
+      .prepare("INSERT INTO users (name, email, google_sub, role, status, joined_at) VALUES (?, ?, ?, ?, ?, datetime('now'))")
       .run(name?.trim() || email, email, googleSub ?? null, bootstrapRole ?? 'member', bootstrapRole ? 'active' : 'pending'));
   } else {
-    db.prepare('UPDATE users SET google_sub = COALESCE(google_sub, ?) WHERE id = ?').run(googleSub ?? null, id);
+    // The first sign-in of an invited account is how they accept the invitation.
+    db.prepare("UPDATE users SET google_sub = COALESCE(google_sub, ?), joined_at = COALESCE(joined_at, datetime('now')) WHERE id = ?").run(
+      googleSub ?? null,
+      id
+    );
     if (name?.trim() && existing.name === email.split('@')[0]) {
       db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name.trim(), id);
     }
@@ -87,7 +91,9 @@ const ROOT_ROUTES = [
   ['GET', /^\/me$/],
   ['PATCH', /^\/me$/],
   ['GET', /^\/admin\/users$/],
+  ['POST', /^\/admin\/users$/],
   ['PATCH', /^\/admin\/users\/\d+$/],
+  ['DELETE', /^\/admin\/users\/\d+$/],
   ['GET', /^\/teams$/],
   ['GET', /^\/roles$/],
   ['GET', /^\/admin\/permissions$/],

@@ -429,8 +429,17 @@ export default {
   'Tài khoản đang chờ Manager duyệt': 'The account is waiting for a Manager to approve it',
   'Chỉ Manager mới làm được việc này': 'Only a Manager can do this',
   'Cấu hình hệ thống': 'System configuration',
-  'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn đặt quyền cho từng vai trò, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.':
-    'Root accounts are not part of the company: they only configure the system and cannot see projects, tasks or anyone\'s personal details. Here you set what each role may do, give roles (Director included), approve or lock accounts and place people in teams.',
+  'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn đặt quyền cho từng vai trò, mời người dùng mới, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.':
+    'Root accounts are not part of the company: they only configure the system and cannot see projects, tasks or anyone\'s personal details. Here you set what each role may do, invite new people, give roles (Director included), approve or lock accounts and place people in teams.',
+  'Mời người dùng mới': 'Invite new people',
+  'Tạo sẵn tài khoản cho email chưa có trong hệ thống. App không gửi email: bạn tự gửi link app cho họ.':
+    'Creates the account of an email that is not in the system yet. The app sends no email: send them the app link yourself.',
+  'Chọn team': 'Choose a team',
+  'Đã mời, chưa tham gia': 'Invited, not joined yet',
+  'Huỷ lời mời': 'Revoke invitation',
+  'Huỷ lời mời {email}?': 'Revoke the invitation of {email}?',
+  'Tài khoản chưa dùng này sẽ bị xoá. Bạn mời lại được sau.': 'This unused account will be deleted. You can invite them again later.',
+  'Đã huỷ lời mời {email}.': 'Revoked the invitation of {email}.',
   'Quyền theo vai trò': 'Permissions by role',
   '"Team của mình": chỉ với những gì thuộc team của người đó. Thay đổi có hiệu lực ngay ở server; màn hình của người dùng cập nhật khi họ tải lại app.':
     '"Own teams": only for what belongs to that person\'s teams. Changes apply on the server at once; people\'s screens follow when they reload the app.',
@@ -470,6 +479,7 @@ export default {
   'Tài khoản root chỉ dùng để cấu hình hệ thống': 'Root accounts are only for configuring the system',
   'Không đổi được tài khoản có vai trò cao hơn bạn': 'You cannot change the account of a higher role than yours',
   'Vai trò hoặc quyền không tồn tại': 'Unknown role or permission',
+  'Người này đã tham gia, chỉ khoá được tài khoản': 'This person has already joined; the account can only be locked',
   'Phạm vi không hợp lệ cho quyền này': 'This scope is not valid for this permission',
   'Ngôn ngữ không hợp lệ': 'Invalid language',
   'Bạn chỉ có quyền xem và comment task này': 'You can only view and comment on this task',

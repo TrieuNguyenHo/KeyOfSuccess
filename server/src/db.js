@@ -54,7 +54,9 @@ const usersTable = (name) => `
     gender TEXT CHECK (gender IN ('male', 'female', 'other', 'undisclosed')),
     -- Profile picture (v21): its file in UPLOAD_DIR, "avatar-<random>.<png|jpg|webp>". A new name on every
     -- upload, so it also serves as the picture's version for caching.
-    avatar TEXT
+    avatar TEXT,
+    -- First sign-in (v25). NULL for an invited account nobody has signed in to yet ("Đã mời, chưa tham gia").
+    joined_at TEXT
   );`;
 
 db.exec(`
@@ -551,6 +553,14 @@ const insertRole = db.prepare('INSERT OR IGNORE INTO roles (key, name, level) VA
   ['director', 'Director', 4],
 ].forEach((role) => insertRole.run(...role));
 if (schemaVersion() < 24) db.exec('PRAGMA user_version = 24');
+
+// v25: users.joined_at, set at the first sign-in, which is how an invited person accepts. Everyone already there
+// counts as joined.
+if (schemaVersion() < 25) {
+  if (!hasColumn('users', 'joined_at')) db.exec('ALTER TABLE users ADD COLUMN joined_at TEXT');
+  db.exec('UPDATE users SET joined_at = created_at WHERE joined_at IS NULL');
+  db.exec('PRAGMA user_version = 25');
+}
 
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_attachments_comment ON attachments(comment_id);
