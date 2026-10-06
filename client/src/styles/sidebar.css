@@ -44,19 +44,21 @@
 .sidebar-empty { padding: 8px 12px 8px var(--sb-rail); color: var(--sb-muted); font-size: 12px; }
 .flyout .sidebar-empty { padding: 8px 12px; } /* an own team with no projects yet */
 
-/* Fly-out: positioned against .sidebar, so the scrolling list never clips it. */
+/* Fly-out: positioned against .sidebar, so the scrolling list never clips it. As tall as its content and centred on
+   its rail item (top set by placeFlyout() in Sidebar.jsx), never taller than the sidebar. */
 .flyout {
-  position: absolute; top: 0; right: 0; bottom: 0; z-index: 20; width: 0; overflow: hidden;
-  display: flex; flex-direction: column; background: var(--sb-raised); transition: width 0.3s ease;
+  position: absolute; top: 8px; right: 0; z-index: 20; width: 0; max-height: calc(100% - 16px); overflow: hidden;
+  display: flex; flex-direction: column; background: var(--sb-raised); border-radius: var(--rounded-sm) 0 0 var(--rounded-sm);
+  transition: width 0.3s ease;
 }
 .has-flyout:hover > .flyout, .has-flyout.open > .flyout { width: calc(100% - var(--sb-rail)); }
 .has-flyout.dismissed > .flyout { width: 0; }
 .flyout > * { min-width: calc(272px - var(--sb-rail)); }
 .flyout-head {
-  display: flex; align-items: center; gap: 8px; padding: 18px 8px 12px 20px;
+  display: flex; align-items: center; gap: 8px; padding: 10px 8px 6px 20px;
   color: var(--sb-muted); font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
 }
-.flyout ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.flyout ul { list-style: none; margin: 0; padding: 0 0 8px; overflow-y: auto; }
 .flyout-link {
   position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 13px 16px 13px 20px;
   border: none; background: none; color: var(--sb-text); text-align: left; cursor: pointer;

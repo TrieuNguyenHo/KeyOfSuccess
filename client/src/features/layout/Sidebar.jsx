@@ -54,6 +54,21 @@ function groupByTeam(projects, user) {
   return [...groups, ...[other, wide].filter((g) => g.projects.length)];
 }
 
+// A fly-out is as tall as its content and centred on its rail item, kept inside the sidebar (8px margin). It is
+// positioned against .sidebar (so the scrolling project list never clips it), hence the measuring here.
+const FLYOUT_MARGIN = 8;
+function placeFlyout(item) {
+  const flyout = item.querySelector(':scope > .flyout');
+  const sidebar = item.closest('.sidebar');
+  if (!flyout || !sidebar) return;
+  const bounds = sidebar.getBoundingClientRect();
+  const anchor = item.getBoundingClientRect();
+  const height = Math.min(flyout.scrollHeight, bounds.height - 2 * FLYOUT_MARGIN);
+  const centred = anchor.top - bounds.top + anchor.height / 2 - height / 2;
+  const top = Math.max(FLYOUT_MARGIN, Math.min(centred, bounds.height - height - FLYOUT_MARGIN));
+  flyout.style.top = `${top}px`;
+}
+
 export default function Sidebar({
   user,
   projects,
@@ -97,6 +112,9 @@ export default function Sidebar({
   const flyoutProps = (key) => ({
     className: `has-flyout ${openKey === key ? 'open' : ''} ${dismissedKey === key ? 'dismissed' : ''}`,
     onMouseLeave: () => dismissedKey === key && setDismissedKey(null),
+    // Placed before it shows: by pointer (hover, or a tap on iPad) or by keyboard focus.
+    onPointerEnter: (e) => placeFlyout(e.currentTarget),
+    onFocus: (e) => placeFlyout(e.currentTarget),
   });
   const toggle = (key) => {
     setDismissedKey(null);
