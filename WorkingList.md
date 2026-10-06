@@ -1,0 +1,170 @@
+# TaskFlow — Working List
+
+Tiến độ dự án, để mỗi phiên làm việc mới nắm được đã làm gì, đang dở gì và nên làm gì tiếp.
+File này được nạp tự động qua `.claude/CLAUDE.md`.
+
+**Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
+
+_Cập nhật lần cuối: 2026-10-06 · Schema database: v21 · Test: `npm test`, 215/215 pass (khoảng 5 giây)_
+
+---
+
+## Bối cảnh
+
+- App quản lý task cho phòng Marketing khoảng 40 người (KingSport). Người dùng chính của phiên: Trieu (Manager).
+- Stack: React + Vite (`client/`), Node/Express + SQLite qua `node:sqlite` (`server/`). Chạy: `npm run dev` ở thư mục gốc.
+- Quy tắc sản phẩm và quy tắc UI nằm trong `.claude/CLAUDE.md`; cài đặt, quyền và API nằm trong `README.md`.
+
+---
+
+## Đã làm
+
+### Nền tảng (2026-10-01)
+- Project, section, task (tiêu đề, mô tả, người làm, hạn chót, ưu tiên, hoàn thành), subtask, bình luận task.
+- Board Kanban kéo-thả, List view, tìm kiếm và lọc trong project.
+
+### Tài khoản và phân quyền (2026-10-05)
+- Đăng nhập Google; người mới ở trạng thái chờ Manager duyệt. `DEV_LOGIN=1` cho dev local.
+- Vai trò Manager / Leader / Member, team; trang Quản lý người dùng và team cho Manager.
+- Phạm vi xem: Member chỉ thấy project mình tham gia; Leader thấy thêm task của team; Manager thấy tất cả (ngoài project của mình chỉ xem và bình luận).
+- Project thuộc một hoặc nhiều team (`project_teams`); Leader của team sở hữu có toàn quyền; chỉ Manager đổi team của project.
+- Ô Người làm gồm thành viên và người trong các team sở hữu; giao cho người chưa là thành viên thì tự thêm họ vào project.
+- Nhiều team cho Leader và Manager (schema v9, bảng `user_teams`): Member đúng 1 team; Leader ≥ 1 team và lead tất cả; Manager bao nhiêu cũng được. Trong Quản lý người dùng, Leader/Manager chọn team bằng pill (như chọn team cho project), Member vẫn ô chọn 1 team. Manager có pill "Tất cả team" (chọn hết các team hiện có), không có lựa chọn "Chưa có team"; giao diện không cho bỏ chọn team cuối cùng. Team tạo sau không tự thêm Manager vào. Leader nhiều team: Dashboard và Theo dõi team có "Tất cả team của tôi" + từng team (`?mine=1`); tạo project chọn pill trong team của mình; nhận thông báo task xong của mọi team mình. Test trong `server/test/user-teams.test.js`.
+- Quyền trên task (2026-10-05): chỉ Manager tạo project. Toàn quyền task (tạo, sửa, giao, xoá task; quản lý section) chỉ Manager/Leader có team tham gia project. Member (kể cả owner cũ là Member) tự tạo task cho mình, sửa task giao cho mình, không giao, không xoá; task khác chỉ xem và bình luận. Giao task: cho mình và người thuộc team của mình tham gia project. Server: `isTaskAdmin()`, `taskAccess()` trả `admin`/`edit`/`view`, `assignableBy()` thay `assigneesOf()`; project có `task_admin`. Test cũ được viết lại cho Manager tạo project.
+- Sửa nhỏ luồng đăng nhập (2026-10-05): người được mời mà chưa đặt tên (tên tạm = phần trước @) lấy tên Google ở lần đăng nhập đầu; tên người mời đã gõ hoặc tên đã lấy từ Google thì giữ nguyên (test trong `roles.test.js`). Màn chờ duyệt ghi "Manager hoặc Leader" (người được Leader mời: "Manager"), tự kiểm tra 20 giây/lần và khi quay lại tab rồi mở app ngay khi được duyệt. Màn đăng nhập nói rõ lần đầu đăng nhập cũng là đăng ký.
+- Member có menu Dashboard (2026-10-05, người dùng chốt): chỉ gồm dashboard của các project mình tham gia, không có "Tổng quan"; link `#/dashboard` với Member về "Task của tôi".
+- Leader quản lý thành viên team mình (menu "Quản lý team", có số đếm người tự đăng ký đang chờ và chưa có team, tức người Leader duyệt được): thêm Member chưa có team, duyệt người tự đăng ký vào team, mời email mới (chờ Manager duyệt; bảng Người dùng ghi "X mời"), bỏ Member khỏi team. Schema v10 thêm `users.invited_by`. Dùng chung component `TeamMembers` với hộp "Sửa team" của Manager. API `/api/teams/:id/members`, `/api/teams/:id/invite`, test `team-members.test.js`.
+- Quản lý người dùng: bấm chip team để lọc danh sách (chọn nhiều team; bỏ chọn hết = tất cả). Nút ✎ mở hộp "Sửa team": đổi tên, xem thành viên, thêm người chưa có team (gợi ý, tìm theo tên/email) hoặc mời email chưa có trong hệ thống (`POST /api/admin/users` tạo sẵn tài khoản đang hoạt động trong team; không gửi email, Manager tự gửi link app).
+
+### Theo dõi công việc (2026-10-05)
+- Task của tôi; Theo dõi team (Leader) / Theo dõi công việc (Manager), xem theo team hoặc theo người.
+- Dashboard + Workload: số liệu tổng, workload từng người (kể cả người đang trống), biểu đồ hoàn thành 14 ngày, tiến độ theo project.
+- Dashboard theo project: menu Dashboard có submenu "Tổng quan" + danh sách project (danh sách phẳng, không nhóm theo team). Lọc theo team: chỉ tính task giao cho người của team đó (ẩn ô "Chưa giao"). Mỗi project có % hoàn thành, số liệu tổng, tiến độ từng requirement (bấm để mở requirement), workload của thành viên trong project, biểu đồ hoàn thành 14 ngày, tiến độ theo section. API `GET /api/projects/:id/dashboard` (ai mở được project đều xem được), có test.
+
+### Requirement (2026-10-05)
+- Mô hình Project → Requirements → Task → Subtask; task bắt buộc thuộc một requirement, đổi được, không bỏ trống được.
+- Tab Requirements: danh sách kèm tiến độ, chi tiết requirement, task của nó, "Xem trên Board", góp ý theo từng requirement.
+- Owner, Leader của team sở hữu và Manager tạo / sửa / xoá requirement; không xoá được requirement còn task.
+- Board/List lọc theo requirement; nhãn requirement trên task; thêm task thì chọn requirement.
+
+### Trang chi tiết (2026-10-05)
+- Trang Task detail toàn màn hình: bấm ⤢ trên panel task. Bố cục 2 cột (mô tả, subtask, bình luận | trạng thái và các trường), breadcrumb Project › Requirement.
+- Trang Requirement detail: mở từ requirement trên task (breadcrumb hoặc nút ↗ cạnh ô Requirement) hoặc nút "Mở trang ↗" trong tab Requirements. Sửa / xoá / góp ý như trong tab.
+- Nút "← Quay lại" về đúng màn trước (giữ lịch sử khi đi task → requirement → task). Panel bên phải vẫn giữ để xem nhanh.
+- Chỉ sửa client: `TaskDetail` có chế độ `page`, `RequirementDetail` tách ra từ `RequirementsPanel` và dùng chung với `RequirementPage`.
+
+### Hộp thoại của app (2026-10-05)
+- Bỏ hết `prompt()` / `confirm()` của trình duyệt. Đổi tên project / section / team và thêm section dùng hộp nhập tên; mọi thao tác xoá, rời project, từ chối / khoá tài khoản dùng hộp xác nhận có ⚠ và nút đỏ.
+- `client/src/components/Dialog.jsx`: `askText()` / `askConfirm()` trả về Promise, `<DialogHost />` gắn một lần trong Workspace. Enter để lưu, Esc hoặc bấm ra ngoài để huỷ; nút Lưu bị khoá khi tên trống hoặc chưa đổi.
+
+### Bình luận, lịch, đính kèm (2026-10-05, schema v11)
+- Sửa / xoá bình luận task và góp ý requirement: người viết sửa (hiện "· đã sửa", tag mới thì người đó được báo) và xoá của mình; Manager xoá được mọi bình luận, không sửa lời người khác. API `PATCH/DELETE /api/comments/:id` và `/api/requirement-comments/:id`; component chung `CommentList.jsx`.
+- Lịch (`CalendarView.jsx`): tab "Lịch" trong project (dùng chung bộ lọc, URL `#/project/3/calendar`) và nút Danh sách / Lịch ở Task của tôi, Theo dõi công việc (`?layout=calendar`). Lịch tháng bắt đầu thứ Hai, task quá hạn có ⚠, kéo task sang ngày khác để đổi hạn chót nếu có quyền sửa; ghi chú số task chưa xong không có hạn.
+- Đính kèm file (`Attachments.jsx`): vào task và requirement, tối đa 25 MB/file, nút "+ Thêm file" hoặc kéo thả. Ai bình luận được thì đính kèm được; người tải lên hoặc người có toàn quyền task / sửa requirement thì xoá. Ảnh PNG/JPG/GIF/WebP có thumbnail; mọi file tải về qua fetch có token (không có URL trần). File nằm ở `server/data/uploads/`, được dọn khi task / section / requirement / project bị xoá và khi server khởi động. Test `comments-attachments.test.js`.
+- Người dùng hiện tại cho các component sâu: React context `CurrentUser` trong `common.jsx`, Workspace cung cấp.
+
+### Thông báo (2026-10-05)
+- Chuông trong app: task hoàn thành (báo Leader của người làm và Manager), được giao task, được tag.
+- Tag `@` trong bình luận task và góp ý requirement; chỉ tag được người xem được nội dung đó; server bỏ tag người không có quyền.
+- Real-time qua Server-Sent Events (`GET /api/events`); vẫn hỏi lại 30 giây/lần làm dự phòng.
+- Real-time cho nội dung (2026-10-05): server gửi `event: change` (chỉ id project / task / requirement) mỗi khi task, bình luận, section, requirement, góp ý thay đổi, tới người mở được project hoặc xem được task đó (`pushChange()` trong `server/src/lib/live.js`). Client: mỗi tab có `X-Client-Id` riêng để bỏ qua thay đổi của chính nó; `onLiveChange()` trong `api.js`. Board / List / Requirements / Task của tôi tải lại (gộp các thay đổi liên tiếp, 300 ms), panel task tải lại nhưng giữ tiêu đề / mô tả đang gõ dở, góp ý requirement tự hiện. Test `live-changes.test.js`. Chưa áp dụng cho Dashboard, đổi tên / thành viên project, danh sách project ở sidebar.
+
+### Tách backend thành nhiều file (2026-10-06)
+- `server/src/index.js` (2.166 dòng) được chia theo tính năng: `config.js` (biến môi trường), `routes/` (13 file `express.Router`: auth, me, teams, admin, channels, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications) và `lib/` (luật dùng chung: access, users, requirements, statuses, history, channels, recurrence, mentions, notifications, live, uploads, comments, http, util). `index.js` còn 41 dòng: dựng app, middleware đăng nhập, gắn router, xử lý lỗi, dọn dẹp định kỳ.
+- Chỉ chuyển chỗ code, không đổi hành vi: đủ 63 route như cũ, 215/215 test pass, dev server chạy được với database thật. `i18n.test.js` giờ quét mọi file trong `server/src` (trước chỉ `index.js`). Bản `index.js` cũ lưu ở `server/data/index.before-split.js.bak`.
+
+### Sắp xếp lại frontend (2026-10-06)
+- `client/src/components/` (34 file phẳng) chia thành `features/<tính năng>/` (auth, layout, projects, tasks, comments, requirements, dashboard, admin, profile) và `components/` chỉ còn phần dùng chung. `common.jsx` (513 dòng) tách thành `Avatar`, `TaskParts`, `Mentions`, `Controls`, `Preferences`, `hooks`, `CurrentUser`. `styles.css` (1.052 dòng) tách thành 8 file trong `styles/`, nạp theo thứ tự trong `styles/index.css`; màu nằm ở `styles/tokens.css`.
+- Không đổi giao diện hay hành vi: CSS giữ nguyên từng dòng và thứ tự (chỉ dời khối task tags / kênh / lặp lại / Hint / lịch sử lên trước phần responsive, đã kiểm tra không có rule nào đè nhau). `i18n.test.js` giờ quét cả `components/` và `features/` (có thư mục con). 215/215 test pass, `vite build` chạy được, đã mở thử mọi màn trên trình duyệt, không có lỗi console.
+- Lưu ý: ghi chú cũ bên dưới còn nhắc `common.jsx`; các component đó nay nằm trong `components/` (vd. `SearchBox`, `Hint`, `TeamPills` trong `Controls.jsx`, `TaskTags` / `ChannelTag` trong `TaskParts.jsx`, `LanguageSwitch` / `ThemeSwitch` trong `Preferences.jsx`).
+
+### Test tự động (2026-10-05)
+- `npm test`: 21 file `node:test` trong `server/test/` (215 test, gồm toàn bộ 224 kiểm tra của các script bash cũ, cộng kiểm tra xoá team làm project mất team đó).
+- Mỗi file tự bật server với database tạm; file fail nếu server ghi ra lỗi. Hàm dùng chung ở `server/test/helpers.js`.
+
+### Giao diện (2026-10-05)
+- Theo `.claude/DESIGN.md` (font, cỡ chữ, bo góc, không đổ bóng), màu thương hiệu KingSport đỏ trắng.
+- Sidebar tối theo `component_styles/side_bar` (cột icon, menu con trượt ra); project nhóm theo team khi thấy nhiều team.
+- Chọn team bằng Selection Pills theo `component_styles/select_box`.
+- Ô tìm kiếm theo `component_styles/search_box` (2026-10-05): kính lúp, bấm vào thì mở thành ô pill và cán kính lúp biến thành con trỏ; giữ mở khi còn chữ; tắt hiệu ứng khi máy bật giảm chuyển động. Component chung `SearchBox` trong `common.jsx` (`wide` = rộng hết hàng). Dùng cho "Tìm task" (cuối thanh lọc của project) và ô "Thêm thành viên" trong Quản lý team / Sửa team (form bọc ngoài cần `noValidate`).
+- Giao diện Sáng / Tối, nhớ lựa chọn, lần đầu theo cài đặt máy.
+- Sửa nút ✕ của menu con sidebar (2026-10-05): trước đây menu vẫn mở vì con trỏ còn hover trên nó (trên iPad, chạm xong thì Safari giữ nguyên trạng thái hover). Giờ bấm ✕ hoặc chọn một mục thì menu đóng, và hover tạm tắt cho tới khi con trỏ rời khỏi mục đó (`dismissedKey` trong `Sidebar.jsx`, class `.dismissed`).
+- Giữ màn hình khi tải lại (2026-10-05): màn đang đứng nằm trên URL (`client/src/route.js`), F5 mở lại đúng chỗ, gửi link cho người khác được. Dạng `#/project/3/list`, `#/project/3/requirements/7` (requirement 7 đang chọn), `#/task/12`, `#/requirement/3/7`, `#/dashboard/3`, `#/team/user:5`. Giữ tab của project, lựa chọn ở Theo dõi team và toàn bộ bộ lọc Board/List trên query (`?requirement=7&assignee=5&status=open&due=week&q=banner`, chỉ ghi bộ lọc đang bật); panel task đang mở thêm `&task=12`. "Quay lại" từ trang task / requirement khôi phục đúng tab và bộ lọc lúc rời đi. Bấm lại project ở sidebar thì về Board không lọc. Link sai hoặc màn không đúng vai trò thì về "Task của tôi". Dùng `replaceState` nên nút Back của trình duyệt chưa đi lùi giữa các màn trong app; nút "← Quay lại" sau F5 về "Task của tôi".
+- Giao diện iPad (2026-10-05): dưới 1024px (iPad dọc) sidebar thành ngăn kéo sau nút ☰ ở thanh trên cùng (chấm đỏ khi có thông báo / người chờ duyệt), tự đóng khi chọn màn; panel task rộng hết màn dưới 900px; header project xuống dòng, khoảng đệm hẹp. Dưới 1280px (gồm iPad ngang, nơi sidebar chiếm 272px) các bảng List, Theo dõi, Workload, Người dùng dùng cột hẹp. Màn cảm ứng (`pointer: coarse`): chữ ô nhập 16px (Safari không tự phóng to), nút 40px, ô lọc cao 40px. Chiều cao app dùng `100dvh`.
+- Kéo-thả bằng ngón tay (2026-10-05, `client/src/touchDrag.js`): giữ 0,35 giây để nhấc thẻ (Board) hoặc task (Lịch), bản sao đi theo ngón tay, gần mép thì tự cuộn; vuốt ngay là cuộn bình thường; thả xong không mở nhầm panel. Trên màn cảm ứng `draggable` của HTML5 bị tắt để không đụng với kéo-thả có sẵn của Safari; chuột / trackpad vẫn dùng HTML5. Đã thử bằng sự kiện chạm giả lập trong trình duyệt, chưa thử trên iPad thật.
+- Lịch sử thay đổi của task, 30 ngày (2026-10-06, schema v15, bảng `task_events`): người dùng chốt ghi mọi thay đổi, chỉ giữ 30 ngày, ai xem được task thì xem được, mô tả lưu cả bản trước / sau. Mục "Lịch sử thay đổi (30 ngày)" cuối panel task (`TaskHistory.jsx`), tự cập nhật khi task đổi. Server: `logEvent()` / `logTaskChanges()`, `GET /api/tasks/:id/history`, dọn dòng cũ khi khởi động và mỗi ngày. Lịch sử bắt đầu trống từ v15. Test `task-history.test.js`.
+- Bỏ nhãn team của requirement, nhãn team trên task theo người làm (2026-10-06, schema v16): người dùng đổi ý sau khi làm nhãn team cho requirement (v14), migration v16 xoá bảng `requirement_teams` và cột `all_teams` (2 nhãn + 1 "Tất cả team" người dùng đã gắn bị bỏ; còn trong `app.backup-before-assignee-teams.db`). Task trên Board / List hiện team của người làm trong project (`TaskTags` trong `common.jsx`, server trả `assignee_teams`); lọc "Mọi team" theo đó (`?team=3`).
+- Chỉ giao task cho người thuộc team của project (2026-10-06): `canBeAssigned()` ở server; project toàn phòng thì ai có team cũng được; thành viên ngoài team chỉ xem và bình luận, không tự thêm task (`project.can_add_tasks`, ẩn "+ Thêm task" và có dòng giải thích). Task cũ giữ người làm: hiện có 3 task giao cho Lan Anh (Marketing) trong project không có team Marketing (Setup CI/CD; Lan An Task; Thiết kế form đăng ký). Sửa kèm lỗi cũ: tạo task thiếu `section_id` trả 500, nay 400. Test cũ trong `requirements`, `dashboard`, `roles` được viết lại theo luật mới; test mới trong `assignees.test.js`.
+- 3 trạng thái mặc định (Cần làm, Đang làm, Hoàn thành) không xoá được, chỉ đổi tên (2026-10-06): không có nút ✕, server trả 400.
+- File trong bình luận và góp ý (2026-10-06, schema v13): ô viết bình luận (`CommentComposer` trong `CommentList.jsx`) có 📎, kéo thả, dán ảnh Ctrl+V; gửi chỉ file được; file hiện dưới bình luận (`FileList` dùng chung với khu Đính kèm), xoá bình luận thì file bị xoá khỏi ổ đĩa. Chỉ người viết đính kèm vào bình luận của mình; xoá file: người tải lên hoặc người quản lý task / sửa requirement. Test trong `comments-attachments.test.js` và `statuses.test.js`.
+- Trạng thái và dấu hoàn thành đi cùng nhau (2026-10-06, schema v12, `sections.kind`): trạng thái mặc định Cần làm / Đang làm / Hoàn thành (đổi tên cột cũ To do / Doing / Done). Tick → task sang cuối Hoàn thành; bỏ tick → về Đang làm; kéo vào Hoàn thành → tự tick (báo Leader / Manager như tick); kéo ra cột khác → tự bỏ tick; thêm task trong cột Hoàn thành → đã xong. Logic ở server (`statusSync()`), nên mọi chỗ tick (Board, List, panel, Task của tôi) đều theo. Migration chuyển 2 task đã tick của Social Q4 sang Hoàn thành. Test `statuses.test.js`; 2 test dashboard cập nhật theo luật mới. Chưa thử tick trên trình duyệt với dữ liệu thật để không gửi thông báo cho người thật.
+- Section gọi là "trạng thái" (2026-10-06): mọi chữ trên giao diện (Thêm / Đổi tên / Xoá trạng thái, hộp thoại, Dashboard "Theo trạng thái") và thông báo lỗi của API; code vẫn dùng `sections`. Ô lọc "Mọi trạng thái" chỉ liệt kê các trạng thái của project (`?status=s8`); bỏ lọc Chưa xong / Đã xong theo yêu cầu người dùng (link cũ có `status=open|done` thì bỏ qua).
+- Header project (2026-10-06): nút chọn màn tách 2 cụm, [Requirements | Lịch] và [List | Board]. Header chia 2 khối tự xuống dòng (tên + nút sửa/xoá; thành viên + 2 cụm), nhãn team rút gọn "…" khi thiếu chỗ. Trước đó ở bề ngang ~1024–1300px các nút chọn màn bị đẩy ra ngoài màn hình.
+- Tag kênh trên task, đợt 1 (2026-10-06, schema v17, bảng `channels` + `task_channels`): người dùng chốt danh sách chung cả phòng, chỉ Manager quản lý (thẻ "Kênh" trong Quản lý người dùng: thêm, đổi tên, bấm chấm màu để đổi màu, xoá có cảnh báo số task), một task nhiều kênh, ai sửa được task thì gắn (ô "Kênh" dạng pill trong panel task), subtask không có kênh, xoá kênh thì gỡ khỏi task và ghi lịch sử. Tag "● Facebook" trên Board / List (`ChannelTag` trong `common.jsx`), ô lọc "Mọi kênh" (`?channel=2`). API `/api/channels`, `PATCH /api/tasks/:id` nhận `channel_ids`. Test `channels.test.js` (8 test). Đã tạo sẵn 2 kênh Facebook, TikTok khi thử trên trình duyệt và gắn Facebook cho task "Viết content giới thiệu" (Website Redesign). Sửa kèm: `.fields label` → `.fields > label` để chữ pill trong panel task không bị nhạt.
+- Tag kênh, đợt 2 (2026-10-06, không đổi schema): mục "Theo kênh" ở Dashboard tổng và Dashboard project (xong / tổng, quá hạn của từng kênh; task nhiều kênh tính ở mỗi kênh; dòng "Chưa gắn kênh" chấm rỗng), component `ChannelProgress` trong `DashboardPage.jsx`, server `channelBreakdown()` theo đúng phạm vi của dashboard (Leader chỉ thấy team mình). Task của tôi / Theo dõi: ô "Mọi kênh" (chỉ hiện khi đã có kênh), lưu trên URL `#/my?channel=2`, số liệu Quá hạn / Hôm nay… tính theo bộ lọc, dòng task có tag kênh (`/api/tasks` trả `channels`). Lịch: tên kênh trong tooltip của task (ô ngày quá hẹp cho tag, và chấm màu thứ hai dễ nhầm với chấm màu project). Thêm 3 test vào `channels.test.js`.
+- Task lặp lại (2026-10-06, schema v18, cột `tasks.recurrence` + `tasks.next_task_id`): người dùng chốt theo đề xuất. Ô "Lặp lại" trong panel task (`RecurrenceField` trong `TaskDetail.jsx`): hằng ngày T2–T6, hằng tuần / mỗi 2 tuần (pill các thứ), hằng tháng (ngày 1–31, tháng ngắn = ngày cuối tháng); ai sửa được task thì đặt; task chưa có hạn được đặt hạn ngày đầu tiên của quy tắc. Đánh dấu xong (tick hoặc kéo vào Hoàn thành) → `spawnNextOccurrence()` tạo bản kế tiếp ở Cần làm (chép tên, mô tả, người làm nếu còn giao được, requirement, ưu tiên, kênh, subtask chưa tick), hạn = ngày kế tiếp sau hạn cũ, không trước hôm nay; quy tắc chuyển sang bản mới, mỗi bản chỉ sinh một lần (bỏ tick rồi tick lại không tạo thêm). Hằng ngày xong không báo Leader / Manager; bản mới báo "được giao" khi người khác tick. ↻ cạnh hạn chót (Board, List, Task của tôi, Requirements), panel task có link "Bản kế tiếp", lịch sử ghi đặt / đổi / tắt lặp lại, "tạo bản kế tiếp", "bản kế tiếp của task lặp lại". Test `recurring.test.js` (10 test). Đã thử trên trình duyệt bằng task test rồi xoá. Thêm nút "?" cạnh ô Lặp lại (cả khi chỉ xem) mở ghi chú cách dùng; component chung `Hint` trong `common.jsx` (dựa trên `<details>`, bấm được trên iPad, bấm ra ngoài / Esc thì đóng), dùng lại được cho các ô khác.
+- Sidebar "Projects theo team" cho mọi vai trò (2026-10-06, người dùng chốt): trước đây chỉ người thấy nhiều nhóm mới có tiêu đề "Projects theo team", người khác thấy "Projects". Giờ mỗi team của người dùng là một nhóm "Team …" (hiện cả khi trống, ghi "Team chưa có project nào."), project chung nhiều team hiện ở mỗi team của mình (bỏ luật cũ "chỉ dưới team đầu tiên", vì Team Design / Social của Trieu hiện 0 dù có project). Project ngoài team của mình → "Project khác" (vd. Lan Anh, team Marketing: Website Redesign và Campaign Tết), không thuộc team nào → "Chung toàn phòng". Manager theo cùng luật. `groupByTeam()` trong `Sidebar.jsx`.
+- Đổi chữ "Góp ý" thành "Bình luận" ở requirement (2026-10-06, người dùng yêu cầu), giống bình luận của task: tiêu đề khu bình luận, ô viết ("Viết bình luận… Gõ @…"), dòng trống ("Chưa có bình luận."), hộp xoá, cảnh báo khi xoá requirement, lỗi API "Bình luận không được để trống". Code vẫn là `requirement_comments`. Sau đó người dùng chốt lại chữ, áp dụng cho cả task lẫn requirement: tiêu đề "Comments", ô viết "Gõ @ để nhắc ai đó, dán ảnh hoặc bấm 📎 để đính kèm", trống "Chưa có comments.", hộp xoá "Xoá comment này?", xoá requirement "Comments của requirement này cũng sẽ bị xoá.", lỗi API "Comment không được để trống". Rồi đổi nốt mọi chữ "bình luận" còn lại sang "comment": lịch sử thay đổi ("đã comment", "đã sửa / xoá comment", "trong comment"), "Chỉ xem · comment được", 2 dòng giải thích quyền trên đầu project, hộp xoá task, ghi chú task lặp lại, tooltip 💬, lỗi API "Bạn chỉ có quyền xem và comment task này".
+- Tiếng Việt / Tiếng Anh (2026-10-06, schema v19 `users.language`): người dùng chốt lưu theo tài khoản và giữ nguyên dữ liệu người dùng gõ (tên trạng thái mặc định, project, task… không dịch). Nút VI | EN ở sidebar cạnh Sáng / Tối, và trên màn đăng nhập / chờ duyệt (`LanguageSwitch` trong `common.jsx`); `PATCH /api/me`. Client: `client/src/i18n.js` (`tr()` với chữ tiếng Việt làm khoá, `trMessage()` dịch lỗi server kể cả câu có số, `locale()` cho ngày tháng) và `client/src/i18n.en.js` (383 khoá giao diện + 69 thông báo server). Đổi ngôn ngữ thì App vẽ lại toàn bộ (URL giữ màn đang xem). Bảng nhãn (ưu tiên, trạng thái tài khoản, chu kỳ lặp, thứ trong tuần) thành getter. Lịch sử task giờ lưu quy tắc lặp dạng JSON để hiện theo ngôn ngữ người đọc (dòng cũ giữ chữ tiếng Việt). Chữ được bọc tự động bằng codemod (Babel) rồi soát tay các câu ghép. Test `language.test.js` và `i18n.test.js` (báo thiếu bản tiếng Anh / chữ tiếng Việt nằm ngoài `tr()` / lỗi server chưa dịch). Đã quét mọi màn bằng tiếng Anh trên trình duyệt: chỉ còn dữ liệu người dùng; tài khoản Trieu đã để lại VI.
+- Hồ sơ của tôi (2026-10-06, schema v20: `users.birthday`, `phone`, `job_title`, `bio`, `gender`): người dùng chốt thêm cả 4 trường (SĐT, chức danh, giới thiệu, giới tính), Manager xem được thông tin cá nhân của mọi người, giữ nút Sáng/Tối và VI/EN ở cả sidebar lẫn Profile. Trang `ProfilePage.jsx` (`#/profile`, mở bằng tên mình ở chân sidebar): tài khoản (chỉ xem), thông tin cá nhân (Lưu / Huỷ thay đổi, chỉ bật khi có thay đổi), Giao diện và ngôn ngữ. Manager bấm ⓘ ở Quản lý người dùng để xem hồ sơ (`ProfileModal`, chỉ xem). Server: `withProfile()` chỉ dùng cho `/api/me` và API của Manager, không đưa vào `USER_SELECT`; `PATCH /api/me` kiểm tra tên (bắt buộc), ngày sinh (1900 → hôm nay), SĐT, độ dài. Hai nút Sáng/Tối (sidebar + Profile) đồng bộ qua sự kiện `taskflow-theme`. Test `profile.test.js` (gồm kiểm tra Leader / đồng nghiệp không thấy thông tin cá nhân). Đã thử trên trình duyệt với tài khoản Trieu (lưu rồi xoá lại chức danh thử); tài khoản Trieu đang để EN (người dùng tự chọn).
+- Ảnh đại diện (2026-10-06, schema v21 `users.avatar`): nút "Tải ảnh đại diện lên / Đổi ảnh / Xoá ảnh" ở đầu trang Profile; trình duyệt cắt vuông giữa ảnh và thu về 256 px (WebP, PNG nếu trình duyệt không ghi được WebP) rồi gửi. Server kiểm tra loại ảnh theo nội dung file (PNG / JPG / WebP, ≤ 1 MB), tên file mới mỗi lần (dùng làm phiên bản cache), xoá file cũ; `sweepUploads()` giữ file avatar. Mọi người đã đăng nhập thấy ảnh; tài khoản bị khoá không hiện ảnh. Client `avatars.js` (danh sách ai có ảnh + cache ảnh tải kèm token), `Avatar` nhận `userId` (đã truyền ở cả 19 chỗ). Test `avatar.test.js`. Đã thử trên trình duyệt bằng tài khoản Trieu rồi xoá ảnh thử.
+- Xem hồ sơ người khác (2026-10-06, người dùng chốt): Manager **và Leader của team có người đó** xem được hồ sơ chi tiết; người khác nhận 404 (`GET /api/users/:id/profile`, `canReadProfile()`). Bấm vào avatar ở Quản lý người dùng › Người dùng, hoặc ở danh sách thành viên trong Quản lý team / Sửa team, sẽ mở thẻ nhỏ cạnh avatar (`ProfilePopover` trong `ProfilePage.jsx`, dựa trên `<details>` nên bấm ra ngoài / Esc thì đóng; gần cuối màn hình thì mở lên trên): ảnh, tên, chức danh, vai trò · team, email (mailto), SĐT (tel), ngày sinh, giới tính, trạng thái, ngày tham gia, giới thiệu (tối đa 4 dòng). Thay nút ⓘ và hộp `ProfileModal` cũ. Người dùng chốt thêm: hồ sơ của Manager chỉ Manager xem được, kể cả khi Manager thuộc team của Leader. Test thêm trong `profile.test.js`.
+- Bấm ra ngoài để đóng popup (2026-10-06): ô chọn team (Quản lý người dùng, header project, mọi `<details>`) đóng khi bấm ra ngoài hoặc Esc (một listener chung trong `Workspace.jsx`); menu con sidebar đã ghim mở cũng đóng khi bấm ra ngoài. Modal và chuông thông báo vốn đã đóng như vậy.
+- Sửa lỗi điều hướng: dán link cùng project nhưng khác tab / bộ lọc vào thanh địa chỉ giờ mở đúng tab (trước đó giữ tab cũ).
+- Mở app trên iPad / điện thoại cùng Wi-Fi (2026-10-05): Vite có `host: true`, vào `http://<IP máy>:5173`. Ở địa chỉ này không đăng nhập Google được (Google chỉ nhận localhost hoặc HTTPS), dùng ô đăng nhập dev.
+
+---
+
+## Đang làm
+
+Không có việc nào đang dở, không có câu hỏi nào chờ người dùng.
+- Đã chốt (2026-10-05): "Website Redesign" giữ **Content + Design**.
+
+---
+
+## Cần làm
+
+Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
+
+### Chất lượng và vận hành
+- Test cho phần chuyển dữ liệu (migration v1 → v10): tạo database phiên bản cũ ngay trong test rồi kiểm tra sau khi nâng cấp. Hiện mới chỉ kiểm tra tay trên bản sao lưu.
+- Test giao diện (React) cho các luồng chính, ví dụ bằng Playwright: hiện chỉ có test API.
+- ⭐ **Chuẩn bị deploy**: build production (server phục vụ `client/dist`), HTTPS, `JWT_SECRET` thật, tắt `DEV_LOGIN`, backup database tự động định kỳ.
+- Kiểm tra đăng nhập Google thật: `GOOGLE_CLIENT_ID` đã điền vào `server/.env` (2026-10-05), nút Google đã hiện; người dùng cần tự đăng nhập thử (lần đầu = đăng ký). Lưu ý: Google chỉ chạy ở `localhost` hoặc HTTPS, không chạy qua IP mạng LAN.
+- Bỏ cột cũ `projects.team_id` (không dùng từ v5) và `users.team_id` (không dùng từ v9); phải dựng lại bảng vì cột có khoá ngoại.
+
+### Tính năng
+- Task lặp lại, đợt sau (nếu cần): hiện mờ các lần sắp tới trên Lịch (xem trước lịch đăng bài cả tháng), lặp kiểu "thứ Sáu cuối cùng của tháng".
+- Thông báo khi có góp ý mới trên requirement của mình (owner / Leader), không chỉ khi được tag.
+
+### Giao diện
+- Nút Back / Forward của trình duyệt đi giữa các màn trong app (hiện URL chỉ được thay, không thêm vào lịch sử). Requirement chọn sau khi vào tab Requirements chưa ghi lên URL (chỉ requirement mở từ link / thông báo).
+- Cảnh báo React có sẵn từ trước: dòng task trong requirement là `<button>` chứa `CheckButton` (cũng là button), cần đổi dòng thành `div` có role button.
+- Menu con của sidebar che tên các mục khác khi mở (đúng như mẫu); cân nhắc mở menu con ra ngoài sidebar.
+- Thử giao diện iPad trên máy thật (đã làm theo khung giả lập 744 / 768 / 1024px và sự kiện chạm giả lập): ngăn kéo, giữ-để-kéo trên Board và Lịch, bàn phím ảo che ô bình luận. Điện thoại (< 744px) chưa tối ưu: Board, Lịch, bảng vẫn cần màn rộng.
+
+---
+
+## Đề xuất tiếp theo
+
+1. **Chuẩn bị deploy** cho 40 người dùng thật (build production, HTTPS, backup tự động **cả database lẫn `server/data/uploads/`**), kèm Google OAuth Client ID.
+2. **Thông báo góp ý mới trên requirement** cho owner / Leader (mục Tính năng).
+3. **Thử trên iPad thật** (`http://<IP máy>:5173`, đăng nhập dev) và báo lại chỗ vướng.
+
+---
+
+## Ghi chú cho phiên sau
+
+- **Trước khi đổi schema** (`server/src/db.js`): tắt dev server (nó chạy `node --watch` nên chuyển dữ liệu ngay khi lưu file) và sao lưu bằng `VACUUM INTO`. Bản sao lưu hiện có trong `server/data/`: `app.backup-before-roles.db` (v1), `app.backup-v7-requirements.db`, `app.backup-before-mentions.db` (v7), `app.backup-before-multi-team-users.db` (v8), `app.backup-before-invited-by.db` (v9), `app.backup-before-attachments.db` (v10), `app.backup-before-status-sync.db` (v11), `app.backup-before-comment-files.db` (v12), `app.backup-before-requirement-teams.db` (v13), `app.backup-before-task-history.db` (v14), `app.backup-before-assignee-teams.db` (v15), `app.backup-before-channels.db` (v16), `app.backup-before-recurring.db` (v17), `app.backup-before-language.db` (v18), `app.backup-before-profile.db` (v19), `app.backup-before-avatar.db` (v20).
+- **Lịch sử schema** v1 → v10 có trong README, mục "Database".
+- **Cấu trúc server** (từ 2026-10-06): endpoint mới vào `server/src/routes/<tính năng>.js`, luật dùng chung vào `server/src/lib/`; không thêm code vào `index.js`. README mục "Cấu trúc" liệt kê từng file.
+- **Vite** đôi khi giữ bản trung gian của file khi sửa nhiều lần liên tiếp, gây lỗi giả trong console. `touch` file đó để Vite đọc lại.
+- **Script shell**: đừng nhúng code JS có backtick hoặc `$(…)` vào lệnh `node -e "…"`; bash sẽ tự mở rộng chúng (từng lỡ chạy lệnh `code` của VS Code). Dùng công cụ sửa file trực tiếp.
+- **Dev server chạy nhiều bản**: phiên 2026-10-05 tìm thấy 3 bản `npm run dev` chạy song song (2 bản kẹt vì trùng cổng nhưng vẫn `--watch`). Trước khi đổi schema, kiểm tra hết tiến trình node của project, không chỉ cổng 3001 / 5173. Dev server hiện được chạy từ pane xem trước của app (`.claude/launch.json`, tên `taskflow`).
+- **Test**: chạy `npm test` sau mỗi thay đổi ở server; tính năng hoặc luật mới thì thêm test vào file tương ứng trong `server/test/`. Không viết script curl tạm nữa.
+- **Test chập chờn** (2026-10-06): hai lần `npm test` báo fail cả một file (`multi-team`, rồi `project-permissions`) vì server của file đó không lên kịp 10 giây, cả hai lần ngay sau khi sửa `server/src/index.js` (dev server `--watch` khởi động lại cùng lúc với ~23 server test). Đã tăng `START_TIMEOUT_MS` lên 30 giây trong `server/test/helpers.js`. Nếu vẫn gặp: chờ vài giây sau khi lưu file server rồi mới chạy test.
+
+### Dữ liệu trong database dev
+- Người dùng thật (do người dùng tạo): **Trieu** (Manager, tài khoản Gmail của Trieu), **Nhi Trần** (Leader, Team Social), team **Team Social**.
+- Tài khoản test: Demo User (Member, Design), Lan Anh (Leader, Content), Minh Content (Member, Content), Pending Test (`pending.test@t.test`, đã khoá, dùng để thử màn chờ duyệt).
+- Project: Website Redesign (Content + Design), Social Q4 (Content), Campaign Tết 2027 (Content + Design, có requirement "Landing page Tết" và các bình luận / tag test).

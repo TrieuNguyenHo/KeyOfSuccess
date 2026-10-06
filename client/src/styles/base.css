@@ -1,0 +1,178 @@
+/* Shared building blocks: buttons, sign-in card, app layout, page header and toolbar, segmented control,
+   search box, check button. */
+
+/* Buttons: pill for actions, small rect for utility */
+.btn {
+  border: none; border-radius: var(--rounded-pill); padding: 8px 20px; cursor: pointer;
+  font-weight: 400; white-space: nowrap;
+}
+.btn.primary { background: var(--primary); color: var(--on-primary); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.small { padding: 5px 14px; }
+/* Destructive confirm: tinted so the red text passes AA in both themes; the title carries the ⚠ */
+.btn.danger { background: var(--danger-tint); color: var(--danger); font-weight: 600; }
+.link-btn { background: none; border: none; color: var(--primary-text); cursor: pointer; padding: 4px; }
+.link-btn.danger { color: var(--danger); }
+.link-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.link-btn.light { color: var(--muted); }
+.icon-btn {
+  background: none; border: none; cursor: pointer; border-radius: var(--rounded-sm);
+  width: 30px; height: 30px; color: var(--muted); flex-shrink: 0;
+}
+.icon-btn:hover { background: var(--hover); color: var(--ink); }
+.icon-btn.danger:hover { color: var(--danger); }
+.icon-btn.light { font-size: 18px; }
+
+/* Auth */
+.auth-page { min-height: 100vh; display: grid; place-items: center; background: var(--brand); padding: 16px; }
+.auth-card {
+  background: var(--canvas); width: 380px; max-width: 100%; padding: 40px 32px; border-radius: var(--rounded-lg);
+  border: 1px solid var(--hairline); display: flex; flex-direction: column; gap: 14px;
+}
+.auth-card h2 {
+  font-family: var(--font-display); font-size: 34px; font-weight: 600; line-height: 1.1;
+  letter-spacing: -0.374px; margin: 0;
+}
+.auth-card p { margin: 0; font-size: 17px; line-height: 1.47; letter-spacing: -0.374px; }
+.auth-card p.muted { font-size: 14px; letter-spacing: -0.224px; }
+.auth-card input { padding: 10px 16px; border-radius: var(--rounded-pill); }
+
+/* Layout */
+.app { display: flex; height: 100vh; height: 100dvh; } /* dvh: iPad Safari's toolbars do not cover the bottom */
+.main {
+  flex: 1; min-width: 0; overflow: hidden; position: relative; background: var(--canvas);
+  display: flex; flex-direction: column;
+}
+.main-content { flex: 1; min-height: 0; position: relative; }
+.mobile-bar, .nav-backdrop { display: none; }
+.brand {
+  font-family: var(--font-display); font-size: 21px; font-weight: 600; letter-spacing: 0.231px;
+  color: var(--ink); padding: 4px 8px 16px;
+}
+.brand.dark { padding: 0; color: var(--primary-text); }
+
+
+.dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dot.lg { width: 14px; height: 14px; }
+
+.avatar {
+  display: inline-grid; place-items: center; flex-shrink: 0;
+  width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 0;
+}
+.avatar.small { width: 22px; height: 22px; font-size: 9px; }
+
+.tag {
+  font-size: 12px; letter-spacing: -0.12px; padding: 2px 10px; border-radius: var(--rounded-pill);
+  font-weight: 600; white-space: nowrap;
+}
+.priority-low { background: var(--ok-bg); color: var(--ok-text); }
+.priority-medium { background: var(--warn-bg); color: var(--warn-text); }
+.priority-high { background: var(--danger-tint); color: var(--danger); }
+.tag.owner { background: var(--primary-tint); color: var(--primary-text); }
+.tag.readonly { background: var(--parchment); color: var(--muted); margin-left: auto; }
+.status-pending { background: var(--warn-bg); color: var(--warn-text); }
+.status-active { background: var(--ok-bg); color: var(--ok-text); }
+.status-disabled { background: var(--parchment); color: var(--muted); }
+
+/* Page header & toolbar */
+.project { height: 100%; display: flex; flex-direction: column; }
+.project-header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 28px 32px 12px; }
+.project-header h1 {
+  font-family: var(--font-display); font-size: 34px; font-weight: 600; line-height: 1.18;
+  letter-spacing: -0.374px; margin: 0 4px 0 0;
+}
+.project-header select { border-radius: var(--rounded-pill); padding: 8px 16px; }
+
+/* Segmented control */
+.tabs { display: flex; background: var(--parchment); border-radius: var(--rounded-pill); padding: 3px; }
+.tab-groups { display: flex; flex-wrap: wrap; gap: 12px; }
+.project-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.project-title h1 { min-width: 0; overflow-wrap: anywhere; } /* a long name wraps, its buttons stay beside it */
+/* Short of room, the team label gives way first (ellipsis, full text on hover), before the name wraps. */
+.project-title .team-picker, .project-title .team-tag { flex: 0 1000 auto; min-width: 56px; }
+.project-title .team-picker > summary, .project-title .team-tag {
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.project-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-left: auto; }
+.tabs button { white-space: nowrap;
+  border: none; background: none; padding: 6px 16px; border-radius: var(--rounded-pill); cursor: pointer; color: var(--ink);
+}
+.tabs button.active { background: var(--canvas); color: var(--primary-text); font-weight: 600; outline: 1px solid var(--hairline); }
+
+.toolbar {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 4px 32px 16px; border-bottom: 1px solid var(--hairline); margin-bottom: 16px;
+}
+.toolbar select { border-radius: var(--rounded-pill); padding: 8px 16px; height: 36px; }
+
+/* Search box after component_styles/search_box: a magnifier that opens into a pill on focus,
+   its handle turning into the text caret. It stays open while it holds text (:valid, the input
+   is required with a non-blank pattern). */
+.search-box { position: relative; display: inline-block; height: 36px; flex-shrink: 0; }
+.search-box input[type='search'] {
+  display: block; width: 24px; height: 24px; margin: 6px 0; padding: 0;
+  border: none; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 3px var(--muted);
+  cursor: pointer; caret-color: var(--primary-text); -webkit-appearance: none; appearance: none;
+  transition: all 0.5s linear;
+}
+.search-box input[type='search']:not(:focus):not(:valid)::placeholder { color: transparent; }
+.search-box input[type='search']::-webkit-search-decoration { -webkit-appearance: none; }
+.search-box input[type='search']:focus, .search-box input[type='search']:valid {
+  width: 260px; height: 36px; margin: 0; padding: 8px 16px; cursor: text;
+  border-radius: var(--rounded-pill); background: var(--parchment); box-shadow: none;
+  transition-duration: 0.25s; transition-delay: 0.25s;
+}
+.search-box input[type='search']:focus { animation: search-show-caret 1s steps(1); }
+/* Wide: fills its row (e.g. the add-member search) instead of a fixed 260px */
+.search-box.wide { flex: 1; }
+.search-box.wide input[type='search']:focus, .search-box.wide input[type='search']:valid { width: 100%; }
+/* Handle: hangs from the circle's center (12px, 18px), pointing down-right */
+.search-caret {
+  position: absolute; left: 10.5px; top: 18px; width: 3px; height: 12px; pointer-events: none;
+  background: var(--muted); border-radius: 0 0 1.5px 1.5px; transform-origin: 50% 0;
+  transform: rotate(-45deg) translate(0, 10px); transition: all 0.5s linear;
+}
+.search-box input[type='search']:focus + .search-caret, .search-box input[type='search']:valid + .search-caret {
+  animation: search-handle-to-caret 1s linear;
+  background: transparent; width: 1px; height: 18px;
+  transform: rotate(-180deg) translate(-5.5px, -9px);
+}
+@keyframes search-show-caret {
+  from { caret-color: transparent; }
+  to { caret-color: var(--primary-text); }
+}
+@keyframes search-handle-to-caret {
+  from { background: var(--muted); width: 3px; height: 12px; transform: rotate(-45deg) translate(0, 10px); }
+  25% { background: var(--muted); width: 3px; height: 12px; transform: rotate(-180deg) translate(0, 10px); }
+  50%, 62.5% { background: var(--primary-text); width: 1px; height: 18px; transform: rotate(-180deg) translate(-5.5px, 6px); }
+  75%, 99% { background: var(--primary-text); width: 1px; height: 18px; transform: rotate(-180deg) translate(-5.5px, -9px); }
+  87.5% { background: var(--primary-text); width: 1px; height: 18px; transform: rotate(-180deg) translate(-5.5px, -7px); }
+  to { background: transparent; width: 1px; height: 18px; transform: rotate(-180deg) translate(-5.5px, -9px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .search-box input[type='search'], .search-caret { transition: none; }
+  .search-box input[type='search']:focus, .search-box input[type='search']:focus + .search-caret { animation: none; }
+}
+
+.section-header { display: flex; align-items: center; gap: 8px; padding: 4px 4px 10px; }
+.section-name { font-size: 17px; font-weight: 600; letter-spacing: -0.374px; }
+
+/* Circular check, Reminders-style */
+.check {
+  width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--chip); background: none;
+  font-size: 11px; line-height: 1; color: transparent; cursor: pointer; flex-shrink: 0; padding: 0;
+  display: inline-grid; place-items: center;
+}
+.check:hover { border-color: var(--primary); color: var(--primary-text); }
+.check.checked { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.check:disabled { cursor: default; opacity: 0.5; }
+.check:disabled:hover { border-color: var(--chip); color: transparent; }
+.check.checked:disabled:hover { color: var(--on-primary); border-color: var(--primary); }
+
+.add-task {
+  background: none; border: none; color: var(--primary-text); cursor: pointer; padding: 8px 10px;
+  text-align: left; width: 100%; border-radius: var(--rounded-sm);
+}
+.add-task:active { transform: none; }
+.add-task:hover { background: var(--hover); }
+.add-task-form input { width: 100%; }

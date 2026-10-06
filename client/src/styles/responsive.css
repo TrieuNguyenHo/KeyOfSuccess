@@ -1,0 +1,64 @@
+/* ---------- Tablet (iPad) ----------
+   Below 1024px (iPad portrait) the sidebar becomes a drawer behind the ☰ button and paddings tighten.
+   Touch-first devices get 16px form text (smaller makes iPad Safari zoom in on focus) and 40px buttons. */
+@media (max-width: 1023px) {
+  .sidebar {
+    /* Above the content and the task panel (10), below modals (20+). No overflow: the notification panel
+       and the fly-outs reach past its edge. */
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 19;
+    transform: translateX(-100%); visibility: hidden; transition: transform 0.25s ease, visibility 0.25s;
+  }
+  .sidebar.open { transform: none; visibility: visible; }
+  .nav-backdrop { display: block; position: fixed; inset: 0; z-index: 18; background: var(--backdrop); }
+  .mobile-bar {
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 6px 12px; border-bottom: 1px solid var(--hairline);
+  }
+  .mobile-bar .brand { padding: 0; font-size: 17px; }
+  .menu-btn { position: relative; font-size: 20px; color: var(--ink); }
+  .menu-dot {
+    position: absolute; top: 6px; right: 6px; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--brand);
+  }
+  .project-header { padding: 16px 20px 12px; }
+  .project-header h1 { font-size: 28px; }
+  .toolbar { padding: 4px 20px 12px; }
+  .board, .list, .calendar { padding-left: 20px; padding-right: 20px; }
+  .requirements-tab { padding: 16px 20px 24px; }
+  .task-page { padding: 16px 20px 32px; }
+}
+/* Tables get narrower columns whenever the content area is under ~1000px: iPad portrait (drawer sidebar)
+   and iPad landscape, where the 272px sidebar leaves about 750px. */
+@media (max-width: 1279px) {
+  .list-row.personal { grid-template-columns: minmax(140px, 1fr) 150px 100px 90px; }
+  .list-row.with-assignee { grid-template-columns: minmax(140px, 1fr) 130px 130px 96px 84px; }
+  .admin-card { padding: 16px; }
+  .workload-row { gap: 8px; grid-template-columns: minmax(120px, 1.2fr) minmax(80px, 2fr) repeat(5, 52px); }
+  .workload-row.with-team { grid-template-columns: minmax(120px, 1.2fr) 80px minmax(80px, 2fr) repeat(5, 52px); }
+  .admin-row { gap: 8px; grid-template-columns: minmax(150px, 1fr) 100px 110px 120px 130px; }
+  .admin-actions { flex-wrap: wrap; }
+}
+@media (max-width: 1023px) and (prefers-reduced-motion: reduce) { .sidebar { transition: none; } }
+@media (max-width: 900px) { .detail { width: 100%; border-left: none; } }
+
+@media (pointer: coarse) {
+  input, select, textarea { font-size: 16px; }
+  .toolbar select { height: 40px; padding-top: 0; padding-bottom: 0; }
+  .search-box { height: 40px; }
+  .search-box input { height: 40px; padding-top: 0; padding-bottom: 0; }
+  .icon-btn { width: 40px; height: 40px; }
+  .hint > .hint-btn { width: 32px; height: 32px; }
+  .link-btn { padding: 8px; }
+  .tabs button { padding: 9px 16px; }
+  .calendar-task { padding: 6px 8px; }
+  .check { width: 24px; height: 24px; }
+  /* Long-press picks a card up (touchDrag.js), so it must not select text or open the iOS callout. */
+  .card, .calendar-task { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+}
+
+/* The copy of a card or calendar task that follows the finger while dragging (touchDrag.js). */
+.touch-ghost {
+  position: fixed; top: 0; left: 0; z-index: 100; pointer-events: none; opacity: 0.92;
+  outline: 2px solid var(--primary); border-radius: var(--rounded-md);
+}
+.calendar-task.dragging { opacity: 0.4; }

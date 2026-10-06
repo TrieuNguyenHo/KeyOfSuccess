@@ -1,0 +1,110 @@
+/* Layout, type and shape tokens follow .claude/DESIGN.md. Colors use the KingSport brand
+   (red-orange #D85A30, dark #993C1D, ink #2C2C2A) in place of DESIGN.md's Action Blue. */
+:root {
+  --brand: #d85a30; /* KingSport red-orange: 3.87:1 on white, so large fills and marks only, never small text */
+  --primary: #c24e26; /* one step darker than brand so white 14px text passes AA (4.76:1): buttons, sidebar */
+  --primary-text: #993c1d; /* KingSport dark red (6.96:1): links and red text on white */
+  --primary-focus: #d85a30;
+  --primary-tint: rgba(216, 90, 48, 0.1); /* selected / unread background */
+  --ink: #2c2c2a;
+  --ink-muted-80: #333333;
+  /* not in DESIGN.md: its #7a7a7a fails WCAG AA contrast for 12-14px secondary text */
+  --muted: #6e6e73;
+  --ink-muted-48: #7a7a7a;
+  --hairline: #e0e0e0;
+  --divider-soft: #f0f0f0;
+  --canvas: #ffffff;
+  --parchment: #f5f5f7;
+  --pearl: #fafafc;
+  --chip: #d2d2d7;
+  --on-primary: #ffffff;
+
+  /* Status colors. Overdue/destructive is a crimson kept apart from the brand red-orange,
+     and overdue always carries a ⚠ icon so it never relies on color alone. */
+  --danger: #b42318;
+  --danger-tint: #fdecea;
+  --ok-bg: #e3f5e9;
+  --ok-text: #1d7a43;
+  --warn-bg: #fff2d9;
+  --warn-text: #8a5a00;
+  /* Workload chart marks, validated as a pair with the dataviz palette script. */
+  --overdue-mark: #b42318;
+  --neutral-mark: #8e8e93; /* de-emphasized chart marks (open, not overdue) */
+
+  --sidebar: #c24e26;
+  --hover: rgba(0, 0, 0, 0.05);
+  --backdrop: rgba(0, 0, 0, 0.32);
+  --frost: rgba(255, 255, 255, 0.86); /* floating panels: frosted glass instead of a shadow */
+  color-scheme: light;
+
+  --rounded-sm: 8px;
+  --rounded-md: 11px;
+  --rounded-lg: 18px;
+  --rounded-pill: 9999px;
+
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+
+  font-family: var(--font);
+  font-size: 14px; /* caption: dense app UI */
+  line-height: 1.43;
+  letter-spacing: -0.224px;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dark mode: surfaces from DESIGN.md's dark tiles; reds lightened so text keeps AA contrast
+   (links #ef7a4e 6.1:1, danger #ff6b5e 6.0:1, muted 6.5:1 on #1d1d1f). Chart pair re-validated on #272729. */
+:root[data-theme='dark'] {
+  --primary-text: #ef7a4e;
+  --primary-tint: rgba(239, 122, 78, 0.16);
+  --ink: #f5f5f7;
+  --ink-muted-80: #d1d1d6;
+  --muted: #a1a1a6;
+  --ink-muted-48: #8e8e93;
+  --hairline: #3a3a3c;
+  --divider-soft: #2c2c2e;
+  --canvas: #1d1d1f;
+  --parchment: #272729;
+  --pearl: #2a2a2c;
+  --chip: #5a5a5e;
+
+  --danger: #ff6b5e;
+  --danger-tint: #3b1f1c;
+  --ok-bg: #1f3326;
+  --ok-text: #6fcf8f;
+  --warn-bg: #3a2e15;
+  --warn-text: #f2c063;
+  --overdue-mark: #ef5350;
+  --neutral-mark: #636366;
+
+  --sidebar: #a8401c; /* deeper brand red: less glare on a dark screen, white text 6.2:1 */
+  --hover: rgba(255, 255, 255, 0.08);
+  --backdrop: rgba(0, 0, 0, 0.55);
+  --frost: rgba(39, 39, 41, 0.86);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--canvas); }
+button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+button:active:not(:disabled) { transform: scale(0.95); }
+:focus-visible { outline: 2px solid var(--primary-focus); outline-offset: 2px; }
+
+input, select, textarea {
+  border: 1px solid var(--hairline);
+  border-radius: var(--rounded-sm);
+  padding: 7px 12px;
+  background: var(--canvas);
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary-focus); outline-offset: -1px; border-color: transparent; }
+
+.grow { flex: 1; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; letter-spacing: -0.12px; }
+.overdue { color: var(--danger); font-weight: 600; }
+.done { text-decoration: line-through; color: var(--muted); }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.center { display: grid; place-items: center; height: 100%; min-height: 60vh; }
+.error { color: var(--danger); background: var(--danger-tint); border-radius: var(--rounded-sm); padding: 10px 14px; }
+.error.banner { margin: 0 32px 12px; cursor: pointer; }

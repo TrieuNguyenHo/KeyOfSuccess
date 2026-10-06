@@ -1,0 +1,25 @@
+/* Selection pills (multi-select), adapted from component_styles/select_box: pill-shaped labels over
+   visually hidden checkboxes; selected pills fill with the brand color and show a check mark. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.pill-group { display: flex; flex-wrap: wrap; gap: 8px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.select-pill {
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 16px; border-radius: var(--rounded-pill); border: 1px solid var(--chip);
+  background: transparent; color: var(--ink); cursor: pointer; white-space: nowrap; user-select: none;
+  transition: color 0.2s ease-out, background-color 0.2s ease-out, border-color 0.2s ease-out, transform 0.1s ease-out;
+}
+.select-pill:hover { background: var(--hover); }
+.select-pill:active { transform: scale(0.95); }
+.select-pill.checked { background: var(--primary); border-color: var(--primary); color: var(--on-primary); font-weight: 600; }
+.select-pill.checked:hover { background: var(--primary-text); border-color: var(--primary-text); }
+.select-pill:has(input:focus-visible) { outline: 2px solid var(--primary-focus); outline-offset: 2px; }
+/* The check mark keeps selection readable without color; it collapses when unselected. */
+.pill-check { width: 0; overflow: hidden; font-size: 12px; transition: width 0.2s ease-out; }
+.select-pill.checked .pill-check { width: 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .select-pill, .pill-check { transition: none; }
+}
+
