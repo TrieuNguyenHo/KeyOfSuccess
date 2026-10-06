@@ -181,7 +181,7 @@ export default {
   'Manager hoặc Leader': 'A Manager or Leader',
   'Đang chờ duyệt': 'Waiting for approval',
   'Chào {name}, tài khoản': 'Hi {name}, the account',
-  'đã được tạo. {approver} cần duyệt và xếp bạn vào team trước khi bạn dùng được KeyofSuccess. Trang này tự mở app khi tài khoản được duyệt.': 'has been created. {approver} needs to approve it and put you in a team before you can use KeyofSuccess. This page opens the app as soon as the account is approved.',
+  'đã được tạo. {approver} cần duyệt và xếp bạn vào team trước khi bạn dùng được KeyOfSuccess. Trang này tự mở app khi tài khoản được duyệt.': 'has been created. {approver} needs to approve it and put you in a team before you can use KeyOfSuccess. This page opens the app as soon as the account is approved.',
   'Kiểm tra lại': 'Check again',
   'Đăng xuất': 'Sign out',
   'Rời khỏi project "{name}"?': 'Leave project "{name}"?',

@@ -63,4 +63,4 @@
 }
 .calendar-task.dragging { opacity: 0.4; }
 /* Phones: the sign-in card narrows, so the name shrinks with it. */
-@media (max-width: 420px) { .brand.dark { --brand-size: 9px; } }
+@media (max-width: 420px) { .brand.dark { --brand-size: 14px; } }

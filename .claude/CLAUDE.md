@@ -1,4 +1,4 @@
-# KeyofSuccess (formerly TaskFlow)
+# KeyOfSuccess (formerly TaskFlow)
 
 Asana-like task manager for a Marketing department of about 40 people.
 React + Vite (`client/`), Node/Express + SQLite via `node:sqlite` (`server/`). Run with `npm run dev` from the repo root.
@@ -24,7 +24,7 @@ The interface is in Vietnamese or English, per account (`users.language`, `PATCH
 
 ## UI design
 
-App name (decided 2026-10-06): "KeyofSuccess", K and S being KingSport's initials. On screen it is always `<Brand />` (`client/src/components/Brand.jsx`): K and S about 8× the other letters, in `--brand` (large text only); `--brand-size` sets the small letters (9px sidebar and top bar, 12px sign-in card, 9px there on phones). Internal ids keep the old name (`taskflow_theme` in localStorage, the `taskflow-theme` event): renaming them would reset saved choices.
+App name (decided 2026-10-06): "KeyOfSuccess", K and S being KingSport's initials. On screen it is always `<Brand />` (`client/src/components/Brand.jsx`): K and S about 5× the other letters, in `--brand` (large text only), O about 2× (updated by the user the same day; it was 8× with "Keyof"); `--brand-size` sets the small letters (12px sidebar and top bar, 18px sign-in card, 14px there on phones). Internal ids keep the old name (`taskflow_theme` in localStorage, the `taskflow-theme` event): renaming them would reset saved choices.
 
 Before any UI work (components, CSS, layout, colors, typography), read `.claude/DESIGN.md` and follow its tokens and do/don't rules.
 

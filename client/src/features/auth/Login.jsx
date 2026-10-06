@@ -138,7 +138,7 @@ export function Pending({ user, onApproved, onLogout }) {
         <h2>{tr('Đang chờ duyệt')}</h2>
         <p>
           {tr('Chào {name}, tài khoản', { name: user.name })} <b>{user.email}</b>{' '}
-          {tr('đã được tạo. {approver} cần duyệt và xếp bạn vào team trước khi bạn dùng được KeyofSuccess. Trang này tự mở app khi tài khoản được duyệt.', { approver })}
+          {tr('đã được tạo. {approver} cần duyệt và xếp bạn vào team trước khi bạn dùng được KeyOfSuccess. Trang này tự mở app khi tài khoản được duyệt.', { approver })}
         </p>
         {message && <p className="muted">{message}</p>}
         <button className="btn primary" onClick={() => check()}>

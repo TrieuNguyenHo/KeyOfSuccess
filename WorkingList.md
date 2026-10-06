@@ -1,4 +1,4 @@
-# KeyofSuccess — Working List
+# KeyOfSuccess — Working List
 
 Tiến độ dự án, để mỗi phiên làm việc mới nắm được đã làm gì, đang dở gì và nên làm gì tiếp.
 File này được nạp tự động qua `.claude/CLAUDE.md`.
@@ -73,10 +73,10 @@ _Cập nhật lần cuối: 2026-10-06 · Schema database: v21 · Test: `npm tes
 - `server/src/index.js` (2.166 dòng) được chia theo tính năng: `config.js` (biến môi trường), `routes/` (13 file `express.Router`: auth, me, teams, admin, channels, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications) và `lib/` (luật dùng chung: access, users, requirements, statuses, history, channels, recurrence, mentions, notifications, live, uploads, comments, http, util). `index.js` còn 41 dòng: dựng app, middleware đăng nhập, gắn router, xử lý lỗi, dọn dẹp định kỳ.
 - Chỉ chuyển chỗ code, không đổi hành vi: đủ 63 route như cũ, 215/215 test pass, dev server chạy được với database thật. `i18n.test.js` giờ quét mọi file trong `server/src` (trước chỉ `index.js`). Bản `index.js` cũ đã xoá; git cũng không có bản này vì repo được tạo sau khi tách.
 
-### Đổi tên app thành KeyofSuccess (2026-10-06)
-- Người dùng chốt tên "KeyofSuccess": chữ K và S (viết tắt KingSport) to gấp khoảng 8 lần các chữ còn lại, màu đỏ thương hiệu. Component `Brand` (`client/src/components/Brand.jsx`) dùng ở sidebar, thanh trên cùng (iPad dọc) và màn đăng nhập / chờ duyệt; tab trình duyệt ghi "KeyofSuccess". Cỡ: chữ nhỏ 9px / K, S 72px ở sidebar và thanh trên cùng, 12px / 96px trên thẻ đăng nhập (9px trên điện thoại). Bỏ chấm đỏ sau tên cũ. Câu "…trước khi bạn dùng được KeyofSuccess" ở màn chờ duyệt (VI + EN).
+### Đổi tên app thành KeyOfSuccess (2026-10-06)
+- Người dùng chốt tên "KeyOfSuccess": chữ K và S (viết tắt KingSport) to gấp khoảng 5 lần các chữ còn lại, màu đỏ thương hiệu; chữ O to gấp 2 lần (cùng ngày người dùng đổi từ "Keyof" và tỉ lệ 8 lần). Component `Brand` (`client/src/components/Brand.jsx`) dùng ở sidebar, thanh trên cùng (iPad dọc) và màn đăng nhập / chờ duyệt; tab trình duyệt ghi "KeyOfSuccess". Cỡ (chữ thường / O / K, S): 12 / 24 / 60px ở sidebar và thanh trên cùng, 18 / 36 / 90px trên thẻ đăng nhập (14px trên điện thoại). Bỏ chấm đỏ sau tên cũ. Câu "…trước khi bạn dùng được KeyOfSuccess" ở màn chờ duyệt (VI + EN).
 - Giữ nguyên tên nội bộ `taskflow_theme` / `taskflow-theme` để không mất lựa chọn Sáng / Tối đã lưu.
-- Chữ nhỏ 9px khá bé (theo đúng tỉ lệ 8 lần); muốn to hơn thì đổi `--brand-size` trong `styles/base.css`.
+- Muốn đổi cỡ thì sửa `--brand-size` (cỡ chữ thường) trong `styles/base.css`; O và K, S tự to theo tỉ lệ.
 
 ### Sắp xếp lại frontend (2026-10-06)
 - `client/src/components/` (34 file phẳng) chia thành `features/<tính năng>/` (auth, layout, projects, tasks, comments, requirements, dashboard, admin, profile) và `components/` chỉ còn phần dùng chung. `common.jsx` (513 dòng) tách thành `Avatar`, `TaskParts`, `Mentions`, `Controls`, `Preferences`, `hooks`, `CurrentUser`. `styles.css` (1.052 dòng) tách thành 8 file trong `styles/`, nạp theo thứ tự trong `styles/index.css`; màu nằm ở `styles/tokens.css`.
