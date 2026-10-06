@@ -20,7 +20,7 @@ function RecurrenceHint() {
           {tr('Chọn chu kỳ: hằng ngày (T2–T6), hằng tuần hoặc mỗi 2 tuần (chọn các thứ), hằng tháng (chọn ngày; tháng ngắn hơn thì lấy ngày cuối tháng).')}
         </li>
         <li>
-          {tr('Khi task được đánh dấu xong (tick hoặc kéo vào Hoàn thành), app tự tạo')} <b>{tr('bản kế tiếp')}</b> {tr('ở trạng thái Cần làm, hạn chót là lần kế tiếp theo chu kỳ.')}
+          {tr('Khi task được đánh dấu xong (tick hoặc kéo vào Completed), app tự tạo')} <b>{tr('bản kế tiếp')}</b> {tr('ở trạng thái Planned, hạn chót là lần kế tiếp theo chu kỳ.')}
         </li>
         <li>
           {tr('Bản mới chép tên, mô tả, người làm, requirement, kênh, ưu tiên và subtask (chưa tick). Comments và file không được chép.')}

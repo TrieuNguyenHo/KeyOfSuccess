@@ -12,6 +12,18 @@ export const UPLOAD_DIR = join(dirname(dbPath), 'uploads');
 mkdirSync(UPLOAD_DIR, { recursive: true });
 db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
 
+// A project's statuses ("trạng thái" in the UI): its board columns. kind marks the four built-in ones
+// (v22: Planned, In-Progress, Completed, Pending; fixed names, never renamed or deleted); 'done' keeps the
+// completed tick in step (lib/statuses.js). Shared by the schema below and the v22 migration, which rebuilds it.
+const sectionsTable = (name) => `
+  CREATE TABLE IF NOT EXISTS ${name} (
+    id INTEGER PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    position REAL NOT NULL,
+    kind TEXT CHECK (kind IN ('todo', 'doing', 'done', 'pending'))
+  );`;
+
 // Shared by the schema below and the v2 migration, which rebuilds the table.
 // Shared by the schema below and the v8 migration, which rebuilds the table.
 // A notification points at a task or, for mentions in requirement feedback, a requirement.
@@ -99,15 +111,7 @@ db.exec(`
     PRIMARY KEY (project_id, team_id)
   );
 
-  -- A project's statuses ("trạng thái" in the UI): its board columns. kind (v12) marks the three built-in
-  -- ones, whatever they are renamed to; 'done' keeps the completed tick in step (see index.js).
-  CREATE TABLE IF NOT EXISTS sections (
-    id INTEGER PRIMARY KEY,
-    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    position REAL NOT NULL,
-    kind TEXT CHECK (kind IN ('todo', 'doing', 'done'))
-  );
+  ${sectionsTable('sections')}
 
   -- A project's requirements; every top-level task belongs to one.
   CREATE TABLE IF NOT EXISTS requirements (
@@ -490,6 +494,40 @@ if (schemaVersion() < 20) {
 if (schemaVersion() < 21) {
   if (!hasColumn('users', 'avatar')) db.exec('ALTER TABLE users ADD COLUMN avatar TEXT');
   db.exec('PRAGMA user_version = 21');
+}
+
+// v22: four built-in statuses with fixed names, the same in Vietnamese and English: Planned (todo),
+// In-Progress (doing), Completed (done), Pending (new kind 'pending'). The kind CHECK gains 'pending', so the
+// table is rebuilt (ids kept). Built-in statuses take the fixed names; a project missing one gets it at the end.
+if (schemaVersion() < 22) {
+  const sql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'sections'").get().sql;
+  if (!sql.includes("'pending'")) {
+    db.exec('PRAGMA foreign_keys = OFF');
+    transaction(() =>
+      db.exec(`
+        ${sectionsTable('sections_v22')}
+        INSERT INTO sections_v22 (id, project_id, name, position, kind)
+          SELECT id, project_id, name, position, kind FROM sections;
+        DROP TABLE sections;
+        ALTER TABLE sections_v22 RENAME TO sections;
+      `)
+    );
+    db.exec('PRAGMA foreign_keys = ON');
+  }
+  transaction(() => {
+    const rename = db.prepare('UPDATE sections SET name = ? WHERE kind = ?');
+    const has = db.prepare('SELECT 1 FROM sections WHERE project_id = ? AND kind = ?');
+    const insert = db.prepare(
+      `INSERT INTO sections (project_id, name, position, kind)
+       SELECT ?, ?, COALESCE(MAX(position), 0) + 1, ? FROM sections WHERE project_id = ?`
+    );
+    const projects = db.prepare('SELECT id FROM projects').all();
+    for (const [kind, name] of [['todo', 'Planned'], ['doing', 'In-Progress'], ['done', 'Completed'], ['pending', 'Pending']]) {
+      rename.run(name, kind);
+      for (const { id } of projects) if (!has.get(id, kind)) insert.run(id, name, kind, id);
+    }
+    db.exec('PRAGMA user_version = 22');
+  });
 }
 
 db.exec(`

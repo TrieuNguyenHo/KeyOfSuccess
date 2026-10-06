@@ -1,17 +1,19 @@
-// Statuses are the board columns (`sections`). The built-in ones carry a kind, kept when renamed.
+// Statuses are the board columns (`sections`). The four built-in ones carry a kind and fixed names, the same
+// in every language, and can be neither renamed nor deleted.
 import { db } from '../db.js';
 
 export const DEFAULT_STATUSES = [
-  ['todo', 'Cần làm'],
-  ['doing', 'Đang làm'],
-  ['done', 'Hoàn thành'],
+  ['todo', 'Planned'],
+  ['doing', 'In-Progress'],
+  ['done', 'Completed'],
+  ['pending', 'Pending'],
 ];
 const doneStatusOf = (projectId) => db.prepare("SELECT * FROM sections WHERE project_id = ? AND kind = 'done'").get(projectId);
 export const endOfStatus = (sectionId) =>
   db.prepare('SELECT COALESCE(MAX(position), 0) AS max FROM tasks WHERE section_id = ?').get(sectionId).max + 1;
 
 // In a project that has a done status, a top-level task's status and its done tick move together: ticking
-// moves it to the end of the done status, unticking moves a task out of it to "Đang làm" (else the first
+// moves it to the end of the done status, unticking moves a task out of it to "In-Progress" (else the first
 // other status); moving it into the done status ticks it, moving it to any other status unticks it.
 // Returns the extra fields a PATCH body implies.
 export function statusSync(task, body) {

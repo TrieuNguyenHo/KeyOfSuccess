@@ -75,8 +75,11 @@ test('a project dashboard counts its tasks by requirement, section and person', 
   const s = body.summary;
   assert.equal([s.total, s.open, s.done, s.overdue, s.due_soon, s.done_7d, s.unassigned].join(), '5,4,1,1,1,1,1');
   assert.equal(body.requirements.map((r) => `${r.total}/${r.done}/${r.open}/${r.overdue}`).join(), '5/1/4/1');
-  // The finished task moved to "Hoàn thành" when it was ticked; the others stay in "Cần làm".
-  assert.equal(body.sections.map((x) => `${x.name}:${x.total}/${x.done}`).join(), 'Cần làm:4/0,Đang làm:0/0,Hoàn thành:1/1');
+  // The finished task moved to "Completed" when it was ticked; the others stay in "Planned".
+  assert.equal(
+    body.sections.map((x) => `${x.name}:${x.total}/${x.done}`).join(),
+    'Planned:4/0,In-Progress:0/0,Completed:1/1,Pending:0/0'
+  );
   // Members only, never memC from the same team; memB is a member from another team.
   assert.equal(body.people.map((p) => `${p.name}:${p.open}/${p.overdue}/${p.high}`).join(), 'memA:2/1/1,memB:1/0/0,boss:0/0/0');
   assert.equal(body.trend.length, 14);
@@ -91,7 +94,7 @@ test('a project dashboard filters by the team of the assignee', async () => {
   const s = c.summary;
   assert.equal([s.total, s.open, s.done, s.overdue, s.due_soon, s.unassigned].join(), '3,2,1,1,1,0');
   assert.equal(c.requirements.map((r) => `${r.total}/${r.done}`).join(), '3/1');
-  assert.equal(c.sections.map((x) => x.total).join(), '2,0,1');
+  assert.equal(c.sections.map((x) => x.total).join(), '2,0,1,0');
   assert.equal(c.people.map((p) => `${p.name}:${p.open}`).join(), 'memA:2');
   assert.equal(c.trend[13].done, 1);
   // The choices stay the same whatever the filter.
