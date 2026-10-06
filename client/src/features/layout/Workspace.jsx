@@ -8,6 +8,7 @@ import { CurrentUser } from '../../components/CurrentUser.js';
 import CreateProjectModal from '../projects/CreateProjectModal.jsx';
 import DashboardPage from '../dashboard/DashboardPage.jsx';
 import { DialogHost } from '../../components/Dialog.jsx';
+import { Brand } from '../../components/Brand.jsx';
 import MyTeamsPage from '../admin/MyTeamsPage.jsx';
 import ProjectDashboardPage from '../dashboard/ProjectDashboardPage.jsx';
 import ProfilePage from '../profile/ProfilePage.jsx';
@@ -295,9 +296,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
           <button className="icon-btn menu-btn" onClick={() => setNavOpen(true)} aria-label={tr('Mở menu')} aria-expanded={navOpen}>
             ☰{notifications.unread + notifications.pendingUsers > 0 && <span className="menu-dot" aria-label={tr('Có thông báo mới')} />}
           </button>
-          <span className="brand">
-            TaskFlow<span className="brand-dot" aria-hidden="true" />
-          </span>
+          <Brand />
         </div>
         <div className="main-content">{content}</div>
         {openTaskId && (

@@ -1,4 +1,4 @@
-# TaskFlow
+# KeyofSuccess (formerly TaskFlow)
 
 Asana-like task manager for a Marketing department of about 40 people.
 React + Vite (`client/`), Node/Express + SQLite via `node:sqlite` (`server/`). Run with `npm run dev` from the repo root.
@@ -23,6 +23,8 @@ Schema changes: `npm run dev` runs the server with `node --watch`, so saving `se
 The interface is in Vietnamese or English, per account (`users.language`, `PATCH /api/me`, VI | EN switch in the sidebar and on the sign-in / waiting screens; default Vietnamese). Every user-facing text in the client goes through `tr('Vietnamese text', { params })` from `client/src/i18n.js`, with its English in `client/src/i18n.en.js` (the Vietnamese is the key; `{name}` placeholders). Never translate user content (project, task, status, requirement names). Label tables and other module-level text must be getters or functions so they read the current language. The server keeps answering in Vietnamese; `trMessage()` translates its errors, so a new server message needs an English entry too. `server/test/i18n.test.js` fails on a missing English text or a Vietnamese text outside `tr()`. Dates use `locale()`.
 
 ## UI design
+
+App name (decided 2026-10-06): "KeyofSuccess", K and S being KingSport's initials. On screen it is always `<Brand />` (`client/src/components/Brand.jsx`): K and S about 8× the other letters, in `--brand` (large text only); `--brand-size` sets the small letters (9px sidebar and top bar, 12px sign-in card, 9px there on phones). Internal ids keep the old name (`taskflow_theme` in localStorage, the `taskflow-theme` event): renaming them would reset saved choices.
 
 Before any UI work (components, CSS, layout, colors, typography), read `.claude/DESIGN.md` and follow its tokens and do/don't rules.
 

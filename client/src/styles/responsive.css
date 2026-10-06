@@ -14,7 +14,7 @@
     display: flex; align-items: center; gap: 6px; flex-shrink: 0;
     padding: 6px 12px; border-bottom: 1px solid var(--hairline);
   }
-  .mobile-bar .brand { padding: 0; font-size: 17px; }
+  .mobile-bar .brand { padding: 0; }
   .menu-btn { position: relative; font-size: 20px; color: var(--ink); }
   .menu-dot {
     position: absolute; top: 6px; right: 6px; width: 8px; height: 8px;
@@ -62,3 +62,5 @@
   outline: 2px solid var(--primary); border-radius: var(--rounded-md);
 }
 .calendar-task.dragging { opacity: 0.4; }
+/* Phones: the sign-in card narrows, so the name shrinks with it. */
+@media (max-width: 420px) { .brand.dark { --brand-size: 9px; } }

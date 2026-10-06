@@ -45,11 +45,16 @@
 }
 .main-content { flex: 1; min-height: 0; position: relative; }
 .mobile-bar, .nav-backdrop { display: none; }
+/* App name KeyofSuccess: K and S (KingSport) about 8× the other letters, in the brand red (large text only).
+   --brand-size is the small letters' size; each place sets its own. */
 .brand {
-  font-family: var(--font-display); font-size: 21px; font-weight: 600; letter-spacing: 0.231px;
+  --brand-size: 9px;
+  display: inline-block; white-space: nowrap;
+  font-family: var(--font-display); font-size: var(--brand-size); font-weight: 600; letter-spacing: 0.2px; line-height: 1;
   color: var(--ink); padding: 4px 8px 16px;
 }
-.brand.dark { padding: 0; color: var(--primary-text); }
+.brand .ks { font-size: calc(var(--brand-size) * 8); line-height: 0.8; letter-spacing: 0; color: var(--brand); }
+.brand.dark { --brand-size: 12px; padding: 0; color: var(--primary-text); }
 
 
 .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }

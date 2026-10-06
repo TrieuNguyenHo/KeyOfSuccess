@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, setToken } from '../../api.js';
 import { getLang, tr } from '../../i18n.js';
+import { Brand } from '../../components/Brand.jsx';
 import { LanguageSwitch } from '../../components/Preferences.jsx';
 
 let googleScript;
@@ -64,7 +65,7 @@ export default function Login({ onAuth }) {
     <div className="auth-page">
       <div className="auth-card">
         <LanguageSwitch className="lang-switch" signedIn={false} />
-        <div className="brand dark">TaskFlow</div>
+        <Brand className="dark" />
         <h2>{tr('Đăng nhập')}</h2>
         <p className="muted">
           {tr('Dùng tài khoản Google (Gmail). Chưa có tài khoản? Lần đầu đăng nhập cũng là đăng ký: Manager hoặc Leader duyệt xong là bạn dùng được ngay.')}
@@ -133,11 +134,11 @@ export function Pending({ user, onApproved, onLogout }) {
     <div className="auth-page">
       <div className="auth-card">
         <LanguageSwitch className="lang-switch" />
-        <div className="brand dark">TaskFlow</div>
+        <Brand className="dark" />
         <h2>{tr('Đang chờ duyệt')}</h2>
         <p>
           {tr('Chào {name}, tài khoản', { name: user.name })} <b>{user.email}</b>{' '}
-          {tr('đã được tạo. {approver} cần duyệt và xếp bạn vào team trước khi bạn dùng được TaskFlow. Trang này tự mở app khi tài khoản được duyệt.', { approver })}
+          {tr('đã được tạo. {approver} cần duyệt và xếp bạn vào team trước khi bạn dùng được KeyofSuccess. Trang này tự mở app khi tài khoản được duyệt.', { approver })}
         </p>
         {message && <p className="muted">{message}</p>}
         <button className="btn primary" onClick={() => check()}>
