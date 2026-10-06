@@ -75,7 +75,7 @@ function canAddToTeam(me, user, teamId) {
 router.get('/teams/:id/members', (req, res) => {
   const team = loadManagedTeam(req, res);
   if (!team) return;
-  const users = db.prepare(`${USER_SELECT} ORDER BY u.name`).all().map(withUserTeams);
+  const users = db.prepare(`${USER_SELECT} WHERE u.role != 'root' ORDER BY u.name`).all().map(withUserTeams);
   res.json({
     team,
     members: users.filter((u) => u.team_ids.includes(team.id)),
@@ -145,7 +145,7 @@ router.post('/teams/:id/invite', (req, res) => {
 // The people this user may watch: everyone for Managers, the people of their teams for Leaders.
 router.get('/people', (req, res) => {
   const me = req.user;
-  const base = `${USER_SELECT} WHERE u.status = 'active'`;
+  const base = `${USER_SELECT} WHERE u.status = 'active' AND u.role != 'root'`;
   let rows = [];
   if (isManager(me)) rows = db.prepare(`${base} ORDER BY u.name`).all();
   if (me.role === 'leader') {

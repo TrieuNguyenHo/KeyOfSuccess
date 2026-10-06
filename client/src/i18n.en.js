@@ -428,6 +428,11 @@ export default {
   'Phiên đăng nhập không hợp lệ': 'Your session is no longer valid',
   'Tài khoản đang chờ Manager duyệt': 'The account is waiting for a Manager to approve it',
   'Chỉ Manager mới làm được việc này': 'Only a Manager can do this',
+  'Cấu hình hệ thống': 'System configuration',
+  'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.':
+    'Root accounts are not part of the company: they only configure the system and cannot see projects, tasks or anyone\'s personal details. Here you give roles (Director included), approve or lock accounts and place people in teams.',
+  'Tài khoản root này đã bị thu hồi': 'This root account has been revoked',
+  'Tài khoản root chỉ dùng để cấu hình hệ thống': 'Root accounts are only for configuring the system',
   'Chỉ Director mới đổi được tài khoản của Director': 'Only a Director can change a Director\'s account',
   'Ngôn ngữ không hợp lệ': 'Invalid language',
   'Bạn chỉ có quyền xem và comment task này': 'You can only view and comment on this task',

@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DIRECTOR_EMAILS } from './config.js';
+import { DIRECTOR_EMAILS, ROOT_EMAILS } from './config.js';
 
 const dbPath = process.env.DB_PATH || join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'app.db');
 mkdirSync(dirname(dbPath), { recursive: true });
@@ -36,7 +36,7 @@ const usersTable = (name) => `
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     google_sub TEXT UNIQUE,
-    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('director', 'manager', 'leader', 'member')),
+    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('root', 'director', 'manager', 'leader', 'member')),
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'disabled')),
     -- Legacy single team (v2). Unused since v9, where user_teams holds a user's teams;
     -- kept because SQLite cannot drop a column that has a foreign key.
@@ -493,26 +493,38 @@ if (schemaVersion() < 21) {
   db.exec('PRAGMA user_version = 21');
 }
 
-// v22: the Director role. SQLite cannot change a CHECK constraint in place, so the users table is rebuilt (ids and
-// every column kept); then DIRECTOR_EMAILS become Directors, so a Director already signed in has the role at once.
-if (schemaVersion() < 22) {
+// Adds a role to users.role's CHECK. SQLite cannot change a CHECK constraint in place, so the users table is rebuilt
+// with the current schema (ids and every column kept), unless the role is already allowed.
+function allowUserRole(role, tempName) {
   const usersSql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'").get().sql;
-  if (!usersSql.includes("'director'")) {
-    const columns = db.prepare("SELECT name FROM pragma_table_info('users')").all().map((c) => c.name).join(', ');
-    db.exec('PRAGMA foreign_keys = OFF');
-    transaction(() =>
-      db.exec(`
-        ${usersTable('users_v22')}
-        INSERT INTO users_v22 (${columns}) SELECT ${columns} FROM users;
-        DROP TABLE users;
-        ALTER TABLE users_v22 RENAME TO users;
-      `)
-    );
-    db.exec('PRAGMA foreign_keys = ON');
-  }
+  if (usersSql.includes(`'${role}'`)) return;
+  const columns = db.prepare("SELECT name FROM pragma_table_info('users')").all().map((c) => c.name).join(', ');
+  db.exec('PRAGMA foreign_keys = OFF');
+  transaction(() =>
+    db.exec(`
+      ${usersTable(tempName)}
+      INSERT INTO ${tempName} (${columns}) SELECT ${columns} FROM users;
+      DROP TABLE users;
+      ALTER TABLE ${tempName} RENAME TO users;
+    `)
+  );
+  db.exec('PRAGMA foreign_keys = ON');
+}
+
+// v22: the Director role; then DIRECTOR_EMAILS become Directors, so a Director already signed in has the role at once.
+if (schemaVersion() < 22) {
+  allowUserRole('director', 'users_v22');
   const promote = db.prepare("UPDATE users SET role = 'director', status = 'active' WHERE email = ?");
   DIRECTOR_EMAILS.forEach((email) => promote.run(email));
   db.exec('PRAGMA user_version = 22');
+}
+
+// v23: the root role, for the accounts in ROOT_EMAILS, which configure the system and are not part of the company.
+// An existing account in ROOT_EMAILS becomes root and leaves its teams (sign-in does the same later on).
+if (schemaVersion() < 23) {
+  allowUserRole('root', 'users_v23');
+  transaction(() => ROOT_EMAILS.forEach(makeRoot));
+  db.exec('PRAGMA user_version = 23');
 }
 
 db.exec(`
@@ -520,6 +532,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_attachments_requirement_comment ON attachments(requirement_comment_id);
   CREATE INDEX IF NOT EXISTS idx_task_channels_channel ON task_channels(channel_id);
 `);
+
+// Turns the account with this email (if any) into an active root account outside every team.
+export function makeRoot(email) {
+  db.prepare("UPDATE users SET role = 'root', status = 'active' WHERE email = ?").run(email);
+  db.prepare('DELETE FROM user_teams WHERE user_id IN (SELECT id FROM users WHERE email = ?)').run(email);
+}
 
 export function transaction(fn) {
   db.exec('BEGIN');

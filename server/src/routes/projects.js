@@ -155,7 +155,7 @@ router.post('/projects/:id/members', (req, res) => {
   if (!project) return;
   const email = req.body?.email?.trim().toLowerCase();
   if (!email) return badRequest(res, 'Cần nhập email');
-  const user = db.prepare("SELECT id, name, email FROM users WHERE email = ? AND status = 'active'").get(email);
+  const user = db.prepare("SELECT id, name, email FROM users WHERE email = ? AND status = 'active' AND role != 'root'").get(email);
   if (!user) return res.status(404).json({ error: 'Chưa có tài khoản đang hoạt động nào dùng email này' });
   if (isMember(project.id, user.id)) return res.status(409).json({ error: 'Người này đã là thành viên' });
   db.prepare('INSERT INTO project_members (project_id, user_id) VALUES (?, ?)').run(project.id, user.id);

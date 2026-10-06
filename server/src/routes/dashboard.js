@@ -86,7 +86,7 @@ router.get('/dashboard', (req, res) => {
          COALESCE(SUM(t.completed = 0 AND t.priority = 'high'), 0) AS high
        FROM users u
        LEFT JOIN tasks t ON t.assignee_id = u.id AND t.parent_id IS NULL
-       WHERE u.status = 'active' AND ${userWhere}
+       WHERE u.status = 'active' AND u.role != 'root' AND ${userWhere}
        GROUP BY u.id
        ORDER BY open DESC, overdue DESC, u.name`
     )

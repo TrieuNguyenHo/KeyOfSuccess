@@ -54,6 +54,7 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 - "Xem + bình luận": mở được panel chi tiết, đọc và comment, nhưng không sửa, xoá hay tick xong được. Muốn sửa thì phải là thành viên project.
 - Leader bắt buộc thuộc ít nhất một team; Member chỉ thuộc một team (đổi Leader/Manager nhiều team thành Member thì giữ team đầu tiên). Manager và Director không thể tự đổi vai trò hay tự khoá mình.
 - Tài khoản bị khoá bị đăng xuất ngay ở request kế tiếp.
+- **Root** (email trong `ROOT_EMAILS`): tài khoản kỹ thuật, không thuộc công ty. Chỉ thấy màn **Cấu hình hệ thống**: gán vai trò (kể cả Director), duyệt / khoá tài khoản, xếp team. Không mở được project, task, dashboard, thông báo hay thông tin cá nhân của ai (server trả 403). Root không có team, không hiện trong bất kỳ danh sách người nào, và không ai sửa / khoá được root trong app; xoá email khỏi `ROOT_EMAILS` là thu hồi ngay. Chỉ root và Director cấp được vai trò Director.
 - Email trong `DIRECTOR_EMAILS` luôn đăng nhập với vai trò Director (dùng để tạo Director đầu tiên); email trong `MANAGER_EMAILS` luôn đăng nhập với vai trò Manager, trừ người đã là Director.
 - Director làm được mọi việc của Manager, cộng thêm: là "Quản lý task" và có quyền như owner trên mọi project (đổi tên, xoá, thành viên, đổi team), giao task cho bất kỳ ai thuộc team của project; xem hồ sơ của mọi người. Hồ sơ của Director chỉ Director xem được.
 
@@ -100,6 +101,7 @@ Copy `server/.env.example` thành `server/.env`:
 | Biến | Ý nghĩa |
 |---|---|
 | `GOOGLE_CLIENT_ID` | Client ID ở bước 1 |
+| `ROOT_EMAILS` | Tài khoản root (cấu hình hệ thống, không thuộc công ty), cách nhau bởi dấu phẩy. Dùng email riêng: email của tài khoản có sẵn sẽ thành root và rời mọi team |
 | `DIRECTOR_EMAILS` | Email Director đầu tiên, cách nhau bởi dấu phẩy |
 | `MANAGER_EMAILS` | Email Manager đầu tiên, cách nhau bởi dấu phẩy |
 | `JWT_SECRET` | Chuỗi ngẫu nhiên dài. **Bắt buộc khi deploy** |
@@ -148,10 +150,11 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `avatar.test.js` | Ảnh đại diện: tải lên, thay ảnh xoá file cũ, chặn file không phải ảnh / quá 1 MB, dọn file không xoá ảnh, tài khoản khoá không hiện ảnh |
 | `profile.test.js` | Hồ sơ: sửa / xoá trường, kiểm tra dữ liệu, tên mới hiện ở mọi chỗ, chỉ chính mình và Manager thấy thông tin cá nhân |
 | `director.test.js` | Director: toàn quyền mọi project, quyền Manager, chỉ Director cấp vai trò Director / sửa tài khoản Director, hồ sơ, không nhận thông báo task xong, migration v22 |
+| `root.test.js` | Root: chỉ dùng API cấu hình, ẩn khỏi mọi danh sách, cấp Director, không ai sửa được root, thu hồi khi bỏ khỏi `ROOT_EMAILS`, migration v23 |
 | `i18n.test.js` | Giao diện tiếng Anh đủ: mọi khoá `tr()` có bản tiếng Anh, không chữ tiếng Việt nào nằm ngoài `tr()`, mọi thông báo lỗi của server dịch được (không bật server) |
 
 - Mỗi file tự bật một server riêng trên port trống với **database tạm**, nên test **không bao giờ đụng tới `server/data/app.db`** và các file chạy song song. Dev server đang chạy không bị ảnh hưởng.
-- Đăng nhập trong test dùng `DEV_LOGIN`; `boss@t.test` là Manager, `chief@t.test` là Director. `server/.env` không được đọc.
+- Đăng nhập trong test dùng `DEV_LOGIN`; `boss@t.test` là Manager, `chief@t.test` là Director, `root@t.test` là root. `server/.env` không được đọc.
 - File test fail nếu server ghi ra lỗi (ví dụ một lỗi 500 không có test nào bắt).
 - Hàm hỗ trợ dùng chung (bật server, gọi API, tạo user/team/project/task, nghe luồng sự kiện) ở `server/test/helpers.js`.
 
@@ -169,6 +172,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v23**: vai trò `root` (bảng `users` dựng lại như v22). Tài khoản có sẵn với email trong `ROOT_EMAILS` thành root và rời mọi team.
 - **v22**: vai trò `director` (bảng `users` được dựng lại vì SQLite không sửa được ràng buộc CHECK; giữ nguyên id và mọi cột). Email trong `DIRECTOR_EMAILS` thành Director ngay khi chuyển.
 - **v21**: cột `users.avatar` (tên file ảnh đại diện trong `server/data/uploads/`, đổi mỗi lần tải lên).
 - **v20**: cột hồ sơ của `users`: `birthday`, `phone`, `job_title`, `bio`, `gender` (`male` / `female` / `other` / `undisclosed`), đều trống lúc đầu.
@@ -186,7 +190,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 
 ```
 server/src/db.js       schema SQLite + migration + helper transaction
-server/src/config.js   biến môi trường (cổng, JWT_SECRET, Google, DIRECTOR_EMAILS, MANAGER_EMAILS, DEV_LOGIN)
+server/src/config.js   biến môi trường (cổng, JWT_SECRET, Google, ROOT_EMAILS, DIRECTOR_EMAILS, MANAGER_EMAILS, DEV_LOGIN)
 server/src/index.js    dựng app Express: đăng nhập bắt buộc, gắn các router, xử lý lỗi, dọn dẹp định kỳ
 server/src/routes/     REST API, mỗi tính năng một file (express.Router, gắn dưới /api)
   auth               đăng nhập Google / dev, middleware kiểm tra token (requireUser)
@@ -202,7 +206,7 @@ server/src/routes/     REST API, mỗi tính năng một file (express.Router, g
   notifications      chuông thông báo, luồng sự kiện /events
 server/src/lib/        luật và helper dùng chung giữa các route
   access             quyền project / task (projectAccess, taskAccess, isTaskAdmin, canBeAssigned, taskScope…)
-  roles              ROLES, isDirector, isManager (Manager hoặc Director)
+  roles              ROLES, isRoot, isDirector, isManager (Manager hoặc Director), isUserAdmin (+ root)
   users, requirements, statuses, history, channels, recurrence, mentions, notifications
   live               Server-Sent Events (pushChange, pushNotifications)
   uploads            lưu file, sweepUploads; comments: COMMENT_KINDS dùng chung cho comment task / requirement
@@ -250,7 +254,7 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | GET | `/api/channels` | mọi người; Manager thấy thêm `task_count` |
 | POST, PATCH, DELETE | `/api/channels`, `/api/channels/:id` | Manager. `{ name, color? }` (màu `#rrggbb`, bỏ trống thì lấy màu kế tiếp trong bảng màu); tên không trùng (không phân biệt hoa thường) |
 | GET | `/api/admin/users` | Manager |
-| PATCH | `/api/admin/users/:id` | Manager / Director: `{ role, status, team_ids }` (hoặc `team_id` cho một team). Member tối đa 1 team, Leader ít nhất 1. `role: 'director'` và mọi thay đổi trên tài khoản Director: chỉ Director (403) |
+| PATCH | `/api/admin/users/:id` | Manager / Director / root (root: 404 với tài khoản root; không trả thông tin cá nhân): `{ role, status, team_ids }` (hoặc `team_id` cho một team). Member tối đa 1 team, Leader ít nhất 1. `role: 'director'` và mọi thay đổi trên tài khoản Director: chỉ Director hoặc root (403) |
 | GET | `/api/teams/:id/members` | Manager (mọi team) / Leader (team mình): `{ team, members, candidates }`. `candidates` là người được phép thêm |
 | POST | `/api/teams/:id/members` | `{ user_id }`: thêm vào team; tài khoản đang chờ thì được duyệt luôn (người do Leader mời chỉ Manager duyệt). Leader chỉ thêm Member chưa có team |
 | DELETE | `/api/teams/:id/members/:userId` | bỏ khỏi team. Leader chỉ bỏ Member; Leader luôn giữ ít nhất 1 team |

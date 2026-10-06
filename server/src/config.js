@@ -9,6 +9,9 @@ const emailList = (value) =>
     .split(',')
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
+// These emails are root: they only configure the system (who holds which role) and are not part of the company.
+// Taking an email out revokes its root access at the next request.
+export const ROOT_EMAILS = emailList(process.env.ROOT_EMAILS);
 // These emails always sign in as an active Director, so the first Director can bootstrap everyone else.
 export const DIRECTOR_EMAILS = emailList(process.env.DIRECTOR_EMAILS);
 // These emails always sign in as an active Manager (a Director among them stays Director).

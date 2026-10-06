@@ -1,28 +1,32 @@
-// User administration (Managers and Directors).
+// User administration (Managers and Directors; root for roles, status and teams).
 import express from 'express';
 import { db, transaction } from '../db.js';
 import { badRequest, forbidden, managerOnly, notFound } from '../lib/http.js';
-import { ROLES, isDirector } from '../lib/roles.js';
+import { ROLES, isDirector, isRoot, isUserAdmin } from '../lib/roles.js';
 import { USER_SELECT, canReadProfile, findUser, parseTeamIds, withProfile, withUserTeams } from '../lib/users.js';
 import { EMAIL_RE } from '../lib/util.js';
 
 const router = express.Router();
 
 const STATUSES = ['pending', 'active', 'disabled'];
+const userAdminOnly = (req, res, next) => (isUserAdmin(req.user) ? next() : forbidden(res, 'Chỉ Manager mới làm được việc này'));
+// With the profile when the caller may read it (Managers: everyone's but a Director's; root: nobody's).
+const asSeenBy = (me, user) => (canReadProfile(me, user) ? withProfile(withUserTeams(user)) : withUserTeams(user));
 
-router.get('/admin/users', managerOnly, (req, res) => {
-  // Managers also read the profiles they may read (view only): everyone's but a Director's.
+// Everyone in the company; root accounts are not part of it and never listed.
+router.get('/admin/users', userAdminOnly, (req, res) => {
   res.json(
     db
-      .prepare(`${USER_SELECT} ORDER BY u.status = 'pending' DESC, u.name`)
+      .prepare(`${USER_SELECT} WHERE u.role != 'root' ORDER BY u.status = 'pending' DESC, u.name`)
       .all()
-      .map((u) => (canReadProfile(req.user, u) ? withProfile(withUserTeams(u)) : withUserTeams(u)))
+      .map((u) => asSeenBy(req.user, u))
   );
 });
 
-router.patch('/admin/users/:id', managerOnly, (req, res) => {
+router.patch('/admin/users/:id', userAdminOnly, (req, res) => {
   const target = findUser(req.params.id);
-  if (!target) return notFound(res);
+  // Root accounts are changed only through ROOT_EMAILS.
+  if (!target || isRoot(target)) return notFound(res);
   const body = req.body ?? {};
   // team_ids replaces the user's teams; the single team_id form is kept for one-team edits.
   let teamIds = target.team_ids;
@@ -31,8 +35,8 @@ router.patch('/admin/users/:id', managerOnly, (req, res) => {
   if (!teamIds) return badRequest(res, 'Team không tồn tại');
   const next = { role: body.role ?? target.role, status: body.status ?? target.status };
   if (!ROLES.includes(next.role) || !STATUSES.includes(next.status)) return badRequest(res, 'Vai trò hoặc trạng thái không hợp lệ');
-  // Only a Director gives the Director role or changes a Director's account.
-  if (!isDirector(req.user) && (isDirector(target) || next.role === 'director')) {
+  // Only a Director or root gives the Director role or changes a Director's account.
+  if (!isDirector(req.user) && !isRoot(req.user) && (isDirector(target) || next.role === 'director')) {
     return forbidden(res, 'Chỉ Director mới đổi được tài khoản của Director');
   }
   if (target.id === req.user.id && (next.role !== target.role || next.status !== 'active')) {
@@ -46,7 +50,7 @@ router.patch('/admin/users/:id', managerOnly, (req, res) => {
     const insert = db.prepare('INSERT INTO user_teams (user_id, team_id) VALUES (?, ?)');
     teamIds.forEach((teamId) => insert.run(target.id, teamId));
   });
-  res.json(withProfile(findUser(target.id)));
+  res.json(asSeenBy(req.user, findUser(target.id)));
 });
 
 // Invites someone who has never signed in: creates their account already active, in a team. Sign-in matches
