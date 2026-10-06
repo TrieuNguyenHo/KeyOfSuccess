@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { daysFromToday, isManager, myTeamsLabel, todayStr } from '../../utils.js';
+import { daysFromToday, myTeamsLabel, todayStr, watchesAll } from '../../utils.js';
 import CalendarView from '../projects/CalendarView.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { CheckButton, DueDate, PriorityTag, TaskTags } from '../../components/TaskParts.jsx';
@@ -52,7 +52,7 @@ export default function TasksPage({
 }) {
   const watching = mode === 'team';
   const [scope, setScope] = useState(
-    initialScope ?? (watching ? (isManager(user) ? 'all' : 'mine') : 'me')
+    initialScope ?? (watching ? (watchesAll(user) ? 'all' : 'mine') : 'me')
   );
   const [people, setPeople] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -67,8 +67,8 @@ export default function TasksPage({
   useEffect(() => {
     if (!watching) return;
     api('/people').then(setPeople).catch(() => {});
-    if (isManager(user)) api('/teams').then(setTeams).catch(() => {});
-  }, [watching, user.role]);
+    if (watchesAll(user)) api('/teams').then(setTeams).catch(() => {});
+  }, [watching, user]);
 
   const load = useCallback(
     () =>
@@ -91,9 +91,9 @@ export default function TasksPage({
     load();
   }
 
-  const title = !watching ? tr('Task của tôi') : isManager(user) ? tr('Theo dõi công việc') : myTeamsLabel(user);
+  const title = !watching ? tr('Task của tôi') : watchesAll(user) ? tr('Theo dõi công việc') : myTeamsLabel(user);
   // Team names next to people when they may come from several teams.
-  const showPeopleTeams = isManager(user) || user.teams.length > 1;
+  const showPeopleTeams = watchesAll(user) || user.teams.length > 1;
   const counts = Object.fromEntries(BUCKETS.map(([key]) => [key, 0]));
   tasks?.forEach((t) => counts[bucketOf(t)]++);
   const showAssignee = scope !== 'me' && !scope.startsWith('user:');
@@ -111,7 +111,7 @@ export default function TasksPage({
               onScopeChange(e.target.value);
             }}
           >
-            {isManager(user) ? (
+            {watchesAll(user) ? (
               <>
                 <option value="all">{tr('Tất cả task')}</option>
                 {teams.map((t) => (

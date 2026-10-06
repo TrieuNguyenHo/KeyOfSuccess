@@ -1,10 +1,10 @@
-// Teams, their members (Managers, and Leaders for their own teams) and the people one may watch.
+// Teams (teams.manage), their members (teams.members; users.manage adds the wider rights) and the people one may watch.
 import express from 'express';
 import { db, transaction } from '../db.js';
-import { badRequest, forbidden, managerOnly, notFound } from '../lib/http.js';
+import { badRequest, forbidden, notFound, requirePermission } from '../lib/http.js';
 import { USER_SELECT, findUser, withUserTeams } from '../lib/users.js';
 import { EMAIL_RE, placeholders } from '../lib/util.js';
-import { isDirector, isManager } from '../lib/roles.js';
+import { can, coversTeams, outranks, scopeOf } from '../lib/permissions.js';
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ router.get('/teams', (req, res) => {
   );
 });
 
-router.post('/teams', managerOnly, (req, res) => {
+router.post('/teams', requirePermission('teams.manage'), (req, res) => {
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên team');
   if (db.prepare('SELECT 1 FROM teams WHERE name = ?').get(name)) return res.status(409).json({ error: 'Tên team đã tồn tại' });
@@ -28,7 +28,7 @@ router.post('/teams', managerOnly, (req, res) => {
   res.status(201).json(db.prepare('SELECT * FROM teams WHERE id = ?').get(lastInsertRowid));
 });
 
-router.patch('/teams/:id', managerOnly, (req, res) => {
+router.patch('/teams/:id', requirePermission('teams.manage'), (req, res) => {
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên team');
   if (db.prepare('SELECT 1 FROM teams WHERE name = ? AND id != ?').get(name, req.params.id)) {
@@ -39,7 +39,7 @@ router.patch('/teams/:id', managerOnly, (req, res) => {
   res.json(db.prepare('SELECT * FROM teams WHERE id = ?').get(req.params.id));
 });
 
-router.delete('/teams/:id', managerOnly, (req, res) => {
+router.delete('/teams/:id', requirePermission('teams.manage'), (req, res) => {
   if (db.prepare('SELECT 1 FROM user_teams WHERE team_id = ?').get(req.params.id)) {
     return badRequest(res, 'Team vẫn còn người, hãy chuyển họ sang team khác trước');
   }
@@ -48,26 +48,27 @@ router.delete('/teams/:id', managerOnly, (req, res) => {
   res.status(204).end();
 });
 
-// ---------- Team members (Managers, and Leaders for their own teams) ----------
+// ---------- Team members (teams.members: every team, or the user's own teams) ----------
 
-// Loads a team the user may manage: any team for Managers, their own teams for Leaders.
+// Loads a team the user may manage the members of.
 function loadManagedTeam(req, res) {
   const team = db.prepare('SELECT id, name FROM teams WHERE id = ?').get(req.params.id);
   const me = req.user;
-  if (!team || (!isManager(me) && !(me.role === 'leader' && me.team_ids.includes(team.id)))) {
+  if (!team || !coversTeams(me, scopeOf(me, 'teams.members'), [team.id])) {
     notFound(res);
     return null;
   }
   return team;
 }
 
-// Whom this user may add to the team. Leaders: Members with no team who are active or signed up themselves
-// and wait for approval. Managers: anyone not disabled and not in the team, except a Member who already has
-// a team (Members belong to one team; move them in the user table). Only Directors change a Director's teams.
+// Whom this user may add to the team. Without users.manage (Leaders): Members with no team who are active or signed
+// up themselves and wait for approval. With users.manage (Managers): anyone not disabled and not in the team, except
+// a Member who already has a team (Members belong to one team; move them in the user table). Nobody changes the teams
+// of someone of a higher role level.
 function canAddToTeam(me, user, teamId) {
   if (user.status === 'disabled' || user.team_ids.includes(teamId)) return false;
-  if (isDirector(user) && !isDirector(me)) return false;
-  if (isManager(me)) return user.role !== 'member' || user.team_ids.length === 0;
+  if (outranks(user, me)) return false;
+  if (can(me, 'users.manage')) return user.role !== 'member' || user.team_ids.length === 0;
   return user.role === 'member' && user.team_ids.length === 0 && (user.status === 'active' || user.invited_by == null);
 }
 
@@ -83,7 +84,7 @@ router.get('/teams/:id/members', (req, res) => {
   });
 });
 
-// Adds someone to the team. A pending account is approved at the same time, except that only a Manager
+// Adds someone to the team. A pending account is approved at the same time, except that only users.manage
 // approves people invited by a Leader.
 router.post('/teams/:id/members', (req, res) => {
   const team = loadManagedTeam(req, res);
@@ -91,11 +92,11 @@ router.post('/teams/:id/members', (req, res) => {
   const me = req.user;
   const user = findUser(req.body?.user_id);
   if (!user) return notFound(res);
-  if (user.status === 'pending' && user.invited_by != null && !isManager(me)) {
+  if (user.status === 'pending' && user.invited_by != null && !can(me, 'users.manage')) {
     return forbidden(res, 'Người do Leader mời phải chờ Manager duyệt');
   }
   if (!canAddToTeam(me, user, team.id)) {
-    return badRequest(res, isManager(me) ? 'Member chỉ thuộc một team' : 'Chỉ thêm được người chưa có team');
+    return badRequest(res, can(me, 'users.manage') ? 'Member chỉ thuộc một team' : 'Chỉ thêm được người chưa có team');
   }
   transaction(() => {
     db.prepare('INSERT INTO user_teams (user_id, team_id) VALUES (?, ?)').run(user.id, team.id);
@@ -112,15 +113,15 @@ router.delete('/teams/:id/members/:userId', (req, res) => {
   const me = req.user;
   const user = findUser(req.params.userId);
   if (!user || !user.team_ids.includes(team.id)) return notFound(res);
-  if (!isManager(me) && user.role !== 'member') return forbidden(res, 'Leader chỉ bỏ được Member khỏi team');
-  if (isDirector(user) && !isDirector(me)) return forbidden(res, 'Chỉ Director mới đổi được tài khoản của Director');
+  if (!can(me, 'users.manage') && user.role !== 'member') return forbidden(res, 'Leader chỉ bỏ được Member khỏi team');
+  if (outranks(user, me)) return forbidden(res, 'Không đổi được tài khoản có vai trò cao hơn bạn');
   if (user.role === 'leader' && user.team_ids.length === 1) return badRequest(res, 'Leader phải thuộc ít nhất một team');
   db.prepare('DELETE FROM user_teams WHERE user_id = ? AND team_id = ?').run(user.id, team.id);
   res.status(204).end();
 });
 
-// Invites an email that has no account into the team (nothing is emailed). A Manager's invitation is active
-// at once; a Leader's waits for a Manager's approval.
+// Invites an email that has no account into the team (nothing is emailed). With users.manage the invitation is
+// active at once; otherwise it waits for someone with users.manage to approve it.
 router.post('/teams/:id/invite', (req, res) => {
   const team = loadManagedTeam(req, res);
   if (!team) return;
@@ -131,7 +132,7 @@ router.post('/teams/:id/invite', (req, res) => {
     return res.status(409).json({ error: 'Email này đã có tài khoản, hãy thêm người đó từ danh sách' });
   }
   const name = req.body?.name?.trim() || email.split('@')[0];
-  const status = isManager(me) ? 'active' : 'pending';
+  const status = can(me, 'users.manage') ? 'active' : 'pending';
   const id = transaction(() => {
     const { lastInsertRowid } = db
       .prepare("INSERT INTO users (name, email, role, status, invited_by) VALUES (?, ?, 'member', ?, ?)")
@@ -142,13 +143,14 @@ router.post('/teams/:id/invite', (req, res) => {
   res.status(201).json(findUser(id));
 });
 
-// The people this user may watch: everyone for Managers, the people of their teams for Leaders.
+// The people this user may watch (people.watch): everyone, or the people of their teams.
 router.get('/people', (req, res) => {
   const me = req.user;
   const base = `${USER_SELECT} WHERE u.status = 'active' AND u.role != 'root'`;
+  const watch = scopeOf(me, 'people.watch');
   let rows = [];
-  if (isManager(me)) rows = db.prepare(`${base} ORDER BY u.name`).all();
-  if (me.role === 'leader') {
+  if (watch === 'all') rows = db.prepare(`${base} ORDER BY u.name`).all();
+  if (watch === 'team') {
     rows = db
       .prepare(`${base} AND u.id IN (SELECT user_id FROM user_teams WHERE team_id IN (${placeholders(me.team_ids)})) ORDER BY u.name`)
       .all(...me.team_ids);

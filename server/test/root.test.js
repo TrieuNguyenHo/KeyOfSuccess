@@ -117,7 +117,8 @@ test('the v23 migration makes an existing account in ROOT_EMAILS root and takes 
     const role = db.prepare('SELECT role FROM users WHERE id = 3').get().role;
     const teams = db.prepare('SELECT COUNT(*) AS n FROM user_teams').get().n;
     db.close();
-    assert.equal(`v${version}/${role}/${teams}`, 'v23/root/0');
+    assert.ok(version >= 23, `schema v${version}`);
+    assert.equal(`${role}/${teams}`, 'root/0');
   } finally {
     await old.stop();
   }

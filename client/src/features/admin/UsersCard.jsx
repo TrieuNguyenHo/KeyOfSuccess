@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { ROLES, STATUSES, isManager } from '../../utils.js';
+import { STATUSES, takesAllTeams } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { TeamPills } from '../../components/Controls.jsx';
 import { askConfirm } from '../../components/Dialog.jsx';
+import { levelIn, useRoles } from '../../components/hooks.js';
 import { ProfilePopover } from '../profile/ProfilePage.jsx';
 import { tr } from '../../i18n.js';
 
-// The people of the company with their status, role and teams, for Managers and Directors (User management) and for
-// root (System configuration). Only a Director or root gives the Director role or changes a Director's account.
+// The people of the company with their status, role and teams, for users.manage (User management) and for root
+// (System configuration). Nobody changes the account of, or gives, a role above their own level.
 export default function UsersCard({ user, users, teams, updateUser }) {
   const [filter, setFilter] = useState('all');
+  const roles = useRoles();
   const isRoot = user.role === 'root';
-  const grantsDirector = user.role === 'director' || isRoot;
+  const myLevel = levelIn(roles, user.role);
   const pendingCount = users.filter((u) => u.status === 'pending').length;
   const shown = filter === 'pending' ? users.filter((u) => u.status === 'pending') : users;
 
@@ -39,7 +41,7 @@ export default function UsersCard({ user, users, teams, updateUser }) {
       </div>
       {shown.map((u) => {
         const self = u.id === user.id;
-        const locked = u.role === 'director' && !grantsDirector;
+        const locked = levelIn(roles, u.role) > myLevel;
         return (
           <div key={u.id} className="admin-row">
             <span className="cell">
@@ -68,11 +70,11 @@ export default function UsersCard({ user, users, teams, updateUser }) {
                 updateUser(u, role === 'member' && u.team_ids.length > 1 ? { role, team_ids: u.team_ids.slice(0, 1) } : { role });
               }}
             >
-              {Object.entries(ROLES)
-                .filter(([value]) => value !== 'director' || grantsDirector || locked)
-                .map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
+              {roles
+                .filter((r) => r.level <= myLevel || r.key === u.role)
+                .map((r) => (
+                  <option key={r.key} value={r.key}>
+                    {r.name}
                   </option>
                 ))}
             </select>
@@ -94,7 +96,7 @@ export default function UsersCard({ user, users, teams, updateUser }) {
               // Leaders, Managers and Directors may belong to several teams; a Leader needs at least one.
               <details className="team-picker">
                 <summary title={tr('Chọn các team')}>
-                  {isManager(u) && teams.length > 0 && u.team_ids.length === teams.length
+                  {takesAllTeams(u.role) && teams.length > 0 && u.team_ids.length === teams.length
                     ? tr('Tất cả team')
                     : u.team_name ?? tr('Chưa có team')}{' '}
                   ▾
@@ -105,7 +107,7 @@ export default function UsersCard({ user, users, teams, updateUser }) {
                     selected={u.team_ids}
                     label={tr('Team của {name}', { name: u.name })}
                     noneLabel={null}
-                    allLabel={isManager(u) ? tr('Tất cả team') : undefined}
+                    allLabel={takesAllTeams(u.role) ? tr('Tất cả team') : undefined}
                     onChange={(ids) => ids.length > 0 && updateUser(u, { team_ids: ids })}
                   />
                   {u.role === 'leader' && <span className="muted small">{tr('Leader phụ trách tất cả team được chọn.')}</span>}

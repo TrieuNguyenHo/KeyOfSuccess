@@ -527,6 +527,31 @@ if (schemaVersion() < 23) {
   db.exec('PRAGMA user_version = 23');
 }
 
+// v24: roles and what each may do, set by root. `level` ranks roles: nobody changes, gives or reads the profile of a
+// role above their own. Each role holds every permission of lib/permissions.js with a scope ('none' / 'team' /
+// 'all'); missing rows are filled in with the defaults at startup (seedPermissions()).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS roles (
+    key TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    level INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS role_permissions (
+    role TEXT NOT NULL REFERENCES roles(key) ON DELETE CASCADE,
+    permission TEXT NOT NULL,
+    scope TEXT NOT NULL CHECK (scope IN ('none', 'team', 'all')),
+    PRIMARY KEY (role, permission)
+  );
+`);
+const insertRole = db.prepare('INSERT OR IGNORE INTO roles (key, name, level) VALUES (?, ?, ?)');
+[
+  ['member', 'Member', 1],
+  ['leader', 'Leader', 2],
+  ['manager', 'Manager', 3],
+  ['director', 'Director', 4],
+].forEach((role) => insertRole.run(...role));
+if (schemaVersion() < 24) db.exec('PRAGMA user_version = 24');
+
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_attachments_comment ON attachments(comment_id);
   CREATE INDEX IF NOT EXISTS idx_attachments_requirement_comment ON attachments(requirement_comment_id);

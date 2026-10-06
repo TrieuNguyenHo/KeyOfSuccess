@@ -1,7 +1,7 @@
 import { db } from '../db.js';
 import { loadProject } from './access.js';
 import { forbidden, notFound } from './http.js';
-import { isManager } from './roles.js';
+import { coversTeams, scopeOf } from './permissions.js';
 
 // A project's requirements with progress (top-level tasks done / total) and feedback counts.
 export const requirementsOf = (projectId) =>
@@ -21,8 +21,9 @@ export const findRequirement = (id) => (id == null ? undefined : db.prepare('SEL
 export const titleOfRequirement = (id) =>
   id == null ? null : db.prepare('SELECT title FROM requirements WHERE id = ?').get(id)?.title ?? null;
 
-// Requirements are written by the project's owner, the Leader of one of its teams, any Manager or Director.
-export const canEditRequirements = (user, project) => project.access === 'manage' || isManager(user);
+// Requirements are written by whoever manages the project and by requirements.manage covering it.
+export const canEditRequirements = (user, project) =>
+  project.access === 'manage' || coversTeams(user, scopeOf(user, 'requirements.manage'), project.teams.map((t) => t.id));
 export const REQUIREMENT_EDITORS = 'Chỉ owner, Leader của team phụ trách hoặc Manager mới quản lý được requirement';
 
 // Loads a requirement whose project the user can at least view; `edit` also demands requirement rights.

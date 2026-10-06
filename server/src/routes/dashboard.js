@@ -3,6 +3,7 @@ import express from 'express';
 import { db } from '../db.js';
 import { loadProject, taskScope } from '../lib/access.js';
 import { badRequest, forbidden } from '../lib/http.js';
+import { can } from '../lib/permissions.js';
 import { IN_TEAM, localDate } from '../lib/util.js';
 
 const router = express.Router();
@@ -65,7 +66,7 @@ function channelBreakdown(where, params) {
 // Dashboard for Leaders (own team) and Managers (?all=1 or ?team=<id>): totals, workload per person,
 // completions per day and progress per project. Uses the same scopes and permissions as /api/tasks.
 router.get('/dashboard', (req, res) => {
-  if (req.user.role === 'member') return forbidden(res);
+  if (!can(req.user, 'people.watch')) return forbidden(res);
   const scope = taskScope(req, res);
   if (!scope) return;
   const { where, params, userWhere, userParams } = scope;

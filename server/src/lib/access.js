@@ -1,7 +1,7 @@
 // Who may open and change projects and tasks.
 import { db } from '../db.js';
 import { forbidden, notFound } from './http.js';
-import { isDirector, isManager } from './roles.js';
+import { coversTeams, scopeOf } from './permissions.js';
 import { canWatchUser } from './users.js';
 import { IN_TEAM, placeholders } from './util.js';
 
@@ -34,24 +34,25 @@ export const findTask = (id) =>
 export const isMember = (projectId, userId) =>
   Boolean(db.prepare('SELECT 1 FROM project_members WHERE project_id = ? AND user_id = ?').get(projectId, userId));
 
-// 'manage': Directors, the owner, or a Leader of any of the project's teams (rename, delete, members).
-// 'edit': project members (tasks, sections). 'view': Managers, who read and comment on every project.
+// 'manage': the owner, or projects.manage covering the project (rename, delete, members). 'edit': project members
+// (tasks, sections). 'view': projects.view covering the project (read and comment). A department-wide project (no
+// teams) is covered only by an 'all' scope.
 export function projectAccess(user, project) {
-  if (isDirector(user) || project.owner_id === user.id) return 'manage';
-  if (user.role === 'leader' && project.teams.some((t) => user.team_ids.includes(t.id))) return 'manage';
+  const teamIds = project.teams.map((t) => t.id);
+  if (project.owner_id === user.id || coversTeams(user, scopeOf(user, 'projects.manage'), teamIds)) return 'manage';
   if (isMember(project.id, user.id)) return 'edit';
-  if (isManager(user)) return 'view';
+  if (coversTeams(user, scopeOf(user, 'projects.view'), teamIds)) return 'view';
   return null;
 }
 const ACCESS_RANK = { view: 1, edit: 2, manage: 3 };
 export const canEdit = (access) => ACCESS_RANK[access] >= ACCESS_RANK.edit;
 
-// Full rights on a project's tasks (create, edit, assign, delete, sections): Directors on every project, Managers and
-// Leaders of a team that takes part in it. A department-wide project (no teams) counts every team, for those who can
-// open it.
+// Full rights on a project's tasks (create, edit, assign, delete, sections), from tasks.admin: 'all' on every project,
+// 'team' on the projects one of the user's teams takes part in. A department-wide project (no teams) counts every
+// team, for those who can open it.
 export function isTaskAdmin(user, project) {
-  if (isDirector(user)) return true;
-  if (user.role !== 'manager' && user.role !== 'leader') return false;
+  const scope = scopeOf(user, 'tasks.admin');
+  if (scope !== 'team') return scope === 'all';
   if (!project.teams.length) return Boolean(projectAccess(user, project));
   return project.teams.some((t) => user.team_ids.includes(t.id));
 }
@@ -135,10 +136,11 @@ export function assigneeTeamsIn(project, userTeams) {
 
 // Whom a task admin may assign the project's tasks to: themselves and the active people of their own teams that
 // take part in the project (any own team for a department-wide project); themselves only if canBeAssigned().
-// Directors count every team as their own, so they assign anyone of the project's teams.
+// With tasks.admin 'all', every team counts as their own, so they assign anyone of the project's teams.
 // Assigning someone who is not yet a member makes them one (see PATCH /api/tasks/:id).
 export function assignableBy(user, project) {
-  const ownTeams = isDirector(user) ? db.prepare('SELECT id FROM teams').all().map((t) => t.id) : user.team_ids;
+  const ownTeams =
+    scopeOf(user, 'tasks.admin') === 'all' ? db.prepare('SELECT id FROM teams').all().map((t) => t.id) : user.team_ids;
   const teamIds = project.teams.length ? project.teams.map((t) => t.id).filter((id) => ownTeams.includes(id)) : ownTeams;
   return db
     .prepare(
@@ -153,22 +155,23 @@ export function assignableBy(user, project) {
     .filter((u) => u.id !== user.id || canBeAssigned(user.id, project));
 }
 
-// Which tasks a cross-project view covers: ?all=1 (Managers), ?team=<id> (a Leader of that team or a Manager),
-// ?mine=1 (all of a Leader's or Manager's own teams), otherwise ?assignee=me|<id>.
+// Which tasks a cross-project view covers, by people.watch: ?all=1 ('all'), ?team=<id> ('all', or 'team' for one of
+// the user's teams), ?mine=1 (all of the user's own teams, any scope), otherwise ?assignee=me|<id>.
 // Returns SQL filters over `t` (tasks) and `u` (the assignee), or sends 403.
 export function taskScope(req, res) {
   const me = req.user;
   const { assignee, team, all, mine } = req.query;
+  const watch = scopeOf(me, 'people.watch');
   let allowed, scope;
   if (all) {
-    allowed = isManager(me);
+    allowed = watch === 'all';
     scope = { where: '1 = 1', params: [], userWhere: '1 = 1', userParams: [] };
   } else if (team) {
     const teamId = Number(team);
-    allowed = isManager(me) || (me.role === 'leader' && me.team_ids.includes(teamId));
+    allowed = coversTeams(me, watch, [teamId]);
     scope = { where: `t.assignee_id ${IN_TEAM}`, params: [teamId], userWhere: `u.id ${IN_TEAM}`, userParams: [teamId] };
   } else if (mine) {
-    allowed = me.role !== 'member';
+    allowed = watch !== 'none';
     const inMine = `IN (SELECT user_id FROM user_teams WHERE team_id IN (${placeholders(me.team_ids)}))`;
     scope = { where: `t.assignee_id ${inMine}`, params: me.team_ids, userWhere: `u.id ${inMine}`, userParams: me.team_ids };
   } else {

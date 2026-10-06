@@ -1,16 +1,17 @@
-// User administration (Managers and Directors; root for roles, status and teams).
+// User administration (users.manage; root for roles, status and teams).
 import express from 'express';
 import { db, transaction } from '../db.js';
-import { badRequest, forbidden, managerOnly, notFound } from '../lib/http.js';
-import { ROLES, isDirector, isRoot, isUserAdmin } from '../lib/roles.js';
+import { badRequest, forbidden, notFound, requirePermission } from '../lib/http.js';
+import { can, levelOf, outranks, roleExists } from '../lib/permissions.js';
+import { isRoot } from '../lib/roles.js';
 import { USER_SELECT, canReadProfile, findUser, parseTeamIds, withProfile, withUserTeams } from '../lib/users.js';
 import { EMAIL_RE } from '../lib/util.js';
 
 const router = express.Router();
 
 const STATUSES = ['pending', 'active', 'disabled'];
-const userAdminOnly = (req, res, next) => (isUserAdmin(req.user) ? next() : forbidden(res, 'Chỉ Manager mới làm được việc này'));
-// With the profile when the caller may read it (Managers: everyone's but a Director's; root: nobody's).
+const userAdminOnly = (req, res, next) => (can(req.user, 'users.manage') || isRoot(req.user) ? next() : forbidden(res));
+// With the profile when the caller may read it (see canReadProfile(); root reads nobody's).
 const asSeenBy = (me, user) => (canReadProfile(me, user) ? withProfile(withUserTeams(user)) : withUserTeams(user));
 
 // Everyone in the company; root accounts are not part of it and never listed.
@@ -34,10 +35,10 @@ router.patch('/admin/users/:id', userAdminOnly, (req, res) => {
   else if (body.team_id !== undefined) teamIds = parseTeamIds(body.team_id ? [body.team_id] : []);
   if (!teamIds) return badRequest(res, 'Team không tồn tại');
   const next = { role: body.role ?? target.role, status: body.status ?? target.status };
-  if (!ROLES.includes(next.role) || !STATUSES.includes(next.status)) return badRequest(res, 'Vai trò hoặc trạng thái không hợp lệ');
-  // Only a Director or root gives the Director role or changes a Director's account.
-  if (!isDirector(req.user) && !isRoot(req.user) && (isDirector(target) || next.role === 'director')) {
-    return forbidden(res, 'Chỉ Director mới đổi được tài khoản của Director');
+  if (!roleExists(next.role) || !STATUSES.includes(next.status)) return badRequest(res, 'Vai trò hoặc trạng thái không hợp lệ');
+  // Nobody changes the account of, or gives, a role above their own level (root stands above every role).
+  if (outranks(target, req.user) || levelOf(next.role) > levelOf(req.user.role)) {
+    return forbidden(res, 'Không đổi được tài khoản có vai trò cao hơn bạn');
   }
   if (target.id === req.user.id && (next.role !== target.role || next.status !== 'active')) {
     return badRequest(res, 'Không thể tự hạ quyền hoặc khoá chính mình');
@@ -55,7 +56,7 @@ router.patch('/admin/users/:id', userAdminOnly, (req, res) => {
 
 // Invites someone who has never signed in: creates their account already active, in a team. Sign-in matches
 // accounts by email, so their first Google sign-in with that email lands straight in the app. No email is sent.
-router.post('/admin/users', managerOnly, (req, res) => {
+router.post('/admin/users', requirePermission('users.manage'), (req, res) => {
   const email = req.body?.email?.trim().toLowerCase();
   const teamId = Number(req.body?.team_id);
   if (!email || !EMAIL_RE.test(email)) return badRequest(res, 'Email không hợp lệ');

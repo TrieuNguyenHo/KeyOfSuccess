@@ -42,6 +42,26 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 
 ### Vai trò hệ thống
 
+**Quyền của từng vai trò do root đặt** (màn Cấu hình hệ thống › "Quyền theo vai trò", bảng `role_permissions`, từ v24). Mỗi quyền có phạm vi **Không / Team của mình / Toàn phòng** (quyền không có dạng theo team thì chỉ Không / Có). Bảng dưới là **mặc định**; root đổi được từng ô và "Khôi phục mặc định" cho từng vai trò. Thay đổi có hiệu lực ngay ở server; màn hình người dùng theo sau khi họ tải lại app.
+
+| Quyền (`lib/permissions.js`) | Member | Leader | Manager | Director |
+|---|---|---|---|---|
+| `projects.view`: mở project mình không tham gia (xem + comment) | – | Team | Toàn phòng | Toàn phòng |
+| `projects.manage`: đổi tên, xoá, thành viên của project không do mình tạo | – | Team | – | Toàn phòng |
+| `projects.create`, `projects.change_teams` | – | – | Có | Có |
+| `tasks.admin`: toàn quyền task (tạo, sửa, giao, xoá, trạng thái) | – | Team | Team | Toàn phòng |
+| `requirements.manage` | – | – | Toàn phòng | Toàn phòng |
+| `people.watch`: task của người khác, Theo dõi, Dashboard tổng | – | Team | Toàn phòng | Toàn phòng |
+| `people.profiles`: hồ sơ cá nhân của người khác | – | Team | Toàn phòng | Toàn phòng |
+| `users.manage`: Quản lý người dùng, lời mời hoạt động ngay | – | – | Có | Có |
+| `teams.members`: thêm / duyệt / mời / bỏ thành viên team | – | Team | Toàn phòng | Toàn phòng |
+| `teams.manage`, `channels.manage`, `comments.delete_any` | – | – | Có | Có |
+| `notify.task_completed`: nhận thông báo task xong | – | Team | Toàn phòng | – |
+
+**Cấp bậc vai trò** (`roles.level`: Member 1, Leader 2, Manager 3, Director 4; root cao hơn tất cả): không ai sửa tài khoản, cấp vai trò hay đọc hồ sơ của người có cấp cao hơn mình, dù có quyền gì. Vì vậy Manager không đụng được Director, Leader không đọc được hồ sơ Manager.
+
+Bảng dưới mô tả hành vi với quyền mặc định:
+
 | | Member | Leader | Manager | Director |
 |---|---|---|---|---|
 | Task của tôi, project mình tham gia | ✓ | ✓ | ✓ | ✓ |
@@ -151,6 +171,7 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `profile.test.js` | Hồ sơ: sửa / xoá trường, kiểm tra dữ liệu, tên mới hiện ở mọi chỗ, chỉ chính mình và Manager thấy thông tin cá nhân |
 | `director.test.js` | Director: toàn quyền mọi project, quyền Manager, chỉ Director cấp vai trò Director / sửa tài khoản Director, hồ sơ, không nhận thông báo task xong, migration v22 |
 | `root.test.js` | Root: chỉ dùng API cấu hình, ẩn khỏi mọi danh sách, cấp Director, không ai sửa được root, thu hồi khi bỏ khỏi `ROOT_EMAILS`, migration v23 |
+| `permissions.test.js` | Bảng quyền: `/me` trả quyền, chỉ root đọc / sửa, kiểm tra phạm vi, đổi quyền có hiệu lực ngay, khôi phục mặc định, quyền theo team, thông báo, cấp bậc vai trò |
 | `i18n.test.js` | Giao diện tiếng Anh đủ: mọi khoá `tr()` có bản tiếng Anh, không chữ tiếng Việt nào nằm ngoài `tr()`, mọi thông báo lỗi của server dịch được (không bật server) |
 
 - Mỗi file tự bật một server riêng trên port trống với **database tạm**, nên test **không bao giờ đụng tới `server/data/app.db`** và các file chạy song song. Dev server đang chạy không bị ảnh hưởng.
@@ -172,6 +193,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v24**: bảng `roles` (key, tên, `level`) và `role_permissions` (vai trò, quyền, phạm vi `none` / `team` / `all`). Quyền nào thiếu được điền giá trị mặc định mỗi khi server khởi động, nên quyền thêm ở bản sau tự có mặc định; ô root đã đặt được giữ nguyên.
 - **v23**: vai trò `root` (bảng `users` dựng lại như v22). Tài khoản có sẵn với email trong `ROOT_EMAILS` thành root và rời mọi team.
 - **v22**: vai trò `director` (bảng `users` được dựng lại vì SQLite không sửa được ràng buộc CHECK; giữ nguyên id và mọi cột). Email trong `DIRECTOR_EMAILS` thành Director ngay khi chuyển.
 - **v21**: cột `users.avatar` (tên file ảnh đại diện trong `server/data/uploads/`, đổi mỗi lần tải lên).
@@ -204,9 +226,11 @@ server/src/routes/     REST API, mỗi tính năng một file (express.Router, g
   attachments        tải về / xoá file đính kèm
   dashboard          Dashboard tổng và Dashboard project
   notifications      chuông thông báo, luồng sự kiện /events
+  permissions        /roles (mọi người), bảng quyền /admin/permissions (root)
 server/src/lib/        luật và helper dùng chung giữa các route
   access             quyền project / task (projectAccess, taskAccess, isTaskAdmin, canBeAssigned, taskScope…)
-  roles              ROLES, isRoot, isDirector, isManager (Manager hoặc Director), isUserAdmin (+ root)
+  permissions        danh mục quyền + mặc định, scopeOf / can / coversTeams, cấp bậc (levelOf, outranks), seedPermissions
+  roles              isRoot
   users, requirements, statuses, history, channels, recurrence, mentions, notifications
   live               Server-Sent Events (pushChange, pushNotifications)
   uploads            lưu file, sweepUploads; comments: COMMENT_KINDS dùng chung cho comment task / requirement
@@ -242,7 +266,7 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | POST | `/api/auth/google` | công khai: `{ credential }` (ID token của Google) |
 | POST | `/api/auth/dev` | chỉ khi `DEV_LOGIN=1`: `{ email, name }` |
 | GET | `/api/me` | kể cả tài khoản chờ duyệt; có `language` (`vi` / `en`) |
-| GET | `/api/me` (thêm) | trả cả hồ sơ: `birthday`, `phone`, `job_title`, `bio`, `gender`, `created_at` (chỉ của chính mình; Manager thấy của mọi người ở `/api/admin/users`) |
+| GET | `/api/me` (thêm) | trả cả `permissions` (`{ quyền: phạm vi }` của vai trò mình) và hồ sơ: `birthday`, `phone`, `job_title`, `bio`, `gender`, `created_at` (chỉ của chính mình; Manager thấy của mọi người ở `/api/admin/users`) |
 | POST, DELETE | `/api/me/avatar` | tải lên (nội dung ảnh, `Content-Type: application/octet-stream`; chỉ PNG / JPG / WebP theo nội dung file, tối đa 1 MB) / xoá ảnh đại diện của mình; trả về tài khoản |
 | GET | `/api/users/:id/profile` | hồ sơ đầy đủ của một người, cho chính họ, Manager và Leader của team có người đó (hồ sơ Manager: chỉ Manager); người khác nhận 404 |
 | GET | `/api/avatars` | `{ userId: phiên bản }` của những người có ảnh (mọi người đã đăng nhập) |
@@ -253,6 +277,9 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | POST, PATCH, DELETE | `/api/teams`, `/api/teams/:id` | Manager. Không xoá được team còn người |
 | GET | `/api/channels` | mọi người; Manager thấy thêm `task_count` |
 | POST, PATCH, DELETE | `/api/channels`, `/api/channels/:id` | Manager. `{ name, color? }` (màu `#rrggbb`, bỏ trống thì lấy màu kế tiếp trong bảng màu); tên không trùng (không phân biệt hoa thường) |
+| GET | `/api/roles` | mọi người đã đăng nhập: `[{ key, name, level }]`, cấp cao trước |
+| GET, PATCH | `/api/admin/permissions` | chỉ root. GET: `{ roles, permissions: [{ key, scopes }], grants: { role: { quyền: phạm vi } } }`; PATCH `{ role, permission, scope }` (400 nếu phạm vi không hợp lệ cho quyền đó) |
+| POST | `/api/admin/permissions/reset` | chỉ root: `{ role }`, về quyền mặc định |
 | GET | `/api/admin/users` | Manager |
 | PATCH | `/api/admin/users/:id` | Manager / Director / root (root: 404 với tài khoản root; không trả thông tin cá nhân): `{ role, status, team_ids }` (hoặc `team_id` cho một team). Member tối đa 1 team, Leader ít nhất 1. `role: 'director'` và mọi thay đổi trên tài khoản Director: chỉ Director hoặc root (403) |
 | GET | `/api/teams/:id/members` | Manager (mọi team) / Leader (team mình): `{ team, members, candidates }`. `candidates` là người được phép thêm |

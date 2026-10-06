@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { EMPTY_FILTERS, daysFromToday, isManager as hasManagerRights, isOverdue, todayStr } from '../../utils.js';
+import { EMPTY_FILTERS, can, coversTeams, daysFromToday, isOverdue, todayStr } from '../../utils.js';
 import BoardView from './BoardView.jsx';
 import CalendarView from './CalendarView.jsx';
 import ListView from './ListView.jsx';
@@ -55,7 +55,7 @@ export default function ProjectView({
   );
   const [showMembers, setShowMembers] = useState(false);
   const [error, setError] = useState('');
-  const isManager = hasManagerRights(user);
+  const changesTeams = can(user, 'projects.change_teams');
 
   // All teams: the Manager's team picker and the team-label filter.
   const teams = useAllTeams();
@@ -97,7 +97,8 @@ export default function ProjectView({
   const taskAdmin = project.task_admin;
   const readOnly = !taskAdmin && project.access === 'view';
   const canEditTask = (task) => taskAdmin || (!readOnly && task.assignee_id === user.id);
-  const canEditRequirements = canManage || isManager;
+  const canEditRequirements =
+    canManage || coversTeams(user, 'requirements.manage', project.teams.map((t) => t.id));
 
   const actions = {
     onOpen: onOpenTask,
@@ -199,7 +200,7 @@ export default function ProjectView({
         <div className="project-title">
           <span className="dot lg" style={{ background: project.color }} />
           <h1>{project.name}</h1>
-          {isManager ? (
+          {changesTeams ? (
             <details className="team-picker">
               <summary title={tr('{p0} · bấm để đổi team phụ trách', { p0: teamsLabel(project.teams) })}>{teamsLabel(project.teams)} ▾</summary>
               <div className="team-picker-menu">

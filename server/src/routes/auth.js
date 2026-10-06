@@ -6,7 +6,7 @@ import { DEV_LOGIN, DIRECTOR_EMAILS, GOOGLE_CLIENT_ID, JWT_SECRET, MANAGER_EMAIL
 import { db, makeRoot } from '../db.js';
 import { badRequest, forbidden } from '../lib/http.js';
 import { isRoot } from '../lib/roles.js';
-import { findUser, withProfile } from '../lib/users.js';
+import { asMe, findUser } from '../lib/users.js';
 
 const router = express.Router();
 const googleClient = new OAuth2Client();
@@ -53,7 +53,7 @@ function signIn(res, { email, name, googleSub }) {
   const user = findUser(id);
   if (revokedRoot(user)) return forbidden(res, 'Tài khoản root này đã bị thu hồi');
   if (user.status === 'disabled') return forbidden(res, 'Tài khoản của bạn đã bị khoá');
-  res.json({ token: signToken(user), user: withProfile(user) });
+  res.json({ token: signToken(user), user: asMe(user) });
 }
 
 router.post('/auth/google', async (req, res, next) => {
@@ -82,13 +82,17 @@ if (DEV_LOGIN) {
 }
 
 // Root accounts only configure the system: their own account, the list of people with their roles and the teams to
-// place them in. The company's work (projects, tasks, dashboards, notifications…) stays closed to them.
+// place them in, roles and what each may do. The company's work (projects, tasks, dashboards, notifications…) stays closed to them.
 const ROOT_ROUTES = [
   ['GET', /^\/me$/],
   ['PATCH', /^\/me$/],
   ['GET', /^\/admin\/users$/],
   ['PATCH', /^\/admin\/users\/\d+$/],
   ['GET', /^\/teams$/],
+  ['GET', /^\/roles$/],
+  ['GET', /^\/admin\/permissions$/],
+  ['PATCH', /^\/admin\/permissions$/],
+  ['POST', /^\/admin\/permissions\/reset$/],
   ['GET', /^\/avatars(\/\d+)?$/],
 ];
 

@@ -5,11 +5,13 @@ import { Brand } from '../../components/Brand.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
 import { DialogHost } from '../../components/Dialog.jsx';
 import { LanguageSwitch, ThemeSwitch } from '../../components/Preferences.jsx';
+import PermissionsCard from './PermissionsCard.jsx';
 import UsersCard from './UsersCard.jsx';
 import { tr } from '../../i18n.js';
 
-// The whole app for root accounts (ROOT_EMAILS): they are not part of the company and only configure the system,
-// here who holds which role (the Director role included), account status and teams. No projects, tasks or dashboards.
+// The whole app for root accounts (ROOT_EMAILS): they are not part of the company and only configure the system:
+// what each role may do, who holds which role (the Director role included), account status and teams. No projects,
+// tasks or dashboards.
 export default function SystemConfigPage({ user, onLogout }) {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
@@ -65,10 +67,11 @@ export default function SystemConfigPage({ user, onLogout }) {
                 <section className="admin-card">
                   <p className="muted card-sub">
                     {tr(
-                      'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.'
+                      'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn đặt quyền cho từng vai trò, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.'
                     )}
                   </p>
                 </section>
+                <PermissionsCard />
                 <UsersCard user={user} users={users} teams={teams} updateUser={updateUser} />
               </div>
             </div>

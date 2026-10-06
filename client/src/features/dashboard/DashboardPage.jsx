@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { isManager as hasManagerRights, myTeamsLabel } from '../../utils.js';
+import { myTeamsLabel, watchesAll } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { tr } from '../../i18n.js';
 
@@ -83,16 +83,16 @@ export function ChannelProgress({ channels, noChannel, scopeLabel }) {
 }
 
 export default function DashboardPage({ user, onOpenPerson }) {
-  const isManager = hasManagerRights(user);
+  const watchAll = watchesAll(user);
   // 'all' (Manager), 'mine' (all of a Leader's teams) or 'team:<id>'.
-  const [scope, setScope] = useState(isManager ? 'all' : 'mine');
+  const [scope, setScope] = useState(watchAll ? 'all' : 'mine');
   const [teams, setTeams] = useState([]);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isManager) api('/teams').then(setTeams).catch(() => {});
-  }, [isManager]);
+    if (watchAll) api('/teams').then(setTeams).catch(() => {});
+  }, [watchAll]);
 
   useEffect(() => {
     setData(null);
@@ -110,7 +110,7 @@ export default function DashboardPage({ user, onOpenPerson }) {
       <header className="project-header">
         <h1>Dashboard</h1>
         <span className="grow" />
-        {isManager ? (
+        {watchAll ? (
           <select value={scope} onChange={(e) => setScope(e.target.value)} aria-label={tr('Phạm vi')}>
             <option value="all">{tr('Cả phòng')}</option>
             {teams.map((t) => (

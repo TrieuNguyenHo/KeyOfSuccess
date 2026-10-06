@@ -13,13 +13,13 @@ import {
   withTeams,
 } from '../lib/access.js';
 import { channelsByTask } from '../lib/channels.js';
-import { badRequest, forbidden, managerOnly, notFound } from '../lib/http.js';
+import { badRequest, forbidden, notFound, requirePermission } from '../lib/http.js';
 import { requirementsOf } from '../lib/requirements.js';
 import { DEFAULT_STATUSES } from '../lib/statuses.js';
 import { sweepUploads } from '../lib/uploads.js';
 import { parseTeamIds } from '../lib/users.js';
 import { IN_TEAM, placeholders } from '../lib/util.js';
-import { isManager } from '../lib/roles.js';
+import { can } from '../lib/permissions.js';
 
 const router = express.Router();
 
@@ -32,27 +32,20 @@ function setProjectTeams(projectId, teamIds) {
 // Every project the user can open, each with its access level and teams, for the grouped sidebar.
 router.get('/projects', (req, res) => {
   const me = req.user;
-  const rows = db
-    .prepare(
-      `SELECT p.* FROM projects p
-       WHERE ? IN ('manager', 'director') OR p.owner_id = ?
-         OR EXISTS (SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id = ?)
-         OR (? = 'leader' AND EXISTS (SELECT 1 FROM project_teams pt WHERE pt.project_id = p.id
-               AND pt.team_id IN (SELECT team_id FROM user_teams WHERE user_id = ?)))
-       ORDER BY p.created_at, p.id`
-    )
-    .all(me.role, me.id, me.id, me.role, me.id);
+  const rows = db.prepare('SELECT p.* FROM projects p ORDER BY p.created_at, p.id').all();
   res.json(
-    rows.map((row) => {
-      const project = withTeams(row);
-      return { ...project, access: projectAccess(me, project) };
-    })
+    rows
+      .map((row) => {
+        const project = withTeams(row);
+        return { ...project, access: projectAccess(me, project) };
+      })
+      .filter((p) => p.access)
   );
 });
 
-// Only Managers create projects. Body { name, color, team_ids, add_team }: any teams (none = department-wide);
+// Only projects.create creates projects. Body { name, color, team_ids, add_team }: any teams (none = department-wide);
 // add_team makes everyone in those teams a member.
-router.post('/projects', managerOnly, (req, res) => {
+router.post('/projects', requirePermission('projects.create'), (req, res) => {
   const me = req.user;
   const body = req.body ?? {};
   const name = body.name?.trim();
@@ -119,14 +112,14 @@ router.get('/projects/:id', (req, res) => {
   });
 });
 
-// Name and color need 'manage' access; changing the owning teams (team_ids) is for Managers only.
+// Name and color need 'manage' access; changing the owning teams (team_ids) needs projects.change_teams.
 router.patch('/projects/:id', (req, res) => {
   const body = req.body ?? {};
   const changesTeams = body.team_ids !== undefined;
   const changesDetails = body.name !== undefined || body.color !== undefined;
   const project = loadProject(req, res, req.params.id, changesDetails ? 'manage' : 'view');
   if (!project) return;
-  if (changesTeams && !isManager(req.user)) return forbidden(res, 'Chỉ Manager mới đổi được team của project');
+  if (changesTeams && !can(req.user, 'projects.change_teams')) return forbidden(res, 'Chỉ Manager mới đổi được team của project');
 
   const name = body.name?.trim() ?? project.name;
   if (!name) return badRequest(res, 'Cần nhập tên project');

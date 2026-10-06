@@ -4,19 +4,19 @@ import { db, transaction } from '../db.js';
 import { findTask } from '../lib/access.js';
 import { channelNames, channelsByTask } from '../lib/channels.js';
 import { logEvent } from '../lib/history.js';
-import { badRequest, managerOnly, notFound } from '../lib/http.js';
+import { badRequest, notFound, requirePermission } from '../lib/http.js';
 import { pushChange } from '../lib/live.js';
-import { isManager } from '../lib/roles.js';
+import { can } from '../lib/permissions.js';
 
 const router = express.Router();
 
 const CHANNEL_COLORS = ['#4573d2', '#e8384f', '#fd9a00', '#62d26f', '#a862ea', '#20aaea', '#f06a6a', '#37c5ab'];
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
-// Everyone reads the list (filters, the task panel); only Managers see how many tasks carry each channel,
+// Everyone reads the list (filters, the task panel); only channels.manage sees how many tasks carry each channel,
 // since that counts tasks across the whole department.
 router.get('/channels', (req, res) => {
-  const count = isManager(req.user);
+  const count = can(req.user, 'channels.manage');
   res.json(
     db
       .prepare(
@@ -42,7 +42,7 @@ const projectsOfChannel = (channelId) =>
     .map((r) => r.project_id);
 
 // Body { name, color? }; without a color the channel takes the next one of the palette.
-router.post('/channels', managerOnly, (req, res) => {
+router.post('/channels', requirePermission('channels.manage'), (req, res) => {
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên kênh');
   if (channelNameTaken(name)) return res.status(409).json({ error: 'Tên kênh đã tồn tại' });
@@ -53,7 +53,7 @@ router.post('/channels', managerOnly, (req, res) => {
 });
 
 // Body { name?, color? }.
-router.patch('/channels/:id', managerOnly, (req, res) => {
+router.patch('/channels/:id', requirePermission('channels.manage'), (req, res) => {
   const channel = findChannel(req.params.id);
   if (!channel) return notFound(res);
   const name = req.body?.name === undefined ? channel.name : String(req.body.name).trim();
@@ -67,7 +67,7 @@ router.patch('/channels/:id', managerOnly, (req, res) => {
 });
 
 // The channel leaves every task that carried it; each of those tasks records it in its history.
-router.delete('/channels/:id', managerOnly, (req, res) => {
+router.delete('/channels/:id', requirePermission('channels.manage'), (req, res) => {
   const channel = findChannel(req.params.id);
   if (!channel) return notFound(res);
   const projectIds = projectsOfChannel(channel.id);

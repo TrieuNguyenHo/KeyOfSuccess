@@ -6,12 +6,12 @@ import { join } from 'node:path';
 import { UPLOAD_DIR, db } from '../db.js';
 import { badRequest, notFound } from '../lib/http.js';
 import { rawUpload } from '../lib/uploads.js';
-import { canReadProfile, findUser, withProfile } from '../lib/users.js';
+import { asMe, canReadProfile, findUser, withProfile } from '../lib/users.js';
 import { localDate } from '../lib/util.js';
 
 const router = express.Router();
 
-router.get('/me', (req, res) => res.json(withProfile(req.user)));
+router.get('/me', (req, res) => res.json(asMe(req.user)));
 
 router.get('/users/:id/profile', (req, res) => {
   const user = findUser(req.params.id);
@@ -76,7 +76,7 @@ router.patch('/me', (req, res) => {
     ...fields.map((f) => set[f]),
     req.user.id
   );
-  res.json(withProfile(findUser(req.user.id)));
+  res.json(asMe(findUser(req.user.id)));
 });
 
 // ---------- Profile pictures ----------
@@ -106,14 +106,14 @@ router.post('/me/avatar', rawUpload, (req, res) => {
   const old = db.prepare('SELECT avatar FROM users WHERE id = ?').get(req.user.id).avatar;
   db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(name, req.user.id);
   removeAvatarFile(old);
-  res.status(201).json(withProfile(findUser(req.user.id)));
+  res.status(201).json(asMe(findUser(req.user.id)));
 });
 
 router.delete('/me/avatar', (req, res) => {
   const old = db.prepare('SELECT avatar FROM users WHERE id = ?').get(req.user.id).avatar;
   db.prepare('UPDATE users SET avatar = NULL WHERE id = ?').run(req.user.id);
   removeAvatarFile(old);
-  res.json(withProfile(findUser(req.user.id)));
+  res.json(asMe(findUser(req.user.id)));
 });
 
 // Who has a picture: { userId: version }. The version changes with every upload, for the client's cache.

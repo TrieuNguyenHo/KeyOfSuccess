@@ -146,6 +146,19 @@ img.avatar { object-fit: cover; }
 .admin-row .team-picker > summary { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .admin-row .team-picker-menu { left: auto; right: 0; }
 
+/* Role × permission table (System configuration, root). Scrolls sideways inside its card on narrow screens. */
+.perm-table { overflow-x: auto; }
+.perm-grid {
+  display: grid; grid-template-columns: minmax(180px, 1fr) repeat(var(--roles), 116px);
+  align-items: center; column-gap: 12px; min-width: max-content;
+}
+.perm-grid > * { padding: 10px 0; border-bottom: 1px solid var(--divider-soft); }
+.perm-head { color: var(--muted); font-size: 12px; letter-spacing: -0.12px; font-weight: 600; border-bottom-color: var(--hairline); }
+.perm-label { display: flex; flex-direction: column; gap: 2px; max-width: 420px; }
+.perm-grid select { width: 100%; }
+.perm-grid select.perm-none { color: var(--muted); }
+.perm-grid .link-btn { justify-self: start; border-bottom: 0; }
+
 /* Dashboard (mark specs from the dataviz guide: thin bars, 4px data-ends, 2px surface gaps) */
 .dashboard { display: flex; flex-direction: column; gap: 20px; }
 .card-sub { margin: -8px 0 14px; }

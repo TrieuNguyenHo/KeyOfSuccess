@@ -2,6 +2,7 @@
 import express from 'express';
 import { PORT } from './config.js';
 import { purgeTaskEvents } from './lib/history.js';
+import { seedPermissions } from './lib/permissions.js';
 import { MAX_UPLOAD_MB, sweepUploads } from './lib/uploads.js';
 import admin from './routes/admin.js';
 import attachments from './routes/attachments.js';
@@ -11,6 +12,7 @@ import comments from './routes/comments.js';
 import dashboard from './routes/dashboard.js';
 import me from './routes/me.js';
 import notifications from './routes/notifications.js';
+import permissions from './routes/permissions.js';
 import projects from './routes/projects.js';
 import requirements from './routes/requirements.js';
 import sections from './routes/sections.js';
@@ -23,7 +25,7 @@ app.use(express.json());
 app.use('/api', auth);
 // Every route mounted below requires a valid token.
 app.use('/api', requireUser);
-for (const router of [me, teams, channels, admin, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications]) {
+for (const router of [me, teams, channels, admin, permissions, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications]) {
   app.use('/api', router);
 }
 
@@ -32,6 +34,9 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: 'Lỗi server' });
 });
+
+// Every role holds every permission; new ones start with their default.
+seedPermissions();
 
 // Housekeeping: task history older than 30 days (at startup, then daily), and files whose row is gone.
 purgeTaskEvents();

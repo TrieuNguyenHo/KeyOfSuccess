@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { PROJECT_COLORS } from '../../utils.js';
+import { PROJECT_COLORS, can } from '../../utils.js';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
 import TeamModal from './TeamModal.jsx';
 import UsersCard from './UsersCard.jsx';
@@ -84,102 +84,108 @@ export default function AdminPage({ user, onChanged }) {
                 <button className="icon-btn" title={tr('Sửa team, thêm thành viên')} onClick={() => setEditingTeamId(t.id)}>
                   ✎
                 </button>
-                <button
-                  className="icon-btn danger"
-                  title={tr('Xoá team')}
-                  onClick={async () =>
-                    (await askConfirm({ title: tr('Xoá team "{name}"?', { name: t.name }), confirmLabel: tr('Xoá team'), danger: true })) &&
-                    act(() => api(`/teams/${t.id}`, { method: 'DELETE' }))
-                  }
-                >
-                  ✕
-                </button>
+                {can(user, 'teams.manage') && (
+                  <button
+                    className="icon-btn danger"
+                    title={tr('Xoá team')}
+                    onClick={async () =>
+                      (await askConfirm({ title: tr('Xoá team "{name}"?', { name: t.name }), confirmLabel: tr('Xoá team'), danger: true })) &&
+                      act(() => api(`/teams/${t.id}`, { method: 'DELETE' }))
+                    }
+                  >
+                    ✕
+                  </button>
+                )}
               </span>
             ))}
-            <form
-              className="member-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const name = newTeam.trim();
-                if (!name) return;
-                setNewTeam('');
-                act(() => api('/teams', { method: 'POST', body: { name } }));
-              }}
-            >
-              <input placeholder={tr('Tên team mới')} value={newTeam} onChange={(e) => setNewTeam(e.target.value)} />
-              <button className="btn primary">{tr('Thêm team')}</button>
-            </form>
+            {can(user, 'teams.manage') && (
+              <form
+                className="member-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const name = newTeam.trim();
+                  if (!name) return;
+                  setNewTeam('');
+                  act(() => api('/teams', { method: 'POST', body: { name } }));
+                }}
+              >
+                <input placeholder={tr('Tên team mới')} value={newTeam} onChange={(e) => setNewTeam(e.target.value)} />
+                <button className="btn primary">{tr('Thêm team')}</button>
+              </form>
+            )}
           </div>
         </section>
 
-        <section className="admin-card">
-          <div className="section-header">
-            <h2>{tr('Kênh')}</h2>
-          </div>
-          <p className="muted card-sub">
-            {tr('Danh sách kênh dùng chung cả phòng để gắn lên task (Facebook, TikTok, SEO…). Bấm chấm màu để đổi màu.')}
-          </p>
-          <div className="team-chips">
-            {channels.map((c) => (
-              <span key={c.id} className="team-chip">
-                <button
-                  className="channel-color"
-                  title={tr('Đổi màu')}
-                  aria-label={tr('Đổi màu kênh {name}', { name: c.name })}
-                  onClick={() => {
-                    const color = PROJECT_COLORS[(PROJECT_COLORS.indexOf(c.color) + 1) % PROJECT_COLORS.length];
-                    act(() => api(`/channels/${c.id}`, { method: 'PATCH', body: { color } }));
-                  }}
-                >
-                  <span className="dot" style={{ background: c.color }} />
-                </button>
-                <span className="channel-chip-name">
-                  <b>{c.name}</b>
-                  <span className="muted">{tr('{count} task', { count: c.task_count })}</span>
+        {can(user, 'channels.manage') && (
+          <section className="admin-card">
+            <div className="section-header">
+              <h2>{tr('Kênh')}</h2>
+            </div>
+            <p className="muted card-sub">
+              {tr('Danh sách kênh dùng chung cả phòng để gắn lên task (Facebook, TikTok, SEO…). Bấm chấm màu để đổi màu.')}
+            </p>
+            <div className="team-chips">
+              {channels.map((c) => (
+                <span key={c.id} className="team-chip">
+                  <button
+                    className="channel-color"
+                    title={tr('Đổi màu')}
+                    aria-label={tr('Đổi màu kênh {name}', { name: c.name })}
+                    onClick={() => {
+                      const color = PROJECT_COLORS[(PROJECT_COLORS.indexOf(c.color) + 1) % PROJECT_COLORS.length];
+                      act(() => api(`/channels/${c.id}`, { method: 'PATCH', body: { color } }));
+                    }}
+                  >
+                    <span className="dot" style={{ background: c.color }} />
+                  </button>
+                  <span className="channel-chip-name">
+                    <b>{c.name}</b>
+                    <span className="muted">{tr('{count} task', { count: c.task_count })}</span>
+                  </span>
+                  <button
+                    className="icon-btn"
+                    title={tr('Đổi tên kênh')}
+                    onClick={async () => {
+                      const name = await askText({ title: tr('Đổi tên kênh'), label: tr('Tên kênh'), initial: c.name });
+                      if (name) act(() => api(`/channels/${c.id}`, { method: 'PATCH', body: { name } }));
+                    }}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    className="icon-btn danger"
+                    title={tr('Xoá kênh')}
+                    onClick={async () =>
+                      (await askConfirm({
+                        title: tr('Xoá kênh "{name}"?', { name: c.name }),
+                        message: c.task_count
+                          ? tr('Kênh đang gắn trên {task_count} task; nhãn sẽ bị gỡ khỏi các task đó. Không hoàn tác được.', { task_count: c.task_count })
+                          : undefined,
+                        confirmLabel: tr('Xoá kênh'),
+                        danger: true,
+                      })) && act(() => api(`/channels/${c.id}`, { method: 'DELETE' }))
+                    }
+                  >
+                    ✕
+                  </button>
                 </span>
-                <button
-                  className="icon-btn"
-                  title={tr('Đổi tên kênh')}
-                  onClick={async () => {
-                    const name = await askText({ title: tr('Đổi tên kênh'), label: tr('Tên kênh'), initial: c.name });
-                    if (name) act(() => api(`/channels/${c.id}`, { method: 'PATCH', body: { name } }));
-                  }}
-                >
-                  ✎
-                </button>
-                <button
-                  className="icon-btn danger"
-                  title={tr('Xoá kênh')}
-                  onClick={async () =>
-                    (await askConfirm({
-                      title: tr('Xoá kênh "{name}"?', { name: c.name }),
-                      message: c.task_count
-                        ? tr('Kênh đang gắn trên {task_count} task; nhãn sẽ bị gỡ khỏi các task đó. Không hoàn tác được.', { task_count: c.task_count })
-                        : undefined,
-                      confirmLabel: tr('Xoá kênh'),
-                      danger: true,
-                    })) && act(() => api(`/channels/${c.id}`, { method: 'DELETE' }))
-                  }
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
-            <form
-              className="member-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const name = newChannel.trim();
-                if (!name) return;
-                setNewChannel('');
-                act(() => api('/channels', { method: 'POST', body: { name } }));
-              }}
-            >
-              <input placeholder={tr('Tên kênh mới')} value={newChannel} onChange={(e) => setNewChannel(e.target.value)} />
-              <button className="btn primary">{tr('Thêm kênh')}</button>
-            </form>
-          </div>
-        </section>
+              ))}
+              <form
+                className="member-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const name = newChannel.trim();
+                  if (!name) return;
+                  setNewChannel('');
+                  act(() => api('/channels', { method: 'POST', body: { name } }));
+                }}
+              >
+                <input placeholder={tr('Tên kênh mới')} value={newChannel} onChange={(e) => setNewChannel(e.target.value)} />
+                <button className="btn primary">{tr('Thêm kênh')}</button>
+              </form>
+            </div>
+          </section>
+        )}
 
         <UsersCard user={user} users={inTeams} teams={teams} updateUser={updateUser} />
       </div>

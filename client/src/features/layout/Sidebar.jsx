@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ROLES, isManager, myTeamsLabel } from '../../utils.js';
+import { ROLES, can, myTeamsLabel, watchesAll } from '../../utils.js';
 import NotificationBell from './NotificationBell.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { Brand } from '../../components/Brand.jsx';
@@ -116,7 +116,7 @@ export default function Sidebar({
         <NavItem active={view.type === 'my'} onClick={() => go({ type: 'my' })} icon="tasks">
           {tr('Task của tôi')}
         </NavItem>
-        {(user.role !== 'member' || projects.length > 0) && (
+        {(can(user, 'people.watch') || projects.length > 0) && (
           // Sub-menu: the department / team overview (not for Members), then one dashboard per project.
           <li {...flyoutProps('dashboard')}>
             <button
@@ -135,13 +135,13 @@ export default function Sidebar({
                 </button>
               </div>
               <ul>
-                {user.role !== 'member' && (
+                {can(user, 'people.watch') && (
                   <li>
                     <button
                       className={`flyout-link ${view.type === 'dashboard' && !view.projectId ? 'active' : ''}`}
                       onClick={() => go({ type: 'dashboard' }, 'dashboard')}
                     >
-                      <span className="ellipsis grow">{isManager(user) ? tr('Tổng quan phòng') : tr('Tổng quan {p0}', { p0: myTeamsLabel(user) })}</span>
+                      <span className="ellipsis grow">{watchesAll(user) ? tr('Tổng quan phòng') : tr('Tổng quan {p0}', { p0: myTeamsLabel(user) })}</span>
                     </button>
                   </li>
                 )}
@@ -164,12 +164,12 @@ export default function Sidebar({
             </div>
           </li>
         )}
-        {user.role !== 'member' && (
+        {can(user, 'people.watch') && (
           <NavItem active={view.type === 'team'} onClick={() => go({ type: 'team' })} icon="team">
-            {isManager(user) ? tr('Theo dõi công việc') : myTeamsLabel(user)}
+            {watchesAll(user) ? tr('Theo dõi công việc') : myTeamsLabel(user)}
           </NavItem>
         )}
-        {user.role === 'leader' && (
+        {can(user, 'teams.members') && !can(user, 'users.manage') && (
           <NavItem
             active={view.type === 'myteams'}
             onClick={() => go({ type: 'myteams' })}
@@ -179,7 +179,7 @@ export default function Sidebar({
             {tr('Quản lý team')}
           </NavItem>
         )}
-        {isManager(user) && (
+        {can(user, 'users.manage') && (
           <NavItem
             active={view.type === 'admin'}
             onClick={() => go({ type: 'admin' })}
@@ -193,7 +193,7 @@ export default function Sidebar({
 
       <div className="sidebar-title">
         <span>{tr('Projects theo team')}</span>
-        {isManager(user) && (
+        {can(user, 'projects.create') && (
           <button className="icon-btn light" onClick={onNewProject} title={tr('Tạo project')} aria-label={tr('Tạo project')}>
             +
           </button>
@@ -203,7 +203,7 @@ export default function Sidebar({
       <ul className="main-buttons project-groups">
         {projects.length === 0 && (
           <li className="sidebar-empty">
-            {isManager(user) ? tr('Chưa có project nào. Bấm + để tạo.') : tr('Bạn chưa tham gia project nào.')}
+            {can(user, 'projects.create') ? tr('Chưa có project nào. Bấm + để tạo.') : tr('Bạn chưa tham gia project nào.')}
           </li>
         )}
         {projects.length > 0 &&
