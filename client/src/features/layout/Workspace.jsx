@@ -5,6 +5,7 @@ import { formatRoute, parseRoute } from '../../route.js';
 import { PROJECT_COLORS } from '../../utils.js';
 import AdminPage from '../admin/AdminPage.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
+import { useCloseDetailsOutside } from '../../components/hooks.js';
 import CreateProjectModal from '../projects/CreateProjectModal.jsx';
 import DashboardPage from '../dashboard/DashboardPage.jsx';
 import { DialogHost } from '../../components/Dialog.jsx';
@@ -46,19 +47,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
   const [navOpen, setNavOpen] = useState(false);
   useEffect(() => setNavOpen(false), [view, openTaskId]);
 
-  // Pop-ups built on <details> (the team pickers) close on a click outside them or on Escape.
-  useEffect(() => {
-    const closeOthers = (keep) =>
-      document.querySelectorAll('details[open]').forEach((d) => !d.contains(keep) && d.removeAttribute('open'));
-    const onPointerDown = (e) => closeOthers(e.target);
-    const onKey = (e) => e.key === 'Escape' && closeOthers(null);
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, []);
+  useCloseDetailsOutside();
 
   const loadProjects = useCallback(async () => {
     const list = await api('/projects');

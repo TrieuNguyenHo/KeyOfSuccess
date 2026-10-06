@@ -188,7 +188,14 @@ export default function AdminPage({ user, onChanged }) {
           </section>
         )}
 
-        <UsersCard user={user} users={inTeams} teams={teams} updateUser={updateUser} revokeInvite={revokeInvite} />
+        <UsersCard
+          user={user}
+          users={inTeams}
+          teams={teams}
+          updateUser={updateUser}
+          revokeInvite={revokeInvite}
+          onReload={() => load().catch((e) => setError(e.message))}
+        />
       </div>
 
       {editingTeam && (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { STATUSES, takesAllTeams } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { TeamPills } from '../../components/Controls.jsx';
@@ -9,25 +9,35 @@ import { tr } from '../../i18n.js';
 
 // The people of the company with their status, role and teams, for users.manage (User management) and for root
 // (System configuration). Nobody changes the account of, or gives, a role above their own level. Invited people who
-// have not signed in yet show as such, and their invitation can be revoked (the account is deleted).
-export default function UsersCard({ user, users, teams, updateUser, revokeInvite }) {
+// have not signed in yet show as such, and their invitation can be revoked (the account is deleted). The All / Pending
+// tabs reload the list (onReload), so they show sign-ups and changes made elsewhere since the screen opened.
+export default function UsersCard({ user, users, teams, updateUser, revokeInvite, onReload }) {
   const [filter, setFilter] = useState('all');
+  // The card keeps the height it had when the Pending tab was picked: a short (or empty) list would otherwise shrink
+  // the page and make the browser jump up. Back on All, it sizes to its content again.
+  const [minHeight, setMinHeight] = useState(null);
+  const card = useRef(null);
   const roles = useRoles();
   const isRoot = user.role === 'root';
   const myLevel = levelIn(roles, user.role);
   const pendingCount = users.filter((u) => u.status === 'pending').length;
   const shown = filter === 'pending' ? users.filter((u) => u.status === 'pending') : users;
+  const showTab = (tab) => {
+    setMinHeight(tab === 'pending' ? card.current?.offsetHeight ?? null : null);
+    setFilter(tab);
+    onReload();
+  };
 
   return (
-    <section className="admin-card">
+    <section className="admin-card" ref={card} style={minHeight ? { minHeight } : undefined}>
       <div className="section-header">
         <h2>{tr('Người dùng')}</h2>
         <span className="grow" />
         <div className="tabs">
-          <button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>
+          <button className={filter === 'all' ? 'active' : ''} onClick={() => showTab('all')}>
             {tr('Tất cả ({count})', { count: users.length })}
           </button>
-          <button className={filter === 'pending' ? 'active' : ''} onClick={() => setFilter('pending')}>
+          <button className={filter === 'pending' ? 'active' : ''} onClick={() => showTab('pending')}>
             {tr('Chờ duyệt ({count})', { count: pendingCount })}
           </button>
         </div>

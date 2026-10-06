@@ -4,6 +4,7 @@ import { loadAvatars } from '../../avatars.js';
 import { Brand } from '../../components/Brand.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
 import { DialogHost } from '../../components/Dialog.jsx';
+import { useCloseDetailsOutside } from '../../components/hooks.js';
 import { LanguageSwitch, ThemeSwitch } from '../../components/Preferences.jsx';
 import InviteUserCard from './InviteUserCard.jsx';
 import PermissionsCard from './PermissionsCard.jsx';
@@ -17,6 +18,7 @@ export default function SystemConfigPage({ user, onLogout }) {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState('');
+  useCloseDetailsOutside();
 
   const load = useCallback(async () => {
     const [u, t] = await Promise.all([api('/admin/users'), api('/teams')]);
@@ -76,7 +78,14 @@ export default function SystemConfigPage({ user, onLogout }) {
                 </section>
                 <PermissionsCard />
                 <InviteUserCard user={user} teams={teams} onInvited={() => load().catch(() => {})} />
-                <UsersCard user={user} users={users} teams={teams} updateUser={updateUser} revokeInvite={revokeInvite} />
+                <UsersCard
+                  user={user}
+                  users={users}
+                  teams={teams}
+                  updateUser={updateUser}
+                  revokeInvite={revokeInvite}
+                  onReload={() => load().catch((e) => setError(e.message))}
+                />
               </div>
             </div>
           </div>
