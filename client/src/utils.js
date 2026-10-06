@@ -31,7 +31,9 @@ export const PRIORITIES = {
     return tr('Cao');
   },
 };
-export const ROLES = { manager: 'Manager', leader: 'Leader', member: 'Member' };
+export const ROLES = { director: 'Director', manager: 'Manager', leader: 'Leader', member: 'Member' };
+// Manager-level rights (user administration, watching everyone…): Managers and Directors, who have them all.
+export const isManager = (user) => user.role === 'manager' || user.role === 'director';
 export const STATUSES = {
   get pending() {
     return tr('Chờ duyệt');

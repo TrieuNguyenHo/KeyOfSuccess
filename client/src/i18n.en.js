@@ -428,6 +428,7 @@ export default {
   'Phiên đăng nhập không hợp lệ': 'Your session is no longer valid',
   'Tài khoản đang chờ Manager duyệt': 'The account is waiting for a Manager to approve it',
   'Chỉ Manager mới làm được việc này': 'Only a Manager can do this',
+  'Chỉ Director mới đổi được tài khoản của Director': 'Only a Director can change a Director\'s account',
   'Ngôn ngữ không hợp lệ': 'Invalid language',
   'Bạn chỉ có quyền xem và comment task này': 'You can only view and comment on this task',
   'Chỉ Manager hoặc Leader của team tham gia project mới làm được việc này': 'Only a Manager or a Leader of a team in the project can do this',

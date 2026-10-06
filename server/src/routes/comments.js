@@ -9,6 +9,7 @@ import { MENTION_RE, plainExcerpt, resolveMentions } from '../lib/mentions.js';
 import { notifyMentions } from '../lib/notifications.js';
 import { rawUpload, saveAttachment, sweepUploads, withCommentFiles } from '../lib/uploads.js';
 import { nameOfUser } from '../lib/users.js';
+import { isManager } from '../lib/roles.js';
 
 const router = express.Router();
 
@@ -40,7 +41,7 @@ for (const [path, kind] of Object.entries(COMMENT_KINDS)) {
   router.delete(`/${path}/:id`, (req, res) => {
     const found = load(req, res);
     if (!found) return;
-    if (found.comment.user_id !== req.user.id && req.user.role !== 'manager') {
+    if (found.comment.user_id !== req.user.id && !isManager(req.user)) {
       return forbidden(res, 'Chỉ người viết hoặc Manager mới xoá được nội dung này');
     }
     if (found.task) {

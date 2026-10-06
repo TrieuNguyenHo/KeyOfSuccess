@@ -1,4 +1,5 @@
 import { db } from '../db.js';
+import { isDirector, isManager } from './roles.js';
 
 export const USER_SELECT = `SELECT u.id, u.name, u.email, u.role, u.status, u.language, u.invited_by, inv.name AS invited_by_name
   FROM users u LEFT JOIN users inv ON inv.id = u.invited_by`;
@@ -26,8 +27,17 @@ export const shareTeam = (userId, otherId) =>
       .get(userId, otherId)
   );
 
-// Managers watch everyone; Leaders watch the people in any of their teams.
-export const canWatchUser = (me, userId) => me.role === 'manager' || (me.role === 'leader' && shareTeam(me.id, userId));
+// Someone's profile with their personal details, for the people allowed to read them (decided 2026-10-06): the user,
+// Directors, Managers, and the Leaders of any team the user belongs to, except that a Manager's profile is for
+// Managers and Directors only, and a Director's for Directors only. Anyone else gets 404 (GET /api/users/:id/profile).
+export const canReadProfile = (me, user) =>
+  me.id === user.id ||
+  isDirector(me) ||
+  (isManager(me) && !isDirector(user)) ||
+  (me.role === 'leader' && !isManager(user) && shareTeam(me.id, user.id));
+
+// Managers and Directors watch everyone; Leaders watch the people in any of their teams.
+export const canWatchUser = (me, userId) => isManager(me) || (me.role === 'leader' && shareTeam(me.id, userId));
 
 // Validates a team_ids array: returns the distinct ids sorted, or null if it is not an array of existing teams.
 export function parseTeamIds(value) {

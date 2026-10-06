@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ROLES, myTeamsLabel } from '../../utils.js';
+import { ROLES, isManager, myTeamsLabel } from '../../utils.js';
 import NotificationBell from './NotificationBell.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { Brand } from '../../components/Brand.jsx';
@@ -141,7 +141,7 @@ export default function Sidebar({
                       className={`flyout-link ${view.type === 'dashboard' && !view.projectId ? 'active' : ''}`}
                       onClick={() => go({ type: 'dashboard' }, 'dashboard')}
                     >
-                      <span className="ellipsis grow">{user.role === 'manager' ? tr('Tổng quan phòng') : tr('Tổng quan {p0}', { p0: myTeamsLabel(user) })}</span>
+                      <span className="ellipsis grow">{isManager(user) ? tr('Tổng quan phòng') : tr('Tổng quan {p0}', { p0: myTeamsLabel(user) })}</span>
                     </button>
                   </li>
                 )}
@@ -166,7 +166,7 @@ export default function Sidebar({
         )}
         {user.role !== 'member' && (
           <NavItem active={view.type === 'team'} onClick={() => go({ type: 'team' })} icon="team">
-            {user.role === 'manager' ? tr('Theo dõi công việc') : myTeamsLabel(user)}
+            {isManager(user) ? tr('Theo dõi công việc') : myTeamsLabel(user)}
           </NavItem>
         )}
         {user.role === 'leader' && (
@@ -179,7 +179,7 @@ export default function Sidebar({
             {tr('Quản lý team')}
           </NavItem>
         )}
-        {user.role === 'manager' && (
+        {isManager(user) && (
           <NavItem
             active={view.type === 'admin'}
             onClick={() => go({ type: 'admin' })}
@@ -193,7 +193,7 @@ export default function Sidebar({
 
       <div className="sidebar-title">
         <span>{tr('Projects theo team')}</span>
-        {user.role === 'manager' && (
+        {isManager(user) && (
           <button className="icon-btn light" onClick={onNewProject} title={tr('Tạo project')} aria-label={tr('Tạo project')}>
             +
           </button>
@@ -203,7 +203,7 @@ export default function Sidebar({
       <ul className="main-buttons project-groups">
         {projects.length === 0 && (
           <li className="sidebar-empty">
-            {user.role === 'manager' ? tr('Chưa có project nào. Bấm + để tạo.') : tr('Bạn chưa tham gia project nào.')}
+            {isManager(user) ? tr('Chưa có project nào. Bấm + để tạo.') : tr('Bạn chưa tham gia project nào.')}
           </li>
         )}
         {projects.length > 0 &&

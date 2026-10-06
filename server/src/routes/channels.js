@@ -6,6 +6,7 @@ import { channelNames, channelsByTask } from '../lib/channels.js';
 import { logEvent } from '../lib/history.js';
 import { badRequest, managerOnly, notFound } from '../lib/http.js';
 import { pushChange } from '../lib/live.js';
+import { isManager } from '../lib/roles.js';
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 // Everyone reads the list (filters, the task panel); only Managers see how many tasks carry each channel,
 // since that counts tasks across the whole department.
 router.get('/channels', (req, res) => {
-  const count = req.user.role === 'manager';
+  const count = isManager(req.user);
   res.json(
     db
       .prepare(

@@ -2,6 +2,7 @@
 import express from 'express';
 import { db } from '../db.js';
 import { openEventStream } from '../lib/live.js';
+import { isManager } from '../lib/roles.js';
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.get('/notifications', (req, res) => {
   // Accounts waiting for this user's approval: all of them for Managers; for Leaders, the self sign-ups without
   // a team, which they may approve into one of their teams (a Leader's own invitations wait for a Manager).
   let pendingUsers = 0;
-  if (req.user.role === 'manager') pendingUsers = db.prepare("SELECT COUNT(*) AS n FROM users WHERE status = 'pending'").get().n;
+  if (isManager(req.user)) pendingUsers = db.prepare("SELECT COUNT(*) AS n FROM users WHERE status = 'pending'").get().n;
   if (req.user.role === 'leader') {
     pendingUsers = db
       .prepare(

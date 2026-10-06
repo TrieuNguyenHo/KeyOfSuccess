@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { myTeamsLabel } from '../../utils.js';
+import { isManager as hasManagerRights, myTeamsLabel } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { tr } from '../../i18n.js';
 
@@ -83,7 +83,7 @@ export function ChannelProgress({ channels, noChannel, scopeLabel }) {
 }
 
 export default function DashboardPage({ user, onOpenPerson }) {
-  const isManager = user.role === 'manager';
+  const isManager = hasManagerRights(user);
   // 'all' (Manager), 'mine' (all of a Leader's teams) or 'team:<id>'.
   const [scope, setScope] = useState(isManager ? 'all' : 'mine');
   const [teams, setTeams] = useState([]);

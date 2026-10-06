@@ -5,7 +5,7 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 ## Tính năng
 
 - Đăng nhập bằng Google (Gmail). Người mới phải chờ Manager duyệt
-- Vai trò hệ thống **Manager / Leader / Member** và **Team**: Member thuộc đúng 1 team; Leader thuộc 1 hoặc nhiều team và phụ trách tất cả các team đó; Manager thuộc bao nhiêu team cũng được (hoặc không team nào)
+- Vai trò hệ thống **Director / Manager / Leader / Member** và **Team**: Member thuộc đúng 1 team; Leader thuộc 1 hoặc nhiều team và phụ trách tất cả các team đó; Manager và Director thuộc bao nhiêu team cũng được (hoặc không team nào). Director toàn quyền trên hệ thống và quản lý các Manager
 - **Task của tôi**: mọi task được giao cho mình, xuyên các project, nhóm theo Quá hạn / Hôm nay / 7 ngày tới / Sau đó / Không có hạn
 - **Theo dõi team** (Leader) và **Theo dõi công việc** (Manager): xem task theo cả team, từng người, hoặc tất cả
 - **Dashboard** (Member: chỉ dashboard của các project mình tham gia; Leader: gộp các team của mình hoặc từng team; Manager: cả phòng hoặc từng team): số task đang mở / quá hạn / đến hạn 7 ngày / hoàn thành 7 ngày qua / chưa giao, **Workload** theo từng người (kể cả người đang trống việc; bấm vào để xem task của họ), biểu đồ hoàn thành mỗi ngày trong 14 ngày, tiến độ theo project
@@ -42,22 +42,24 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 
 ### Vai trò hệ thống
 
-| | Member | Leader | Manager |
-|---|---|---|---|
-| Task của tôi, project mình tham gia | ✓ | ✓ | ✓ |
-| Task của người khác ở project **không** tham gia | ✗ | Người cùng team: xem + bình luận | Mọi người: xem + bình luận |
-| Nhận thông báo khi task xong | | Task của người trong team | Mọi task |
-| Quản lý người dùng và team | | | ✓ |
-| Quản lý thành viên team của mình (thêm người chưa có team, duyệt người tự đăng ký, mời email mới chờ Manager duyệt, bỏ Member khỏi team) | | ✓ | ✓ (mọi team) |
+| | Member | Leader | Manager | Director |
+|---|---|---|---|---|
+| Task của tôi, project mình tham gia | ✓ | ✓ | ✓ | ✓ |
+| Task của người khác ở project **không** tham gia | ✗ | Người cùng team: xem + bình luận | Mọi người: xem + bình luận | Toàn quyền mọi project |
+| Nhận thông báo khi task xong | | Task của người trong team | Mọi task | ✗ (chỉ khi được giao / được tag) |
+| Quản lý người dùng và team | | | ✓ (trừ tài khoản Director) | ✓ |
+| Cấp / bỏ vai trò Director, sửa tài khoản Director | | | ✗ | ✓ |
+| Quản lý thành viên team của mình (thêm người chưa có team, duyệt người tự đăng ký, mời email mới chờ Manager duyệt, bỏ Member khỏi team) | | ✓ | ✓ (mọi team) | ✓ (mọi team) |
 
 - "Xem + bình luận": mở được panel chi tiết, đọc và comment, nhưng không sửa, xoá hay tick xong được. Muốn sửa thì phải là thành viên project.
-- Leader bắt buộc thuộc ít nhất một team; Member chỉ thuộc một team (đổi Leader/Manager nhiều team thành Member thì giữ team đầu tiên). Manager không thể tự hạ quyền hay tự khoá mình.
+- Leader bắt buộc thuộc ít nhất một team; Member chỉ thuộc một team (đổi Leader/Manager nhiều team thành Member thì giữ team đầu tiên). Manager và Director không thể tự đổi vai trò hay tự khoá mình.
 - Tài khoản bị khoá bị đăng xuất ngay ở request kế tiếp.
-- Email trong `MANAGER_EMAILS` luôn đăng nhập với vai trò Manager. Dùng để tạo Manager đầu tiên.
+- Email trong `DIRECTOR_EMAILS` luôn đăng nhập với vai trò Director (dùng để tạo Director đầu tiên); email trong `MANAGER_EMAILS` luôn đăng nhập với vai trò Manager, trừ người đã là Director.
+- Director làm được mọi việc của Manager, cộng thêm: là "Quản lý task" và có quyền như owner trên mọi project (đổi tên, xoá, thành viên, đổi team), giao task cho bất kỳ ai thuộc team của project; xem hồ sơ của mọi người. Hồ sơ của Director chỉ Director xem được.
 
 ### Trong từng project
 
-**Chỉ Manager tạo project.** "Quản lý task" là Manager hoặc Leader có team tham gia project (project "Chung toàn phòng": mọi Manager, và Leader nào mở được project).
+**Chỉ Manager (và Director) tạo project.** "Quản lý task" là Director, Manager hoặc Leader có team tham gia project (project "Chung toàn phòng": mọi Manager, và Leader nào mở được project).
 
 | | Quản lý task | Owner (không quản lý task) | Thành viên | Manager khác | Người khác |
 |---|---|---|---|---|---|
@@ -98,6 +100,7 @@ Copy `server/.env.example` thành `server/.env`:
 | Biến | Ý nghĩa |
 |---|---|
 | `GOOGLE_CLIENT_ID` | Client ID ở bước 1 |
+| `DIRECTOR_EMAILS` | Email Director đầu tiên, cách nhau bởi dấu phẩy |
 | `MANAGER_EMAILS` | Email Manager đầu tiên, cách nhau bởi dấu phẩy |
 | `JWT_SECRET` | Chuỗi ngẫu nhiên dài. **Bắt buộc khi deploy** |
 | `DEV_LOGIN=1` | Đăng nhập bằng email bất kỳ, không cần Google. **Chỉ dùng khi dev local**, tự tắt khi `NODE_ENV=production` |
@@ -144,10 +147,11 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `language.test.js` | Ngôn ngữ theo tài khoản (`PATCH /api/me`) |
 | `avatar.test.js` | Ảnh đại diện: tải lên, thay ảnh xoá file cũ, chặn file không phải ảnh / quá 1 MB, dọn file không xoá ảnh, tài khoản khoá không hiện ảnh |
 | `profile.test.js` | Hồ sơ: sửa / xoá trường, kiểm tra dữ liệu, tên mới hiện ở mọi chỗ, chỉ chính mình và Manager thấy thông tin cá nhân |
+| `director.test.js` | Director: toàn quyền mọi project, quyền Manager, chỉ Director cấp vai trò Director / sửa tài khoản Director, hồ sơ, không nhận thông báo task xong, migration v22 |
 | `i18n.test.js` | Giao diện tiếng Anh đủ: mọi khoá `tr()` có bản tiếng Anh, không chữ tiếng Việt nào nằm ngoài `tr()`, mọi thông báo lỗi của server dịch được (không bật server) |
 
 - Mỗi file tự bật một server riêng trên port trống với **database tạm**, nên test **không bao giờ đụng tới `server/data/app.db`** và các file chạy song song. Dev server đang chạy không bị ảnh hưởng.
-- Đăng nhập trong test dùng `DEV_LOGIN`; `boss@t.test` là Manager. `server/.env` không được đọc.
+- Đăng nhập trong test dùng `DEV_LOGIN`; `boss@t.test` là Manager, `chief@t.test` là Director. `server/.env` không được đọc.
 - File test fail nếu server ghi ra lỗi (ví dụ một lỗi 500 không có test nào bắt).
 - Hàm hỗ trợ dùng chung (bật server, gọi API, tạo user/team/project/task, nghe luồng sự kiện) ở `server/test/helpers.js`.
 
@@ -165,6 +169,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v22**: vai trò `director` (bảng `users` được dựng lại vì SQLite không sửa được ràng buộc CHECK; giữ nguyên id và mọi cột). Email trong `DIRECTOR_EMAILS` thành Director ngay khi chuyển.
 - **v21**: cột `users.avatar` (tên file ảnh đại diện trong `server/data/uploads/`, đổi mỗi lần tải lên).
 - **v20**: cột hồ sơ của `users`: `birthday`, `phone`, `job_title`, `bio`, `gender` (`male` / `female` / `other` / `undisclosed`), đều trống lúc đầu.
 - **v19**: cột `users.language` (`vi` / `en`, mặc định `vi`).
@@ -181,12 +186,12 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 
 ```
 server/src/db.js       schema SQLite + migration + helper transaction
-server/src/config.js   biến môi trường (cổng, JWT_SECRET, Google, MANAGER_EMAILS, DEV_LOGIN)
+server/src/config.js   biến môi trường (cổng, JWT_SECRET, Google, DIRECTOR_EMAILS, MANAGER_EMAILS, DEV_LOGIN)
 server/src/index.js    dựng app Express: đăng nhập bắt buộc, gắn các router, xử lý lỗi, dọn dẹp định kỳ
 server/src/routes/     REST API, mỗi tính năng một file (express.Router, gắn dưới /api)
   auth               đăng nhập Google / dev, middleware kiểm tra token (requireUser)
   me                 /me, hồ sơ, ảnh đại diện
-  teams, admin       team, thành viên team, /people; quản lý người dùng (Manager)
+  teams, admin       team, thành viên team, /people; quản lý người dùng (Manager, Director)
   channels           danh sách kênh
   projects, sections project, thành viên project; trạng thái (cột board)
   requirements       requirement, comments và file của requirement
@@ -197,6 +202,7 @@ server/src/routes/     REST API, mỗi tính năng một file (express.Router, g
   notifications      chuông thông báo, luồng sự kiện /events
 server/src/lib/        luật và helper dùng chung giữa các route
   access             quyền project / task (projectAccess, taskAccess, isTaskAdmin, canBeAssigned, taskScope…)
+  roles              ROLES, isDirector, isManager (Manager hoặc Director)
   users, requirements, statuses, history, channels, recurrence, mentions, notifications
   live               Server-Sent Events (pushChange, pushNotifications)
   uploads            lưu file, sweepUploads; comments: COMMENT_KINDS dùng chung cho comment task / requirement
@@ -244,7 +250,7 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | GET | `/api/channels` | mọi người; Manager thấy thêm `task_count` |
 | POST, PATCH, DELETE | `/api/channels`, `/api/channels/:id` | Manager. `{ name, color? }` (màu `#rrggbb`, bỏ trống thì lấy màu kế tiếp trong bảng màu); tên không trùng (không phân biệt hoa thường) |
 | GET | `/api/admin/users` | Manager |
-| PATCH | `/api/admin/users/:id` | Manager: `{ role, status, team_ids }` (hoặc `team_id` cho một team). Member tối đa 1 team, Leader ít nhất 1 |
+| PATCH | `/api/admin/users/:id` | Manager / Director: `{ role, status, team_ids }` (hoặc `team_id` cho một team). Member tối đa 1 team, Leader ít nhất 1. `role: 'director'` và mọi thay đổi trên tài khoản Director: chỉ Director (403) |
 | GET | `/api/teams/:id/members` | Manager (mọi team) / Leader (team mình): `{ team, members, candidates }`. `candidates` là người được phép thêm |
 | POST | `/api/teams/:id/members` | `{ user_id }`: thêm vào team; tài khoản đang chờ thì được duyệt luôn (người do Leader mời chỉ Manager duyệt). Leader chỉ thêm Member chưa có team |
 | DELETE | `/api/teams/:id/members/:userId` | bỏ khỏi team. Leader chỉ bỏ Member; Leader luôn giữ ít nhất 1 team |

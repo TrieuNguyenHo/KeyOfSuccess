@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { RequirementDetail } from './RequirementsPanel.jsx';
+import { isManager } from '../../utils.js';
 import { tr } from '../../i18n.js';
 
 // Full page for one requirement, opened from a task or from the Requirements tab.
@@ -64,7 +65,7 @@ export default function RequirementPage({ projectId, requirementId, user, refres
           requirement={requirement}
           tasks={tasks}
           // Same rule as the Requirements tab: owner, a Leader of the project's teams, or any Manager.
-          canEdit={project.access === 'manage' || user.role === 'manager'}
+          canEdit={project.access === 'manage' || isManager(user)}
           onChanged={reload}
           onOpenTask={onOpenTask}
           onShowOnBoard={onShowOnBoard}

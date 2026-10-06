@@ -19,6 +19,7 @@ import { DEFAULT_STATUSES } from '../lib/statuses.js';
 import { sweepUploads } from '../lib/uploads.js';
 import { parseTeamIds } from '../lib/users.js';
 import { IN_TEAM, placeholders } from '../lib/util.js';
+import { isManager } from '../lib/roles.js';
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.get('/projects', (req, res) => {
   const rows = db
     .prepare(
       `SELECT p.* FROM projects p
-       WHERE ? = 'manager' OR p.owner_id = ?
+       WHERE ? IN ('manager', 'director') OR p.owner_id = ?
          OR EXISTS (SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id = ?)
          OR (? = 'leader' AND EXISTS (SELECT 1 FROM project_teams pt WHERE pt.project_id = p.id
                AND pt.team_id IN (SELECT team_id FROM user_teams WHERE user_id = ?)))
@@ -125,7 +126,7 @@ router.patch('/projects/:id', (req, res) => {
   const changesDetails = body.name !== undefined || body.color !== undefined;
   const project = loadProject(req, res, req.params.id, changesDetails ? 'manage' : 'view');
   if (!project) return;
-  if (changesTeams && req.user.role !== 'manager') return forbidden(res, 'Chỉ Manager mới đổi được team của project');
+  if (changesTeams && !isManager(req.user)) return forbidden(res, 'Chỉ Manager mới đổi được team của project');
 
   const name = body.name?.trim() ?? project.name;
   if (!name) return badRequest(res, 'Cần nhập tên project');

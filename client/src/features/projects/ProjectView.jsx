@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { EMPTY_FILTERS, daysFromToday, isOverdue, todayStr } from '../../utils.js';
+import { EMPTY_FILTERS, daysFromToday, isManager as hasManagerRights, isOverdue, todayStr } from '../../utils.js';
 import BoardView from './BoardView.jsx';
 import CalendarView from './CalendarView.jsx';
 import ListView from './ListView.jsx';
@@ -55,7 +55,7 @@ export default function ProjectView({
   );
   const [showMembers, setShowMembers] = useState(false);
   const [error, setError] = useState('');
-  const isManager = user.role === 'manager';
+  const isManager = hasManagerRights(user);
 
   // All teams: the Manager's team picker and the team-label filter.
   const teams = useAllTeams();

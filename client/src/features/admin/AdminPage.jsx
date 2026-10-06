@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { PROJECT_COLORS, ROLES, STATUSES } from '../../utils.js';
+import { PROJECT_COLORS, ROLES, STATUSES, isManager } from '../../utils.js';
 import { TeamPills } from '../../components/Controls.jsx';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
 import { ProfilePopover } from '../profile/ProfilePage.jsx';
@@ -208,6 +208,8 @@ export default function AdminPage({ user, onChanged }) {
           </div>
           {shown.map((u) => {
             const self = u.id === user.id;
+            // Only a Director changes a Director's account or gives the Director role.
+            const locked = u.role === 'director' && user.role !== 'director';
             return (
               <div key={u.id} className="admin-row">
                 <span className="cell">
@@ -229,18 +231,20 @@ export default function AdminPage({ user, onChanged }) {
                 </span>
                 <select
                   value={u.role}
-                  disabled={self}
+                  disabled={self || locked}
                   onChange={(e) => {
                     const role = e.target.value;
                     // A Member keeps only one team: the first of a Leader's or Manager's teams.
                     updateUser(u, role === 'member' && u.team_ids.length > 1 ? { role, team_ids: u.team_ids.slice(0, 1) } : { role });
                   }}
                 >
-                  {Object.entries(ROLES).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
+                  {Object.entries(ROLES)
+                    .filter(([value]) => value !== 'director' || user.role === 'director' || locked)
+                    .map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
                 </select>
                 {u.role === 'member' ? (
                   <select
@@ -254,11 +258,13 @@ export default function AdminPage({ user, onChanged }) {
                       </option>
                     ))}
                   </select>
+                ) : locked ? (
+                  <span className="muted">{u.team_name ?? tr('Chưa có team')}</span>
                 ) : (
-                  // Leaders and Managers may belong to several teams; a Leader needs at least one.
+                  // Leaders, Managers and Directors may belong to several teams; a Leader needs at least one.
                   <details className="team-picker">
                     <summary title={tr('Chọn các team')}>
-                      {u.role === 'manager' && teams.length > 0 && u.team_ids.length === teams.length
+                      {isManager(u) && teams.length > 0 && u.team_ids.length === teams.length
                         ? tr('Tất cả team')
                         : u.team_name ?? tr('Chưa có team')}{' '}
                       ▾
@@ -269,7 +275,7 @@ export default function AdminPage({ user, onChanged }) {
                         selected={u.team_ids}
                         label={tr('Team của {name}', { name: u.name })}
                         noneLabel={null}
-                        allLabel={u.role === 'manager' ? tr('Tất cả team') : undefined}
+                        allLabel={isManager(u) ? tr('Tất cả team') : undefined}
                         onChange={(ids) => ids.length > 0 && updateUser(u, { team_ids: ids })}
                       />
                       {u.role === 'leader' && <span className="muted small">{tr('Leader phụ trách tất cả team được chọn.')}</span>}
@@ -293,7 +299,7 @@ export default function AdminPage({ user, onChanged }) {
                       </button>
                     </>
                   )}
-                  {u.status === 'active' && !self && (
+                  {u.status === 'active' && !self && !locked && (
                     <button
                       className="link-btn danger"
                       onClick={async () =>
@@ -304,7 +310,7 @@ export default function AdminPage({ user, onChanged }) {
                       {tr('Khoá')}
                     </button>
                   )}
-                  {u.status === 'disabled' && (
+                  {u.status === 'disabled' && !locked && (
                     <button className="link-btn" onClick={() => updateUser(u, { status: 'active' })}>
                       {tr('Mở khoá')}
                     </button>

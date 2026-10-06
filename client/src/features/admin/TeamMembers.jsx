@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { ROLES, STATUSES } from '../../utils.js';
+import { ROLES, STATUSES, isManager as hasManagerRights } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { SearchBox } from '../../components/Controls.jsx';
 import { askConfirm } from '../../components/Dialog.jsx';
@@ -12,7 +12,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Members of one team with add / approve / invite / remove, for Managers (any team) and Leaders (own teams).
 // The server decides who may be added (candidates); a Leader's invitation waits for a Manager.
 export default function TeamMembers({ team, user, onChanged }) {
-  const isManager = user.role === 'manager';
+  const isManager = hasManagerRights(user);
   const [data, setData] = useState(null);
   const [query, setQuery] = useState('');
   const [inviteName, setInviteName] = useState('');
@@ -89,7 +89,9 @@ export default function TeamMembers({ team, user, onChanged }) {
   }
 
   const canRemove = (u) =>
-    u.id !== user.id && (isManager ? !(u.role === 'leader' && u.team_ids.length === 1) : u.role === 'member');
+    u.id !== user.id &&
+    (u.role !== 'director' || user.role === 'director') &&
+    (isManager ? !(u.role === 'leader' && u.team_ids.length === 1) : u.role === 'member');
 
   return (
     <div className="team-members">

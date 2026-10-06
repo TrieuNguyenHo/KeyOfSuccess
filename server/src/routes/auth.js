@@ -2,7 +2,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
-import { DEV_LOGIN, GOOGLE_CLIENT_ID, JWT_SECRET, MANAGER_EMAILS } from '../config.js';
+import { DEV_LOGIN, DIRECTOR_EMAILS, GOOGLE_CLIENT_ID, JWT_SECRET, MANAGER_EMAILS } from '../config.js';
 import { db } from '../db.js';
 import { badRequest, forbidden } from '../lib/http.js';
 import { findUser, withProfile } from '../lib/users.js';
@@ -19,7 +19,7 @@ router.get('/auth/config', (req, res) => res.json({ googleClientId: GOOGLE_CLIEN
 // empty) takes the name from Google; a name the inviter typed, or one already taken from Google, stays.
 function signIn(res, { email, name, googleSub }) {
   email = email.trim().toLowerCase();
-  const bootstrapManager = MANAGER_EMAILS.includes(email);
+  const bootstrapRole = DIRECTOR_EMAILS.includes(email) ? 'director' : MANAGER_EMAILS.includes(email) ? 'manager' : null;
   const existing = db.prepare('SELECT id, name, google_sub FROM users WHERE email = ?').get(email);
   if (existing?.google_sub && googleSub && existing.google_sub !== googleSub) {
     return res.status(409).json({ error: 'Email này đã gắn với một tài khoản Google khác' });
@@ -29,13 +29,15 @@ function signIn(res, { email, name, googleSub }) {
   if (!id) {
     ({ lastInsertRowid: id } = db
       .prepare('INSERT INTO users (name, email, google_sub, role, status) VALUES (?, ?, ?, ?, ?)')
-      .run(name?.trim() || email, email, googleSub ?? null, bootstrapManager ? 'manager' : 'member', bootstrapManager ? 'active' : 'pending'));
+      .run(name?.trim() || email, email, googleSub ?? null, bootstrapRole ?? 'member', bootstrapRole ? 'active' : 'pending'));
   } else {
     db.prepare('UPDATE users SET google_sub = COALESCE(google_sub, ?) WHERE id = ?').run(googleSub ?? null, id);
     if (name?.trim() && existing.name === email.split('@')[0]) {
       db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name.trim(), id);
     }
-    if (bootstrapManager) db.prepare("UPDATE users SET role = 'manager', status = 'active' WHERE id = ?").run(id);
+    if (bootstrapRole) {
+      db.prepare("UPDATE users SET role = ?, status = 'active' WHERE id = ? AND role != 'director'").run(bootstrapRole, id);
+    }
   }
 
   const user = findUser(id);

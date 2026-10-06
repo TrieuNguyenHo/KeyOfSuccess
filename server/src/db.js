@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DIRECTOR_EMAILS } from './config.js';
 
 const dbPath = process.env.DB_PATH || join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'app.db');
 mkdirSync(dirname(dbPath), { recursive: true });
@@ -35,7 +36,7 @@ const usersTable = (name) => `
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     google_sub TEXT UNIQUE,
-    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('manager', 'leader', 'member')),
+    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('director', 'manager', 'leader', 'member')),
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'disabled')),
     -- Legacy single team (v2). Unused since v9, where user_teams holds a user's teams;
     -- kept because SQLite cannot drop a column that has a foreign key.
@@ -490,6 +491,28 @@ if (schemaVersion() < 20) {
 if (schemaVersion() < 21) {
   if (!hasColumn('users', 'avatar')) db.exec('ALTER TABLE users ADD COLUMN avatar TEXT');
   db.exec('PRAGMA user_version = 21');
+}
+
+// v22: the Director role. SQLite cannot change a CHECK constraint in place, so the users table is rebuilt (ids and
+// every column kept); then DIRECTOR_EMAILS become Directors, so a Director already signed in has the role at once.
+if (schemaVersion() < 22) {
+  const usersSql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'").get().sql;
+  if (!usersSql.includes("'director'")) {
+    const columns = db.prepare("SELECT name FROM pragma_table_info('users')").all().map((c) => c.name).join(', ');
+    db.exec('PRAGMA foreign_keys = OFF');
+    transaction(() =>
+      db.exec(`
+        ${usersTable('users_v22')}
+        INSERT INTO users_v22 (${columns}) SELECT ${columns} FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_v22 RENAME TO users;
+      `)
+    );
+    db.exec('PRAGMA foreign_keys = ON');
+  }
+  const promote = db.prepare("UPDATE users SET role = 'director', status = 'active' WHERE email = ?");
+  DIRECTOR_EMAILS.forEach((email) => promote.run(email));
+  db.exec('PRAGMA user_version = 22');
 }
 
 db.exec(`

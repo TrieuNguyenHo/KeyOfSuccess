@@ -1,6 +1,6 @@
 import { useContext, useRef, useState } from 'react';
 import { api, uploadFile } from '../../api.js';
-import { formatDateTime } from '../../utils.js';
+import { formatDateTime, isManager } from '../../utils.js';
 import { FileList, MAX_MB, uploadable } from './Attachments.jsx';
 import { askConfirm } from '../../components/Dialog.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
@@ -51,7 +51,7 @@ export default function CommentList({ comments, kind, mentionable, empty, act, c
                   {formatDateTime(c.created_at)}
                   {c.edited_at && <span title={tr('Sửa lúc {p0}', { p0: formatDateTime(c.edited_at) })}> {tr('· đã sửa')}</span>}
                 </span>
-                {editing?.id !== c.id && (own || me.role === 'manager') && (
+                {editing?.id !== c.id && (own || isManager(me)) && (
                   <span className="comment-actions">
                     {own && (
                       <button

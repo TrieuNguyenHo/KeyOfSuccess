@@ -6,20 +6,12 @@ import { join } from 'node:path';
 import { UPLOAD_DIR, db } from '../db.js';
 import { badRequest, notFound } from '../lib/http.js';
 import { rawUpload } from '../lib/uploads.js';
-import { findUser, shareTeam, withProfile } from '../lib/users.js';
+import { canReadProfile, findUser, withProfile } from '../lib/users.js';
 import { localDate } from '../lib/util.js';
 
 const router = express.Router();
 
 router.get('/me', (req, res) => res.json(withProfile(req.user)));
-
-// Someone's profile with their personal details, for the people allowed to read them (decided 2026-10-06): the user,
-// Managers, and the Leaders of any team the user belongs to, except that a Manager's profile is for Managers only.
-// Anyone else gets 404, so ids cannot be probed.
-const canReadProfile = (me, user) =>
-  me.id === user.id ||
-  me.role === 'manager' ||
-  (me.role === 'leader' && user.role !== 'manager' && shareTeam(me.id, user.id));
 
 router.get('/users/:id/profile', (req, res) => {
   const user = findUser(req.params.id);

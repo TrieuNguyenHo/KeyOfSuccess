@@ -1,22 +1,22 @@
-// User administration (Managers).
+// User administration (Managers and Directors).
 import express from 'express';
 import { db, transaction } from '../db.js';
-import { badRequest, managerOnly, notFound } from '../lib/http.js';
-import { USER_SELECT, findUser, parseTeamIds, withProfile, withUserTeams } from '../lib/users.js';
+import { badRequest, forbidden, managerOnly, notFound } from '../lib/http.js';
+import { ROLES, isDirector } from '../lib/roles.js';
+import { USER_SELECT, canReadProfile, findUser, parseTeamIds, withProfile, withUserTeams } from '../lib/users.js';
 import { EMAIL_RE } from '../lib/util.js';
 
 const router = express.Router();
 
-const ROLES = ['manager', 'leader', 'member'];
 const STATUSES = ['pending', 'active', 'disabled'];
 
 router.get('/admin/users', managerOnly, (req, res) => {
-  // Managers also read everyone's profile (view only).
+  // Managers also read the profiles they may read (view only): everyone's but a Director's.
   res.json(
     db
       .prepare(`${USER_SELECT} ORDER BY u.status = 'pending' DESC, u.name`)
       .all()
-      .map((u) => withProfile(withUserTeams(u)))
+      .map((u) => (canReadProfile(req.user, u) ? withProfile(withUserTeams(u)) : withUserTeams(u)))
   );
 });
 
@@ -31,7 +31,11 @@ router.patch('/admin/users/:id', managerOnly, (req, res) => {
   if (!teamIds) return badRequest(res, 'Team không tồn tại');
   const next = { role: body.role ?? target.role, status: body.status ?? target.status };
   if (!ROLES.includes(next.role) || !STATUSES.includes(next.status)) return badRequest(res, 'Vai trò hoặc trạng thái không hợp lệ');
-  if (target.id === req.user.id && (next.role !== 'manager' || next.status !== 'active')) {
+  // Only a Director gives the Director role or changes a Director's account.
+  if (!isDirector(req.user) && (isDirector(target) || next.role === 'director')) {
+    return forbidden(res, 'Chỉ Director mới đổi được tài khoản của Director');
+  }
+  if (target.id === req.user.id && (next.role !== target.role || next.status !== 'active')) {
     return badRequest(res, 'Không thể tự hạ quyền hoặc khoá chính mình');
   }
   if (next.role === 'leader' && teamIds.length === 0) return badRequest(res, 'Leader phải thuộc ít nhất một team');
