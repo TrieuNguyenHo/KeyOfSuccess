@@ -121,15 +121,18 @@ npm run dev
 
 Một process Node phục vụ cả API lẫn frontend đã build; HTTPS do reverse proxy lo (mẫu Caddy trong `deploy/`).
 
-1. **Máy chủ**: Linux có Node.js ≥ 22.13, một domain trỏ về máy (vd. `tasks.kingsport.vn`), mở cổng 80 / 443.
-2. **Code**: `git clone` vào `/opt/keyofsuccess`, rồi `npm install && npm run build`.
-3. **Cấu hình** `server/.env` (xem `server/.env.example`): `NODE_ENV=production`, `API_HOST=127.0.0.1`, `JWT_SECRET` thật, `GOOGLE_CLIENT_ID`, `MANAGER_EMAILS`. Không có `DEV_LOGIN`. Thiếu hoặc sai thì server báo lỗi và không chạy.
-4. **Google**: thêm `https://<domain>` vào *Authorized JavaScript origins* của OAuth Client.
-5. **Dịch vụ**: `deploy/keyofsuccess.service` (systemd, tự bật lại). **HTTPS**: `deploy/Caddyfile` (chứng chỉ Let's Encrypt tự động).
-6. **Chuyển dữ liệu cũ** (nếu có): tắt server dev, copy `server/data/app.db` và `server/data/uploads/` sang máy chủ trước khi chạy lần đầu.
-7. Kiểm tra: `https://<domain>/api/health` trả `{"ok":true}`.
+Cách nhanh trên VPS Ubuntu 24.04 mới (vd. DigitalOcean Droplet), bằng root:
 
-Cập nhật bản mới: `git pull && npm install && npm run build`, rồi `sudo systemctl restart keyofsuccess` (migration tự chạy; bản sao lưu của ngày đã có sẵn).
+1. **DNS**: bản ghi `A` của domain (vd. `tasks.kingsport.vn`) trỏ về IP của VPS. Nếu DNS nằm ở Cloudflare thì để "DNS only" (mây xám).
+2. **Code**: repo private thì tạo deploy key trên VPS (`ssh-keygen -t ed25519`, dán `~/.ssh/id_ed25519.pub` vào GitHub › repo › Settings › Deploy keys, chỉ đọc), rồi `git clone git@github.com:TrieuNguyenHo/KeyOfSuccess.git /opt/keyofsuccess`.
+3. **Cài**: `bash /opt/keyofsuccess/deploy/setup.sh tasks.kingsport.vn`, nhập `GOOGLE_CLIENT_ID` và `MANAGER_EMAILS` khi được hỏi. Script cài Node 22, Caddy (HTTPS), swap nếu ít RAM, user `keyofsuccess`, dịch vụ systemd, tường lửa (SSH / 80 / 443), tạo `server/.env` với `JWT_SECRET` ngẫu nhiên. Chạy lại được.
+4. **Google**: thêm `https://<domain>` vào *Authorized JavaScript origins* của OAuth Client.
+5. **Chuyển dữ liệu cũ** (nếu muốn): trên VPS `systemctl stop keyofsuccess`; trên máy cũ tắt dev server rồi `scp server/data/app.db` và `scp -r server/data/uploads` vào `/opt/keyofsuccess/server/data/`; trên VPS `chown -R keyofsuccess: /opt/keyofsuccess/server/data && systemctl start keyofsuccess`.
+6. Kiểm tra: `https://<domain>/api/health` trả `{"ok":true}`. Log: `journalctl -u keyofsuccess -f`.
+
+Cập nhật bản mới: `bash /opt/keyofsuccess/deploy/update.sh` (sao lưu, `git pull`, cài, build, khởi động lại; migration tự chạy).
+
+Cài tay trên máy khác: `server/.env` theo `server/.env.example` (`NODE_ENV=production`, `API_HOST=127.0.0.1`, `JWT_SECRET` thật, `GOOGLE_CLIENT_ID`, `MANAGER_EMAILS`, không có `DEV_LOGIN`; thiếu hoặc sai thì server báo lỗi và không chạy), `npm ci && npm run build && npm start` sau reverse proxy HTTPS (`deploy/Caddyfile`, `deploy/keyofsuccess.service`).
 
 ### Sao lưu
 
@@ -210,7 +213,7 @@ server/src/db.js       schema SQLite + migration + helper transaction
 server/src/config.js   biến môi trường (cổng, JWT_SECRET, Google, MANAGER_EMAILS, DEV_LOGIN, sao lưu); kiểm tra khi production
 server/src/index.js    dựng app Express: đăng nhập bắt buộc, gắn các router, phục vụ client/dist, xử lý lỗi, dọn dẹp và sao lưu định kỳ
 server/scripts/backup.js  npm run backup (sao lưu tay)
-deploy/                Caddyfile (HTTPS), keyofsuccess.service (systemd)
+deploy/                setup.sh (cài lên VPS Ubuntu), update.sh (cập nhật), Caddyfile (HTTPS), keyofsuccess.service (systemd)
 server/src/routes/     REST API, mỗi tính năng một file (express.Router, gắn dưới /api)
   auth               đăng nhập Google / dev, middleware kiểm tra token (requireUser)
   me                 /me, hồ sơ, ảnh đại diện

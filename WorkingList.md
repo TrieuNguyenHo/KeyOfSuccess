@@ -88,6 +88,7 @@ _Cập nhật lần cuối: 2026-10-06 · Schema database: v22 · Test: `npm tes
 - `NODE_ENV=production`: không khởi động nếu `JWT_SECRET` < 32 ký tự, thiếu `GOOGLE_CLIENT_ID` hoặc còn `DEV_LOGIN=1` (trước đây `DEV_LOGIN` chỉ âm thầm tắt); cảnh báo khi `MANAGER_EMAILS` trống. `API_HOST=127.0.0.1` để chỉ reverse proxy gọi được.
 - Sao lưu tự động (`server/src/lib/backup.js`): mỗi ngày một bản `server/data/backups/<ngày>/` (`app.db` bằng `VACUUM INTO` + `uploads/`, file không đổi là hard link), giữ 14 bản (`BACKUP_DIR`, `BACKUP_KEEP_DAYS`); bật mặc định khi production, tắt khi dev. `npm run backup` để sao lưu tay.
 - HTTPS qua Caddy (`deploy/Caddyfile`, Let's Encrypt tự động), chạy nền bằng systemd (`deploy/keyofsuccess.service`). Hướng dẫn từng bước, khôi phục bản sao lưu: README mục "Deploy".
+- Người dùng chọn thử trước trên **DigitalOcean**, domain `tasks.kingsport.vn`. `deploy/setup.sh <domain>` cài toàn bộ lên Droplet Ubuntu 24.04 (Node 22, Caddy, swap, user `keyofsuccess`, systemd, tường lửa, `server/.env` có `JWT_SECRET` ngẫu nhiên); `deploy/update.sh` sao lưu → pull → build → khởi động lại. Code thuộc root, app chỉ ghi được `server/data`. Đã kiểm tra bằng `bash -n` và shellcheck, chưa chạy trên Droplet thật.
 - Test `deploy.test.js` (4 test). Đã chạy thử `npm run build` + `npm start` ở chế độ production: trang và API cùng cổng, bản sao lưu được tạo lúc khởi động.
 
 ### Test tự động (2026-10-05)
@@ -142,7 +143,7 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 ### Chất lượng và vận hành
 - Test cho phần chuyển dữ liệu (migration v1 → v10): tạo database phiên bản cũ ngay trong test rồi kiểm tra sau khi nâng cấp. Hiện mới chỉ kiểm tra tay trên bản sao lưu.
 - Test giao diện (React) cho các luồng chính, ví dụ bằng Playwright: hiện chỉ có test API.
-- ⭐ **Deploy thật** (code đã sẵn sàng, 2026-10-06): chọn máy chủ (VPS Linux / máy công ty) và domain, làm theo README mục "Deploy", thêm domain vào Authorized JavaScript origins của Google, đặt `BACKUP_DIR` ra ổ khác hoặc đồng bộ bản sao lưu lên nơi khác. Chưa có: giới hạn số lần đăng nhập sai / rate limit, theo dõi uptime.
+- ⭐ **Deploy thật** (code đã sẵn sàng, 2026-10-06; chốt DigitalOcean + `tasks.kingsport.vn`): merge nhánh vào `main`, tạo Droplet, nhờ người quản lý DNS `kingsport.vn` thêm bản ghi A, chạy `deploy/setup.sh`, thêm domain vào Authorized JavaScript origins của Google, đặt `BACKUP_DIR` ra ổ khác hoặc đồng bộ bản sao lưu lên nơi khác. Chưa có: giới hạn số lần đăng nhập sai / rate limit, theo dõi uptime.
 - Kiểm tra đăng nhập Google thật: `GOOGLE_CLIENT_ID` đã điền vào `server/.env` (2026-10-05), nút Google đã hiện; người dùng cần tự đăng nhập thử (lần đầu = đăng ký). Lưu ý: Google chỉ chạy ở `localhost` hoặc HTTPS, không chạy qua IP mạng LAN.
 - Bỏ cột cũ `projects.team_id` (không dùng từ v5) và `users.team_id` (không dùng từ v9); phải dựng lại bảng vì cột có khoá ngoại.
 
@@ -160,7 +161,7 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 
 ## Đề xuất tiếp theo
 
-1. **Deploy thật**: người dùng chọn máy chủ và domain, rồi làm theo README mục "Deploy" (có thể nhờ Claude hướng dẫn từng bước trên máy chủ).
+1. **Deploy thật** lên DigitalOcean (`tasks.kingsport.vn`): README mục "Deploy", `deploy/setup.sh`.
 2. **Thông báo comment mới trên requirement** cho owner / Leader (mục Tính năng).
 3. **Thử trên iPad thật** (sau khi deploy thì dùng được cả đăng nhập Google qua HTTPS) và báo lại chỗ vướng.
 
