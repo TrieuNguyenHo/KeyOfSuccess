@@ -71,7 +71,7 @@ _Cập nhật lần cuối: 2026-10-06 · Schema database: v21 · Test: `npm tes
 
 ### Tách backend thành nhiều file (2026-10-06)
 - `server/src/index.js` (2.166 dòng) được chia theo tính năng: `config.js` (biến môi trường), `routes/` (13 file `express.Router`: auth, me, teams, admin, channels, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications) và `lib/` (luật dùng chung: access, users, requirements, statuses, history, channels, recurrence, mentions, notifications, live, uploads, comments, http, util). `index.js` còn 41 dòng: dựng app, middleware đăng nhập, gắn router, xử lý lỗi, dọn dẹp định kỳ.
-- Chỉ chuyển chỗ code, không đổi hành vi: đủ 63 route như cũ, 215/215 test pass, dev server chạy được với database thật. `i18n.test.js` giờ quét mọi file trong `server/src` (trước chỉ `index.js`). Bản `index.js` cũ lưu ở `server/data/index.before-split.js.bak`.
+- Chỉ chuyển chỗ code, không đổi hành vi: đủ 63 route như cũ, 215/215 test pass, dev server chạy được với database thật. `i18n.test.js` giờ quét mọi file trong `server/src` (trước chỉ `index.js`). Bản `index.js` cũ đã xoá; git cũng không có bản này vì repo được tạo sau khi tách.
 
 ### Sắp xếp lại frontend (2026-10-06)
 - `client/src/components/` (34 file phẳng) chia thành `features/<tính năng>/` (auth, layout, projects, tasks, comments, requirements, dashboard, admin, profile) và `components/` chỉ còn phần dùng chung. `common.jsx` (513 dòng) tách thành `Avatar`, `TaskParts`, `Mentions`, `Controls`, `Preferences`, `hooks`, `CurrentUser`. `styles.css` (1.052 dòng) tách thành 8 file trong `styles/`, nạp theo thứ tự trong `styles/index.css`; màu nằm ở `styles/tokens.css`.
