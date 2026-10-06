@@ -14,6 +14,8 @@ Client layout (split 2026-10-06): screens live in `client/src/features/<feature>
 
 @../WorkingList.md
 
+Production (2026-10-06): `npm run build` then `npm start` with `NODE_ENV=production` in `server/.env`; one process serves the API and `client/dist`, HTTPS comes from a reverse proxy (`deploy/Caddyfile`, `deploy/keyofsuccess.service`). `config.js` refuses to start without a real `JWT_SECRET` / `GOOGLE_CLIENT_ID` or with `DEV_LOGIN`. Daily backups of the database and uploads (`lib/backup.js`, `BACKUP_DIR`, `npm run backup`); any new folder of user data under `server/data/` must be added to them. README › Deploy has the steps.
+
 Tests: `npm test` (node:test, `server/test/*.test.js`, about 5 seconds). Each file starts its own API on a free port with a temporary database, so it is safe while the dev server runs. Run it after every server change; a new rule or endpoint gets tests in the matching file (helpers in `server/test/helpers.js`). Do not write ad-hoc curl scripts for API checks.
 
 Schema changes: `npm run dev` runs the server with `node --watch`, so saving `server/src/db.js` immediately runs new migrations on the real `server/data/app.db`. Before editing the schema, stop the dev server and back up the database (`VACUUM INTO 'data/app.backup-<name>.db'`), then test migrations on a copy.

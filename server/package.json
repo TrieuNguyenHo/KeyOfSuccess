@@ -5,11 +5,15 @@
   "scripts": {
     "dev": "node --watch --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/index.js",
     "start": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/index.js",
-    "test": "node --test --disable-warning=ExperimentalWarning test/*.test.js"
+    "test": "node --test --disable-warning=ExperimentalWarning test/*.test.js",
+    "backup": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning scripts/backup.js"
   },
   "dependencies": {
     "express": "^4.21.2",
     "google-auth-library": "^10.9.1",
     "jsonwebtoken": "^9.0.2"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }

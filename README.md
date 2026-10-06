@@ -99,10 +99,13 @@ Copy `server/.env.example` thành `server/.env`:
 |---|---|
 | `GOOGLE_CLIENT_ID` | Client ID ở bước 1 |
 | `MANAGER_EMAILS` | Email Manager đầu tiên, cách nhau bởi dấu phẩy |
-| `JWT_SECRET` | Chuỗi ngẫu nhiên dài. **Bắt buộc khi deploy** |
-| `DEV_LOGIN=1` | Đăng nhập bằng email bất kỳ, không cần Google. **Chỉ dùng khi dev local**, tự tắt khi `NODE_ENV=production` |
-| `API_PORT` | Port API, mặc định `3001` |
+| `JWT_SECRET` | Chuỗi ngẫu nhiên ≥ 32 ký tự. **Bắt buộc khi deploy** |
+| `DEV_LOGIN=1` | Đăng nhập bằng email bất kỳ, không cần Google. **Chỉ dùng khi dev local**; production từ chối khởi động nếu bật |
+| `NODE_ENV=production` | Chế độ deploy: kiểm tra cấu hình khi khởi động, bật sao lưu hằng ngày |
+| `API_PORT` / `API_HOST` | Port API, mặc định `3001`; `API_HOST=127.0.0.1` khi chạy sau reverse proxy |
 | `DB_PATH` | File SQLite, mặc định `server/data/app.db` |
+| `BACKUP_DIR` / `BACKUP_KEEP_DAYS` | Thư mục sao lưu (mặc định `server/data/backups` khi production, tắt khi dev) và số bản giữ lại (14) |
+| `CLIENT_DIST` | Frontend đã build, mặc định `client/dist` |
 
 ### 3. Chạy
 
@@ -113,6 +116,27 @@ npm run dev
 
 - Frontend: http://localhost:5173
 - API: http://localhost:3001 (Vite proxy `/api` sang đây)
+
+## Deploy
+
+Một process Node phục vụ cả API lẫn frontend đã build; HTTPS do reverse proxy lo (mẫu Caddy trong `deploy/`).
+
+1. **Máy chủ**: Linux có Node.js ≥ 22.13, một domain trỏ về máy (vd. `tasks.kingsport.vn`), mở cổng 80 / 443.
+2. **Code**: `git clone` vào `/opt/keyofsuccess`, rồi `npm install && npm run build`.
+3. **Cấu hình** `server/.env` (xem `server/.env.example`): `NODE_ENV=production`, `API_HOST=127.0.0.1`, `JWT_SECRET` thật, `GOOGLE_CLIENT_ID`, `MANAGER_EMAILS`. Không có `DEV_LOGIN`. Thiếu hoặc sai thì server báo lỗi và không chạy.
+4. **Google**: thêm `https://<domain>` vào *Authorized JavaScript origins* của OAuth Client.
+5. **Dịch vụ**: `deploy/keyofsuccess.service` (systemd, tự bật lại). **HTTPS**: `deploy/Caddyfile` (chứng chỉ Let's Encrypt tự động).
+6. **Chuyển dữ liệu cũ** (nếu có): tắt server dev, copy `server/data/app.db` và `server/data/uploads/` sang máy chủ trước khi chạy lần đầu.
+7. Kiểm tra: `https://<domain>/api/health` trả `{"ok":true}`.
+
+Cập nhật bản mới: `git pull && npm install && npm run build`, rồi `sudo systemctl restart keyofsuccess` (migration tự chạy; bản sao lưu của ngày đã có sẵn).
+
+### Sao lưu
+
+- Tự động mỗi ngày (lúc khởi động và khi sang ngày mới): `server/data/backups/<YYYY-MM-DD>/` gồm `app.db` (chụp bằng `VACUUM INTO`, an toàn khi app đang chạy) và `uploads/` (đầy đủ file đính kèm, ảnh đại diện; file không đổi so với hôm trước là hard link nên không tốn thêm chỗ). Giữ 14 bản gần nhất.
+- Sao lưu tay: `npm run backup` (hoặc `npm run backup -- /đường/dẫn`).
+- **Bản sao lưu nằm cùng ổ đĩa thì không cứu được khi hỏng máy**: đặt `BACKUP_DIR` sang ổ khác, hoặc đồng bộ thư mục này lên nơi khác (rclone lên Google Drive, NAS…) hằng ngày.
+- Khôi phục: tắt dịch vụ, chép `app.db` của bản cần dùng thành `server/data/app.db` (xoá `app.db-wal`, `app.db-shm` cũ) và `uploads/` thành `server/data/uploads/`, rồi bật lại.
 
 ## Test
 
@@ -144,6 +168,7 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `language.test.js` | Ngôn ngữ theo tài khoản (`PATCH /api/me`) |
 | `avatar.test.js` | Ảnh đại diện: tải lên, thay ảnh xoá file cũ, chặn file không phải ảnh / quá 1 MB, dọn file không xoá ảnh, tài khoản khoá không hiện ảnh |
 | `profile.test.js` | Hồ sơ: sửa / xoá trường, kiểm tra dữ liệu, tên mới hiện ở mọi chỗ, chỉ chính mình và Manager thấy thông tin cá nhân |
+| `deploy.test.js` | Production: từ chối khởi động khi thiếu `JWT_SECRET` / `GOOGLE_CLIENT_ID` hoặc bật `DEV_LOGIN`, phục vụ frontend đã build (cache, header), `/api/health`, sao lưu hằng ngày và `npm run backup` |
 | `i18n.test.js` | Giao diện tiếng Anh đủ: mọi khoá `tr()` có bản tiếng Anh, không chữ tiếng Việt nào nằm ngoài `tr()`, mọi thông báo lỗi của server dịch được (không bật server) |
 
 - Mỗi file tự bật một server riêng trên port trống với **database tạm**, nên test **không bao giờ đụng tới `server/data/app.db`** và các file chạy song song. Dev server đang chạy không bị ảnh hưởng.
@@ -182,8 +207,10 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 
 ```
 server/src/db.js       schema SQLite + migration + helper transaction
-server/src/config.js   biến môi trường (cổng, JWT_SECRET, Google, MANAGER_EMAILS, DEV_LOGIN)
-server/src/index.js    dựng app Express: đăng nhập bắt buộc, gắn các router, xử lý lỗi, dọn dẹp định kỳ
+server/src/config.js   biến môi trường (cổng, JWT_SECRET, Google, MANAGER_EMAILS, DEV_LOGIN, sao lưu); kiểm tra khi production
+server/src/index.js    dựng app Express: đăng nhập bắt buộc, gắn các router, phục vụ client/dist, xử lý lỗi, dọn dẹp và sao lưu định kỳ
+server/scripts/backup.js  npm run backup (sao lưu tay)
+deploy/                Caddyfile (HTTPS), keyofsuccess.service (systemd)
 server/src/routes/     REST API, mỗi tính năng một file (express.Router, gắn dưới /api)
   auth               đăng nhập Google / dev, middleware kiểm tra token (requireUser)
   me                 /me, hồ sơ, ảnh đại diện
@@ -194,12 +221,14 @@ server/src/routes/     REST API, mỗi tính năng một file (express.Router, g
   tasks              task, subtask, lịch sử, comments và file của task
   comments           sửa / xoá comment (task và requirement), file trong comment
   attachments        tải về / xoá file đính kèm
+  health             /health (không cần đăng nhập), cho reverse proxy / theo dõi uptime
   dashboard          Dashboard tổng và Dashboard project
   notifications      chuông thông báo, luồng sự kiện /events
 server/src/lib/        luật và helper dùng chung giữa các route
   access             quyền project / task (projectAccess, taskAccess, isTaskAdmin, canBeAssigned, taskScope…)
   users, requirements, statuses, history, channels, recurrence, mentions, notifications
   live               Server-Sent Events (pushChange, pushNotifications)
+  backup             sao lưu hằng ngày database + uploads
   uploads            lưu file, sweepUploads; comments: COMMENT_KINDS dùng chung cho comment task / requirement
   http, util         lỗi 400/403/404, managerOnly; helper SQL và ngày
 client/src/api.js      fetch wrapper (gắn token, tự logout khi 401), luồng sự kiện live

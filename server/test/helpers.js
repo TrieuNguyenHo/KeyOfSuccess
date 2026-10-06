@@ -24,8 +24,9 @@ const freePort = () =>
   });
 
 // Starts the API with DEV_LOGIN (sign in by email) and returns { api, url, stop, output, uploadDir, dbPath }.
-// server/.env is not loaded and the test settings override the shell's, e.g. GOOGLE_CLIENT_ID is empty.
-export async function startServer() {
+// server/.env is not loaded and the test settings override the shell's, e.g. GOOGLE_CLIENT_ID is empty;
+// `env` overrides them in turn (BACKUP_DIR, CLIENT_DIST…).
+export async function startServer(env = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'taskflow-test-'));
   const port = await freePort();
   const child = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'src/index.js'], {
@@ -39,6 +40,9 @@ export async function startServer() {
       MANAGER_EMAILS: MANAGER_EMAIL,
       JWT_SECRET: 'test-secret',
       NODE_ENV: 'test',
+      BACKUP_DIR: '',
+      CLIENT_DIST: join(dir, 'no-client'),
+      ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

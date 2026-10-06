@@ -1,0 +1,18 @@
+# systemd: chạy KeyOfSuccess như một dịch vụ, tự bật lại khi lỗi hoặc khởi động lại máy.
+# sudo cp deploy/keyofsuccess.service /etc/systemd/system/ && sudo systemctl enable --now keyofsuccess
+# Sửa User và WorkingDirectory cho đúng máy chủ. Cấu hình nằm trong server/.env.
+[Unit]
+Description=KeyOfSuccess
+After=network.target
+
+[Service]
+Type=simple
+User=keyofsuccess
+WorkingDirectory=/opt/keyofsuccess
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
