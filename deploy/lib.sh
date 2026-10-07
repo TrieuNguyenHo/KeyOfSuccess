@@ -18,7 +18,8 @@ require_root() { [ "$(id -u)" = 0 ] || die "Cần chạy bằng root (sudo)."; }
 version_of() { git -C "$APP_DIR" describe --tags --always "$1"; }
 # The schema version a commit's code migrates to (the highest `user_version = N` in its db.js).
 schema_of_ref() { git -C "$APP_DIR" show "$1:server/src/db.js" | grep -o 'user_version = [0-9]*' | awk '{print $3}' | sort -n | tail -1; }
-schema_of_db() { sqlite3 "$DATA/app.db" 'PRAGMA user_version'; }
+# sqlite3 runs as the app user, so the -wal / -shm files it may create stay readable by the app.
+schema_of_db() { sudo -u "$APP_USER" sqlite3 -readonly "$DATA/app.db" 'PRAGMA user_version'; }
 
 # The app answers, running the checked-out commit (so a previous process still holding the port does not count).
 # Versions from before /api/health reported its commit only answer {"ok":true}, which is accepted for them.
@@ -39,10 +40,25 @@ health_ok() {
 
 log_deploy() { printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -Is)" "$@" >> "$DEPLOY_LOG"; }
 
-# Snapshot of the database and uploads named $1; prints its path.
+# Snapshot of the database and uploads, named $1, in the same layout as the app's daily backups; prints its path.
+# Done here rather than through the app's backup script, since the version being left may not have the same script.
+# The database is copied with VACUUM INTO (consistent while the app runs); uploaded files never change once written,
+# so they are hard-linked.
 backup_named() {
-  (cd "$APP_DIR/server" && sudo -u "$APP_USER" node --env-file-if-exists=.env --disable-warning=ExperimentalWarning \
-    scripts/backup.js --name "$1") | tail -1
+  local target="$BACKUPS/$1"
+  rm -rf "$target.partial"
+  mkdir -p "$target.partial"
+  chown "$APP_USER:$APP_USER" "$BACKUPS" "$target.partial"
+  sudo -u "$APP_USER" sqlite3 "$DATA/app.db" "VACUUM INTO '$target.partial/app.db'" || return 1
+  if [ -d "$DATA/uploads" ]; then
+    cp -al "$DATA/uploads" "$target.partial/uploads" 2>/dev/null || cp -a "$DATA/uploads" "$target.partial/uploads" || return 1
+  else
+    mkdir "$target.partial/uploads"
+  fi
+  chown -R "$APP_USER:$APP_USER" "$target.partial"
+  rm -rf "$target"
+  mv "$target.partial" "$target"
+  echo "$target"
 }
 
 # Installs and builds the checked-out code, and records its version for /api/health.
@@ -53,9 +69,13 @@ build_current() {
   printf '{"version":"%s","commit":"%s"}\n' "$(version_of HEAD)" "$(git rev-parse --short HEAD)" > client/dist/version.json
 }
 
-# Checks out commit $1 (detached), builds it and restarts the app.
+# Checks out commit $1 (detached, dropping any local edit of tracked files), builds it and restarts the app.
+# A version from before these scripts keeps the current deploy/, so update.sh and rollback.sh still work there.
 switch_to() {
-  git -C "$APP_DIR" checkout --quiet --detach "$1"
+  local from
+  from="$(git -C "$APP_DIR" rev-parse HEAD)"
+  git -C "$APP_DIR" checkout --quiet --force --detach "$1"
+  git -C "$APP_DIR" cat-file -e "$1:deploy/lib.sh" 2>/dev/null || git -C "$APP_DIR" checkout --quiet "$from" -- deploy
   build_current
   systemctl restart keyofsuccess
 }
