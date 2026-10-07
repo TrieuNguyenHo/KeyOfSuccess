@@ -4,7 +4,8 @@ import { daysFromToday, myTeamsLabel, todayStr, watchesAll } from '../../utils.j
 import CalendarView from '../projects/CalendarView.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { CheckButton, DueDate, PriorityTag, TaskTags } from '../../components/TaskParts.jsx';
-import { useChannels } from '../../components/hooks.js';
+import { useAllTeams, useChannels, useFetched } from '../../components/hooks.js';
+import { ErrorBanner } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
 
 const BUCKETS = [
@@ -54,8 +55,8 @@ export default function TasksPage({
   const [scope, setScope] = useState(
     initialScope ?? (watching ? (watchesAll(user) ? 'all' : 'mine') : 'me')
   );
-  const [people, setPeople] = useState([]);
-  const [teams, setTeams] = useState([]);
+  const people = useFetched(watching ? '/people' : null);
+  const teams = useAllTeams(watching && watchesAll(user));
   const [allTasks, setTasks] = useState(null);
   const channels = useChannels();
   const [channel, setChannel] = useState(initialChannel);
@@ -63,12 +64,6 @@ export default function TasksPage({
   const [showDone, setShowDone] = useState(false);
   const [layout, setLayout] = useState(initialLayout);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (!watching) return;
-    api('/people').then(setPeople).catch(() => {});
-    if (watchesAll(user)) api('/teams').then(setTeams).catch(() => {});
-  }, [watching, user]);
 
   const load = useCallback(
     () =>
@@ -196,11 +191,7 @@ export default function TasksPage({
         </div>
       </div>
 
-      {error && (
-        <div className="error banner" onClick={() => setError('')}>
-          {error} {tr('(bấm để ẩn)')}
-        </div>
-      )}
+      <ErrorBanner error={error} onClose={() => setError('')} />
 
       {layout === 'calendar' && tasks ? (
         <CalendarView

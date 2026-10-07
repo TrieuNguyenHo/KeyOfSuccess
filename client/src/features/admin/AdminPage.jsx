@@ -4,6 +4,7 @@ import { PROJECT_COLORS, can, scopeOf } from '../../utils.js';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
 import TeamModal from './TeamModal.jsx';
 import UsersCard from './UsersCard.jsx';
+import { ErrorBanner } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
 
 export default function AdminPage({ user, onChanged }) {
@@ -54,11 +55,7 @@ export default function AdminPage({ user, onChanged }) {
         <h1>{tr('Quản lý người dùng')}</h1>
       </header>
 
-      {error && (
-        <div className="error banner" onClick={() => setError('')}>
-          {error} {tr('(bấm để ẩn)')}
-        </div>
-      )}
+      <ErrorBanner error={error} onClose={() => setError('')} />
 
       <div className="list admin">
         <section className="admin-card">

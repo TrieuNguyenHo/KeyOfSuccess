@@ -1,6 +1,16 @@
 // Form controls shared by several screens.
 import { tr } from '../i18n.js';
 
+// A screen's error above its content; a click hides it.
+export function ErrorBanner({ error, onClose }) {
+  if (!error) return null;
+  return (
+    <div className="error banner" onClick={onClose}>
+      {error} {tr('(bấm để ẩn)')}
+    </div>
+  );
+}
+
 // "?" button that opens a short help note. A <details>, so it works by tap on iPad and closes on a click outside
 // or Escape (see Workspace).
 export function Hint({ label, children }) {

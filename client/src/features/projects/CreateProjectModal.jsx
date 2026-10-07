@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from 'react';
-import { api } from '../../api.js';
+import { useContext, useState } from 'react';
 import { TeamPills } from '../../components/Controls.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
+import { useAllTeams } from '../../components/hooks.js';
 import { scopeOf } from '../../utils.js';
 import { tr } from '../../i18n.js';
 
@@ -11,17 +11,12 @@ export default function CreateProjectModal({ onCreate, onClose }) {
   const user = useContext(CurrentUser);
   const ownTeamsOnly = scopeOf(user, 'projects.change_teams') === 'team';
   const [name, setName] = useState('');
-  const [teams, setTeams] = useState([]);
+  const allTeams = useAllTeams();
+  const teams = ownTeamsOnly ? allTeams.filter((t) => user.team_ids.includes(t.id)) : allTeams;
   const [teamIds, setTeamIds] = useState([]);
   const [addTeams, setAddTeams] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    api('/teams')
-      .then((all) => setTeams(ownTeamsOnly ? all.filter((t) => user.team_ids.includes(t.id)) : all))
-      .catch(() => {});
-  }, []);
 
   async function submit(e) {
     e.preventDefault();

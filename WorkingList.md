@@ -5,7 +5,7 @@ File này được nạp tự động qua `.claude/CLAUDE.md`.
 
 **Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
 
-_Cập nhật lần cuối: 2026-10-06 · Schema database: v26 · Test: `npm test`, 254/254 pass (khoảng 5 giây)_
+_Cập nhật lần cuối: 2026-10-07 · Schema database: v26 · Test: `npm test`, 254/254 pass (khoảng 5 giây)_
 
 ---
 
@@ -82,6 +82,11 @@ _Cập nhật lần cuối: 2026-10-06 · Schema database: v26 · Test: `npm tes
 - `client/src/components/` (34 file phẳng) chia thành `features/<tính năng>/` (auth, layout, projects, tasks, comments, requirements, dashboard, admin, profile) và `components/` chỉ còn phần dùng chung. `common.jsx` (513 dòng) tách thành `Avatar`, `TaskParts`, `Mentions`, `Controls`, `Preferences`, `hooks`, `CurrentUser`. `styles.css` (1.052 dòng) tách thành 8 file trong `styles/`, nạp theo thứ tự trong `styles/index.css`; màu nằm ở `styles/tokens.css`.
 - Không đổi giao diện hay hành vi: CSS giữ nguyên từng dòng và thứ tự (chỉ dời khối task tags / kênh / lặp lại / Hint / lịch sử lên trước phần responsive, đã kiểm tra không có rule nào đè nhau). `i18n.test.js` giờ quét cả `components/` và `features/` (có thư mục con). 215/215 test pass, `vite build` chạy được, đã mở thử mọi màn trên trình duyệt, không có lỗi console.
 - Lưu ý: ghi chú cũ bên dưới còn nhắc `common.jsx`; các component đó nay nằm trong `components/` (vd. `SearchBox`, `Hint`, `TeamPills` trong `Controls.jsx`, `TaskTags` / `ChannelTag` trong `TaskParts.jsx`, `LanguageSwitch` / `ThemeSwitch` trong `Preferences.jsx`).
+
+### Gộp code trùng lặp (2026-10-07)
+- Rà soát toàn bộ codebase, gộp các chỗ lặp; không đổi hành vi, API hay schema (254/254 test pass, `vite build` chạy được, đã mở thử Theo dõi, Dashboard, Quản lý người dùng, project, Profile, hộp Tạo project: không lỗi console).
+- Server: `unauthorized()` / `conflict()` / `notFound(res, msg)` trong `lib/http.js`; `nextPosition()` và `replaceLinks()` trong `lib/util.js` (thay các câu `MAX(position)` và xoá-rồi-chèn bảng nối `project_teams`, `user_teams`, `task_channels`); `activeUsers()`, `AT_WORK` (điều kiện SQL "người đang làm việc": active, đã tham gia, không phải root) và `createInvitedUser()` (dùng chung cho mời từ Quản lý team và từ Quản lý người dùng / root) trong `lib/users.js`; `postComment()`, `commentsOf()`, `commentById()` trong `lib/comments.js` dùng chung cho comment task và requirement (`COMMENT_KINDS[kind].context()` thay `open()`); `TASK_COUNTS` trong `lib/access.js`; `PATCH /api/me` đọc các trường theo bảng `ME_FIELDS`.
+- Client: hook `useFetched(path)` trong `components/hooks.js` (`useAllTeams(enabled)`, `useChannels`, `useRoles` dựa trên nó; thay các chỗ tự gọi `/teams`, `/people`); `ErrorBanner` trong `Controls.jsx` (6 chỗ); `headers()` dùng chung trong `api.js`; bảng nhãn trong `utils.js` viết bằng `labels({ key: () => tr('…') })`.
 
 ### Test tự động (2026-10-05)
 - `npm test`: 21 file `node:test` trong `server/test/` (215 test, gồm toàn bộ 224 kiểm tra của các script bash cũ, cộng kiểm tra xoá team làm project mất team đó).

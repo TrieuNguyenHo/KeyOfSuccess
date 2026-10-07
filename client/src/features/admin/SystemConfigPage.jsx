@@ -9,6 +9,7 @@ import { LanguageSwitch, ThemeSwitch } from '../../components/Preferences.jsx';
 import InviteUserCard from './InviteUserCard.jsx';
 import PermissionsCard from './PermissionsCard.jsx';
 import UsersCard from './UsersCard.jsx';
+import { ErrorBanner } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
 
 // The whole app for root accounts (ROOT_EMAILS): they are not part of the company and only configure the system:
@@ -62,11 +63,7 @@ export default function SystemConfigPage({ user, onLogout }) {
                 </div>
               </header>
 
-              {error && (
-                <div className="error banner" onClick={() => setError('')}>
-                  {error} {tr('(bấm để ẩn)')}
-                </div>
-              )}
+              <ErrorBanner error={error} onClose={() => setError('')} />
 
               <div className="list admin">
                 <section className="admin-card">

@@ -1,39 +1,26 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 
+// A list read once from the API (again when `path` changes): [] until it arrives, or if it fails. A null path
+// reads nothing, for lists only some users need.
+export function useFetched(path) {
+  const [data, setData] = useState([]);
+  useEffect(() => {
+    if (!path) return;
+    api(path)
+      .then(setData)
+      .catch(() => {});
+  }, [path]);
+  return data;
+}
+
 // All teams of the department (any signed-in user may read them), for the team filter and team pickers.
-export function useAllTeams() {
-  const [teams, setTeams] = useState([]);
-  useEffect(() => {
-    api('/teams')
-      .then(setTeams)
-      .catch(() => {});
-  }, []);
-  return teams;
-}
-
+export const useAllTeams = (enabled = true) => useFetched(enabled ? '/teams' : null);
 // The department's channels, for the channel filter.
-export function useChannels() {
-  const [channels, setChannels] = useState([]);
-  useEffect(() => {
-    api('/channels')
-      .then(setChannels)
-      .catch(() => {});
-  }, []);
-  return channels;
-}
-
+export const useChannels = () => useFetched('/channels');
 // The roles that can be given, highest level first ({ key, name, level }), for role pickers and the level rule:
 // nobody changes the account of, or gives, a role above their own level (root stands above every role).
-export function useRoles() {
-  const [roles, setRoles] = useState([]);
-  useEffect(() => {
-    api('/roles')
-      .then(setRoles)
-      .catch(() => {});
-  }, []);
-  return roles;
-}
+export const useRoles = () => useFetched('/roles');
 export const levelIn = (roles, role) => (role === 'root' ? Infinity : (roles.find((r) => r.key === role)?.level ?? 0));
 
 // Pop-ups built on <details> (team pickers, profile cards, hints) close on a click outside them or on Escape.

@@ -8,7 +8,7 @@ import MembersPanel from './MembersPanel.jsx';
 import RequirementsPanel from '../requirements/RequirementsPanel.jsx';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
-import { SearchBox, TeamPills, teamsLabel } from '../../components/Controls.jsx';
+import { ErrorBanner, SearchBox, TeamPills, teamsLabel } from '../../components/Controls.jsx';
 import { useAllTeams, useChannels } from '../../components/hooks.js';
 import { tr } from '../../i18n.js';
 
@@ -266,11 +266,7 @@ export default function ProjectView({
 
       {view === 'requirements' ? (
         <>
-          {error && (
-            <div className="error banner" onClick={() => setError('')}>
-              {error} {tr('(bấm để ẩn)')}
-            </div>
-          )}
+          <ErrorBanner error={error} onClose={() => setError('')} />
           <RequirementsPanel
             project={project}
             requirements={requirements}
@@ -344,11 +340,7 @@ export default function ProjectView({
             )}
           </div>
 
-          {error && (
-            <div className="error banner" onClick={() => setError('')}>
-              {error} {tr('(bấm để ẩn)')}
-            </div>
-          )}
+          <ErrorBanner error={error} onClose={() => setError('')} />
 
           {readOnly ? (
             <div className="readonly-banner">{tr('Bạn đang xem project này ở chế độ chỉ xem. Mở một task để comment.')}</div>
