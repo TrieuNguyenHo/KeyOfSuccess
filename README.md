@@ -258,10 +258,11 @@ client/src/components/ component dùng chung giữa các màn
 client/src/features/   các màn, mỗi tính năng một thư mục
   auth               Login (đăng nhập Google / dev, màn chờ duyệt)
   layout             Workspace (khung chính, panel task, thông báo), Sidebar, NotificationBell
-  projects           ProjectView, BoardView, ListView, CalendarView, MembersPanel, CreateProjectModal
-  tasks              TaskDetail, TaskHistory, TasksPage (Task của tôi / Theo dõi)
+  projects           ProjectView (+ ProjectHeader, TaskFilterBar), BoardView, ListView, CalendarView, MembersPanel, CreateProjectModal
+  tasks              TaskDetail (+ TaskFields, Subtasks, RecurrenceField), TaskHistory, TasksPage (Task của tôi / Theo dõi)
   comments           CommentList, Attachments (dùng chung cho task và requirement)
-  requirements       RequirementsPanel, RequirementPage
+  requirements       RequirementsPanel, RequirementDetail (+ RequirementFiles, RequirementComments, RequirementProgress,
+                     useRequirementList), RequirementPage
   dashboard          DashboardPage, ProjectDashboardPage
   admin              AdminPage (quản lý người dùng, team, kênh), TeamModal, TeamMembers, MyTeamsPage
   profile            ProfilePage, ProfilePopover

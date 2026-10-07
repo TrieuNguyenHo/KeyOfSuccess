@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { RequirementDetail } from './RequirementsPanel.jsx';
+import RequirementDetail from './RequirementDetail.jsx';
 import { coversTeams } from '../../utils.js';
 import { tr } from '../../i18n.js';
 
