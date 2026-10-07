@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { PROJECT_COLORS, can } from '../../utils.js';
+import { PROJECT_COLORS, can, scopeOf } from '../../utils.js';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
 import TeamModal from './TeamModal.jsx';
 import UsersCard from './UsersCard.jsx';
@@ -43,6 +43,8 @@ export default function AdminPage({ user, onChanged }) {
   const revokeInvite = (u) => act(() => api(`/admin/users/${u.id}`, { method: 'DELETE' }));
 
   const toggleTeam = (id) => setTeamFilter((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+  // A Manager with users.manage 'team' works with their own teams only (the server lists only their people).
+  const myTeams = scopeOf(user, 'users.manage') === 'all' ? teams : teams.filter((t) => user.team_ids.includes(t.id));
   const inTeams = teamFilter.length ? users.filter((u) => u.team_ids.some((id) => teamFilter.includes(id))) : users;
   const editingTeam = teams.find((t) => t.id === editingTeamId);
 
@@ -71,7 +73,7 @@ export default function AdminPage({ user, onChanged }) {
           </div>
           <p className="muted card-sub">{tr('Bấm vào team để lọc danh sách người dùng; không chọn team nào là xem tất cả.')}</p>
           <div className="team-chips">
-            {teams.map((t) => (
+            {myTeams.map((t) => (
               <span key={t.id} className={`team-chip ${teamFilter.includes(t.id) ? 'active' : ''}`}>
                 <button
                   className="team-chip-toggle"
@@ -85,7 +87,7 @@ export default function AdminPage({ user, onChanged }) {
                 <button className="icon-btn" title={tr('Sửa team, thêm thành viên')} onClick={() => setEditingTeamId(t.id)}>
                   ✎
                 </button>
-                {can(user, 'teams.manage') && (
+                {scopeOf(user, 'teams.manage') === 'all' && (
                   <button
                     className="icon-btn danger"
                     title={tr('Xoá team')}
@@ -99,7 +101,7 @@ export default function AdminPage({ user, onChanged }) {
                 )}
               </span>
             ))}
-            {can(user, 'teams.manage') && (
+            {scopeOf(user, 'teams.manage') === 'all' && (
               <form
                 className="member-form"
                 onSubmit={(e) => {
@@ -191,7 +193,7 @@ export default function AdminPage({ user, onChanged }) {
         <UsersCard
           user={user}
           users={inTeams}
-          teams={teams}
+          teams={myTeams}
           updateUser={updateUser}
           revokeInvite={revokeInvite}
           onReload={() => load().catch((e) => setError(e.message))}

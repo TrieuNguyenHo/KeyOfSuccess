@@ -464,8 +464,12 @@ export default {
   'Xem task của người khác, màn Theo dõi và Dashboard tổng.': 'See other people\'s tasks, Work tracking and the overview dashboard.',
   'Xem hồ sơ cá nhân': 'Read personal profiles',
   'Ngày sinh, số điện thoại… của người khác (không bao giờ của vai trò cao hơn mình).': 'Other people\'s birthday, phone… (never of a higher role).',
-  'Duyệt, khoá, đổi vai trò và team của người có vai trò không cao hơn mình; lời mời hoạt động ngay.':
-    'Approve, lock, change the role and teams of people whose role is not above one\'s own; invitations are active at once.',
+  'Duyệt, khoá, đổi vai trò và team của người có vai trò không cao hơn mình; lời mời hoạt động ngay. "Team của mình": người trong team mình và người chưa có team, chỉ xếp vào team mình.':
+    'Approve, lock, change the role and teams of people whose role is not above one\'s own; invitations are active at once. "Own teams": the people of one\'s teams and those with no team yet, placed only in one\'s own teams.',
+  '"Team của mình": chỉ chọn trong team mình, ít nhất một team; các team khác của project giữ nguyên.':
+    '"Own teams": only among one\'s own teams, at least one; the project\'s other teams stay.',
+  '"Team của mình": chỉ đổi tên team mình; tạo và xoá team cần "Toàn phòng".':
+    '"Own teams": rename one\'s own teams only; creating and deleting teams needs "Whole department".',
   'Quản lý thành viên team': 'Manage team members',
   'Thêm người chưa có team, duyệt người tự đăng ký, mời email (chờ duyệt), bỏ Member khỏi team.':
     'Add people without a team, approve self sign-ups, invite emails (waiting for approval), remove Members from a team.',
@@ -480,6 +484,8 @@ export default {
   'Không đổi được tài khoản có vai trò cao hơn bạn': 'You cannot change the account of a higher role than yours',
   'Vai trò hoặc quyền không tồn tại': 'Unknown role or permission',
   'Người này đã tham gia, chỉ khoá được tài khoản': 'This person has already joined; the account can only be locked',
+  'Chỉ chọn được team của bạn': 'You can only choose your own teams',
+  'Member thuộc một team: chọn team khác để chuyển.': 'A Member belongs to one team: pick another team to move them.',
   'Phạm vi không hợp lệ cho quyền này': 'This scope is not valid for this permission',
   'Ngôn ngữ không hợp lệ': 'Invalid language',
   'Bạn chỉ có quyền xem và comment task này': 'You can only view and comment on this task',

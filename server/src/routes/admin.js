@@ -2,7 +2,7 @@
 import express from 'express';
 import { db, transaction } from '../db.js';
 import { badRequest, forbidden, notFound } from '../lib/http.js';
-import { can, levelOf, outranks, roleExists } from '../lib/permissions.js';
+import { can, levelOf, mergeOwnTeams, outranks, roleExists, scopeOf } from '../lib/permissions.js';
 import { isRoot } from '../lib/roles.js';
 import { USER_SELECT, canReadProfile, findUser, parseTeamIds, withProfile, withUserTeams } from '../lib/users.js';
 import { EMAIL_RE } from '../lib/util.js';
@@ -13,13 +13,22 @@ const STATUSES = ['pending', 'active', 'disabled'];
 const userAdminOnly = (req, res, next) => (can(req.user, 'users.manage') || isRoot(req.user) ? next() : forbidden(res));
 // With the profile when the caller may read it (see canReadProfile(); root reads nobody's).
 const asSeenBy = (me, user) => (canReadProfile(me, user) ? withProfile(withUserTeams(user)) : withUserTeams(user));
+// How far the caller's user management reaches: 'all' (root too) or 'team' (users.manage).
+const userScope = (me) => (isRoot(me) ? 'all' : scopeOf(me, 'users.manage'));
+// 'team' covers the people of the caller's own teams and those with no team yet (self sign-ups, people to place),
+// leaving out anyone of a higher role level.
+const coversUser = (me, user) =>
+  userScope(me) === 'all' ||
+  (!outranks(user, me) && (user.team_ids.length === 0 || user.team_ids.some((id) => me.team_ids.includes(id))));
 
-// Everyone in the company; root accounts are not part of it and never listed.
+// The people the caller manages (everyone with 'all'); root accounts are not part of the company and never listed.
 router.get('/admin/users', userAdminOnly, (req, res) => {
   res.json(
     db
       .prepare(`${USER_SELECT} WHERE u.role != 'root' ORDER BY u.status = 'pending' DESC, u.name`)
       .all()
+      .map(withUserTeams)
+      .filter((u) => coversUser(req.user, u))
       .map((u) => asSeenBy(req.user, u))
   );
 });
@@ -27,13 +36,15 @@ router.get('/admin/users', userAdminOnly, (req, res) => {
 router.patch('/admin/users/:id', userAdminOnly, (req, res) => {
   const target = findUser(req.params.id);
   // Root accounts are changed only through ROOT_EMAILS.
-  if (!target || isRoot(target)) return notFound(res);
+  if (!target || isRoot(target) || !coversUser(req.user, target)) return notFound(res);
   const body = req.body ?? {};
-  // team_ids replaces the user's teams; the single team_id form is kept for one-team edits.
+  // team_ids replaces the user's teams; the single team_id form is kept for one-team edits. With a 'team' scope only
+  // the caller's own teams change; the user's other teams stay.
   let teamIds = target.team_ids;
   if (body.team_ids !== undefined) teamIds = parseTeamIds(body.team_ids);
   else if (body.team_id !== undefined) teamIds = parseTeamIds(body.team_id ? [body.team_id] : []);
   if (!teamIds) return badRequest(res, 'Team không tồn tại');
+  teamIds = mergeOwnTeams(req.user, userScope(req.user), target.team_ids, teamIds);
   const next = { role: body.role ?? target.role, status: body.status ?? target.status };
   if (!roleExists(next.role) || !STATUSES.includes(next.status)) return badRequest(res, 'Vai trò hoặc trạng thái không hợp lệ');
   // Nobody changes the account of, or gives, a role above their own level (root stands above every role).
@@ -68,6 +79,8 @@ router.post('/admin/users', userAdminOnly, (req, res) => {
   if (teamId != null || role === 'member' || role === 'leader') {
     if (!db.prepare('SELECT 1 FROM teams WHERE id = ?').get(teamId)) return badRequest(res, 'Team không tồn tại');
   }
+  // With a 'team' scope, people are invited into one of the caller's own teams.
+  if (userScope(req.user) !== 'all' && !req.user.team_ids.includes(teamId)) return forbidden(res, 'Chỉ chọn được team của bạn');
   if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) {
     return res.status(409).json({ error: 'Email này đã có tài khoản, hãy thêm người đó từ danh sách' });
   }
@@ -83,12 +96,13 @@ router.post('/admin/users', userAdminOnly, (req, res) => {
 });
 
 // Revokes an invitation nobody accepted: deletes the account, which has never signed in. For the inviter, and for
-// users.manage / root on accounts not above their own level.
+// users.manage / root on accounts they manage, not above their own level.
 router.delete('/admin/users/:id', (req, res) => {
   const target = findUser(req.params.id);
   if (!target || isRoot(target)) return notFound(res);
   const mayRevoke =
-    target.invited_by === req.user.id || ((can(req.user, 'users.manage') || isRoot(req.user)) && !outranks(target, req.user));
+    target.invited_by === req.user.id ||
+    ((can(req.user, 'users.manage') || isRoot(req.user)) && coversUser(req.user, target) && !outranks(target, req.user));
   if (!mayRevoke) return forbidden(res);
   if (target.joined) return badRequest(res, 'Người này đã tham gia, chỉ khoá được tài khoản');
   db.prepare('DELETE FROM users WHERE id = ?').run(target.id);

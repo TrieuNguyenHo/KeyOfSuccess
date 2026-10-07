@@ -8,33 +8,38 @@ import { isRoot } from './roles.js';
 const TEAM_SCOPES = ['none', 'team', 'all'];
 const YES_NO = ['none', 'all'];
 
-// defaults: [member, leader, manager, director]
+// defaults: [member, leader, manager, director]. Since v26 a Manager runs only their own teams (decided 2026-10-06);
+// the Director alone sees the whole department.
 export const PERMISSIONS = [
   // Opening projects one is not a member of (read + comment).
-  { key: 'projects.view', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'all', 'all'] },
+  { key: 'projects.view', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'team', 'all'] },
   // Renaming, deleting and managing the members of projects one does not own.
   { key: 'projects.manage', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'none', 'all'] },
   { key: 'projects.create', scopes: YES_NO, defaults: ['none', 'none', 'all', 'all'] },
-  { key: 'projects.change_teams', scopes: YES_NO, defaults: ['none', 'none', 'all', 'all'] },
+  // Choosing a project's teams (when creating it, or later). 'team': only among one's own teams, at least one of them
+  // (no department-wide project), leaving the project's other teams as they are.
+  { key: 'projects.change_teams', scopes: TEAM_SCOPES, defaults: ['none', 'none', 'team', 'all'] },
   // Full rights on tasks: create, edit, assign, delete, statuses. 'team': projects one of the holder's teams takes
   // part in (a department-wide project when they can open it); 'all': every project, assigning anyone of its teams.
   { key: 'tasks.admin', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'team', 'all'] },
   // Creating, editing and deleting requirements of projects one can open, besides those one manages.
-  { key: 'requirements.manage', scopes: TEAM_SCOPES, defaults: ['none', 'none', 'all', 'all'] },
+  { key: 'requirements.manage', scopes: TEAM_SCOPES, defaults: ['none', 'none', 'team', 'all'] },
   // Watching other people's tasks (Work tracking, their tasks in view only) and the overview dashboard.
-  { key: 'people.watch', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'all', 'all'] },
+  { key: 'people.watch', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'team', 'all'] },
   // Reading other people's personal details (never of someone of a higher role level).
-  { key: 'people.profiles', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'all', 'all'] },
-  // User management: approve, lock, roles and teams of anyone (of a level not above one's own), invitations that
-  // are active at once, approving people a Leader invited.
-  { key: 'users.manage', scopes: YES_NO, defaults: ['none', 'none', 'all', 'all'] },
+  { key: 'people.profiles', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'team', 'all'] },
+  // User management: approve, lock, roles and teams of people (of a level not above one's own), invitations that are
+  // active at once, approving people a Leader invited. 'team': the people of one's own teams and those with no team
+  // yet, placed only in one's own teams (their other teams are left as they are).
+  { key: 'users.manage', scopes: TEAM_SCOPES, defaults: ['none', 'none', 'team', 'all'] },
   // Members of teams: add people without a team, approve self sign-ups, invite (waiting for approval), remove Members.
-  { key: 'teams.members', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'all', 'all'] },
-  { key: 'teams.manage', scopes: YES_NO, defaults: ['none', 'none', 'all', 'all'] },
+  { key: 'teams.members', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'team', 'all'] },
+  // Teams themselves. 'team': rename one's own teams; creating and deleting teams needs 'all'.
+  { key: 'teams.manage', scopes: TEAM_SCOPES, defaults: ['none', 'none', 'team', 'all'] },
   { key: 'channels.manage', scopes: YES_NO, defaults: ['none', 'none', 'all', 'all'] },
   { key: 'comments.delete_any', scopes: YES_NO, defaults: ['none', 'none', 'all', 'all'] },
   // Being told when a top-level task is completed: of the holder's teams, or of everyone.
-  { key: 'notify.task_completed', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'all', 'none'] },
+  { key: 'notify.task_completed', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'team', 'none'] },
 ];
 const DEFAULT_ROLES = ['member', 'leader', 'manager', 'director'];
 export const findPermission = (key) => PERMISSIONS.find((p) => p.key === key);
@@ -61,6 +66,13 @@ export function scopeOf(user, key) {
 }
 export const can = (user, key) => scopeOf(user, key) !== 'none';
 // Whether a scope covers something that concerns these teams ('team': any of them is one of the user's teams).
+// With a 'team' scope the user only adds or removes their own teams: of `requested`, their own teams count, and the
+// teams of `current` that are not theirs stay. With 'all', `requested` as it is.
+export function mergeOwnTeams(user, scope, current, requested) {
+  if (scope === 'all') return requested;
+  const mine = (id) => user.team_ids.includes(id);
+  return [...new Set([...requested.filter(mine), ...current.filter((id) => !mine(id))])].sort((a, b) => a - b);
+}
 export const coversTeams = (user, scope, teamIds) =>
   scope === 'all' || (scope === 'team' && teamIds.some((id) => user.team_ids.includes(id)));
 

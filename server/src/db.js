@@ -562,6 +562,24 @@ if (schemaVersion() < 25) {
   db.exec('PRAGMA user_version = 25');
 }
 
+// v26: a Manager runs only their own teams (decided 2026-10-06). Manager permissions still on the old department-wide
+// default move to 'team'; scopes root set by hand are kept. A new database gets the new defaults from the seeding.
+if (schemaVersion() < 26) {
+  const toTeam = db.prepare("UPDATE role_permissions SET scope = 'team' WHERE role = 'manager' AND permission = ? AND scope = 'all'");
+  [
+    'projects.view',
+    'projects.change_teams',
+    'requirements.manage',
+    'people.watch',
+    'people.profiles',
+    'users.manage',
+    'teams.members',
+    'teams.manage',
+    'notify.task_completed',
+  ].forEach((permission) => toTeam.run(permission));
+  db.exec('PRAGMA user_version = 26');
+}
+
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_attachments_comment ON attachments(comment_id);
   CREATE INDEX IF NOT EXISTS idx_attachments_requirement_comment ON attachments(requirement_comment_id);

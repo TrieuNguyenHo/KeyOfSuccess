@@ -46,17 +46,21 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 
 | Quyền (`lib/permissions.js`) | Member | Leader | Manager | Director |
 |---|---|---|---|---|
-| `projects.view`: mở project mình không tham gia (xem + comment) | – | Team | Toàn phòng | Toàn phòng |
+| `projects.view`: mở project mình không tham gia (xem + comment) | – | Team | Team | Toàn phòng |
 | `projects.manage`: đổi tên, xoá, thành viên của project không do mình tạo | – | Team | – | Toàn phòng |
-| `projects.create`, `projects.change_teams` | – | – | Có | Có |
+| `projects.create` | – | – | Có | Có |
+| `projects.change_teams`: chọn team của project (Team: chỉ team mình, ít nhất một; team khác của project giữ nguyên) | – | – | Team | Toàn phòng |
 | `tasks.admin`: toàn quyền task (tạo, sửa, giao, xoá, trạng thái) | – | Team | Team | Toàn phòng |
-| `requirements.manage` | – | – | Toàn phòng | Toàn phòng |
-| `people.watch`: task của người khác, Theo dõi, Dashboard tổng | – | Team | Toàn phòng | Toàn phòng |
-| `people.profiles`: hồ sơ cá nhân của người khác | – | Team | Toàn phòng | Toàn phòng |
-| `users.manage`: Quản lý người dùng, lời mời hoạt động ngay | – | – | Có | Có |
-| `teams.members`: thêm / duyệt / mời / bỏ thành viên team | – | Team | Toàn phòng | Toàn phòng |
-| `teams.manage`, `channels.manage`, `comments.delete_any` | – | – | Có | Có |
-| `notify.task_completed`: nhận thông báo task xong | – | Team | Toàn phòng | – |
+| `requirements.manage` | – | – | Team | Toàn phòng |
+| `people.watch`: task của người khác, Theo dõi, Dashboard tổng | – | Team | Team | Toàn phòng |
+| `people.profiles`: hồ sơ cá nhân của người khác | – | Team | Team | Toàn phòng |
+| `users.manage`: Quản lý người dùng, lời mời hoạt động ngay (Team: người trong team mình và người chưa có team, chỉ xếp vào team mình) | – | – | Team | Toàn phòng |
+| `teams.members`: thêm / duyệt / mời / bỏ thành viên team | – | Team | Team | Toàn phòng |
+| `teams.manage` (Team: chỉ đổi tên team mình; tạo / xoá team cần Toàn phòng) | – | – | Team | Toàn phòng |
+| `channels.manage`, `comments.delete_any` | – | – | Có | Có |
+| `notify.task_completed`: nhận thông báo task xong | – | Team | Team | – |
+
+Từ v26 (người dùng chốt 2026-10-06), **Manager chỉ quản lý các team của mình** ở mọi mặt; chỉ Director nhìn toàn phòng.
 
 **Cấp bậc vai trò** (`roles.level`: Member 1, Leader 2, Manager 3, Director 4; root cao hơn tất cả): không ai sửa tài khoản, cấp vai trò hay đọc hồ sơ của người có cấp cao hơn mình, dù có quyền gì. Vì vậy Manager không đụng được Director, Leader không đọc được hồ sơ Manager.
 
@@ -174,10 +178,11 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `root.test.js` | Root: chỉ dùng API cấu hình, ẩn khỏi mọi danh sách, cấp Director, không ai sửa được root, thu hồi khi bỏ khỏi `ROOT_EMAILS`, migration v23 |
 | `permissions.test.js` | Bảng quyền: `/me` trả quyền, chỉ root đọc / sửa, kiểm tra phạm vi, đổi quyền có hiệu lực ngay, khôi phục mặc định, quyền theo team, thông báo, cấp bậc vai trò |
 | `invitations.test.js` | Lời mời: "Đã mời, chưa tham gia" tới lần đăng nhập đầu, chưa giao task / thêm vào project / theo dõi / tính workload được, huỷ lời mời |
+| `manager-scope.test.js` | Manager theo team (mặc định v26): danh sách người dùng, sửa / mời / số chờ duyệt theo team, đổi tên team mình, project chỉ thuộc team mình, theo dõi / hồ sơ / thông báo theo team |
 | `i18n.test.js` | Giao diện tiếng Anh đủ: mọi khoá `tr()` có bản tiếng Anh, không chữ tiếng Việt nào nằm ngoài `tr()`, mọi thông báo lỗi của server dịch được (không bật server) |
 
 - Mỗi file tự bật một server riêng trên port trống với **database tạm**, nên test **không bao giờ đụng tới `server/data/app.db`** và các file chạy song song. Dev server đang chạy không bị ảnh hưởng.
-- Đăng nhập trong test dùng `DEV_LOGIN`; `boss@t.test` là Manager, `chief@t.test` là Director, `root@t.test` là root. `server/.env` không được đọc.
+- Đăng nhập trong test dùng `DEV_LOGIN`; `boss@t.test` là Manager, `chief@t.test` là Director, `root@t.test` là root. Các file test viết từ trước v26 chạy với Manager toàn phòng (`startServer()` đặt lại các quyền đó thành "Toàn phòng"); `startServer({ managerScope: 'team' })` dùng mặc định mới. `server/.env` không được đọc.
 - File test fail nếu server ghi ra lỗi (ví dụ một lỗi 500 không có test nào bắt).
 - Hàm hỗ trợ dùng chung (bật server, gọi API, tạo user/team/project/task, nghe luồng sự kiện) ở `server/test/helpers.js`.
 
@@ -195,6 +200,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v26**: Manager theo team: các quyền của Manager còn ở mặc định cũ "Toàn phòng" (xem project, đổi team project, requirement, theo dõi, hồ sơ, quản lý người dùng, thành viên team, team, thông báo task xong) chuyển sang "Team của mình"; ô root đã tự đổi được giữ.
 - **v25**: cột `users.joined_at`, ghi ở lần đăng nhập đầu (đăng nhập = chấp nhận lời mời). Tài khoản đã có trước v25 được coi là đã tham gia.
 - **v24**: bảng `roles` (key, tên, `level`) và `role_permissions` (vai trò, quyền, phạm vi `none` / `team` / `all`). Quyền nào thiếu được điền giá trị mặc định mỗi khi server khởi động, nên quyền thêm ở bản sau tự có mặc định; ô root đã đặt được giữ nguyên.
 - **v23**: vai trò `root` (bảng `users` dựng lại như v22). Tài khoản có sẵn với email trong `ROOT_EMAILS` thành root và rời mọi team.

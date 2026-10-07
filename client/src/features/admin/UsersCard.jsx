@@ -90,22 +90,12 @@ export default function UsersCard({ user, users, teams, updateUser, revokeInvite
                   </option>
                 ))}
             </select>
-            {u.role === 'member' ? (
-              <select
-                value={u.team_ids[0] ?? ''}
-                onChange={(e) => updateUser(u, { team_ids: e.target.value ? [Number(e.target.value)] : [] })}
-              >
-                <option value="">{tr('Chưa có team')}</option>
-                {teams.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            ) : locked ? (
+            {locked ? (
               <span className="muted">{u.team_name ?? tr('Chưa có team')}</span>
             ) : (
-              // Leaders, Managers and Directors may belong to several teams; a Leader needs at least one.
+              // The same pill picker for every role. Leaders, Managers and Directors may belong to several teams (a
+              // Leader to at least one); a Member to one: picking a team moves them there, unpicking it leaves them
+              // without a team.
               <details className="team-picker">
                 <summary title={tr('Chọn các team')}>
                   {takesAllTeams(u.role) && teams.length > 0 && u.team_ids.length === teams.length
@@ -120,9 +110,15 @@ export default function UsersCard({ user, users, teams, updateUser, revokeInvite
                     label={tr('Team của {name}', { name: u.name })}
                     noneLabel={null}
                     allLabel={takesAllTeams(u.role) ? tr('Tất cả team') : undefined}
-                    onChange={(ids) => ids.length > 0 && updateUser(u, { team_ids: ids })}
+                    onChange={(ids) => {
+                      if (u.role === 'member') {
+                        const added = ids.find((id) => !u.team_ids.includes(id));
+                        updateUser(u, { team_ids: added ? [added] : [] });
+                      } else if (ids.length > 0) updateUser(u, { team_ids: ids });
+                    }}
                   />
                   {u.role === 'leader' && <span className="muted small">{tr('Leader phụ trách tất cả team được chọn.')}</span>}
+                  {u.role === 'member' && <span className="muted small">{tr('Member thuộc một team: chọn team khác để chuyển.')}</span>}
                 </div>
               </details>
             )}

@@ -1,7 +1,7 @@
 // Teams (teams.manage), their members (teams.members; users.manage adds the wider rights) and the people one may watch.
 import express from 'express';
 import { db, transaction } from '../db.js';
-import { badRequest, forbidden, notFound, requirePermission } from '../lib/http.js';
+import { badRequest, forbidden, notFound, requireAllScope } from '../lib/http.js';
 import { USER_SELECT, findUser, withUserTeams } from '../lib/users.js';
 import { EMAIL_RE, placeholders } from '../lib/util.js';
 import { can, coversTeams, outranks, scopeOf } from '../lib/permissions.js';
@@ -20,7 +20,8 @@ router.get('/teams', (req, res) => {
   );
 });
 
-router.post('/teams', requirePermission('teams.manage'), (req, res) => {
+// Creating and deleting teams needs teams.manage 'all'; 'team' renames one's own teams.
+router.post('/teams', requireAllScope('teams.manage'), (req, res) => {
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên team');
   if (db.prepare('SELECT 1 FROM teams WHERE name = ?').get(name)) return res.status(409).json({ error: 'Tên team đã tồn tại' });
@@ -28,7 +29,8 @@ router.post('/teams', requirePermission('teams.manage'), (req, res) => {
   res.status(201).json(db.prepare('SELECT * FROM teams WHERE id = ?').get(lastInsertRowid));
 });
 
-router.patch('/teams/:id', requirePermission('teams.manage'), (req, res) => {
+router.patch('/teams/:id', (req, res) => {
+  if (!coversTeams(req.user, scopeOf(req.user, 'teams.manage'), [Number(req.params.id)])) return forbidden(res);
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên team');
   if (db.prepare('SELECT 1 FROM teams WHERE name = ? AND id != ?').get(name, req.params.id)) {
@@ -39,7 +41,7 @@ router.patch('/teams/:id', requirePermission('teams.manage'), (req, res) => {
   res.json(db.prepare('SELECT * FROM teams WHERE id = ?').get(req.params.id));
 });
 
-router.delete('/teams/:id', requirePermission('teams.manage'), (req, res) => {
+router.delete('/teams/:id', requireAllScope('teams.manage'), (req, res) => {
   if (db.prepare('SELECT 1 FROM user_teams WHERE team_id = ?').get(req.params.id)) {
     return badRequest(res, 'Team vẫn còn người, hãy chuyển họ sang team khác trước');
   }

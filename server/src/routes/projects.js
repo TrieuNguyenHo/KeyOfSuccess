@@ -19,7 +19,7 @@ import { DEFAULT_STATUSES } from '../lib/statuses.js';
 import { sweepUploads } from '../lib/uploads.js';
 import { parseTeamIds } from '../lib/users.js';
 import { IN_TEAM, placeholders } from '../lib/util.js';
-import { can } from '../lib/permissions.js';
+import { can, mergeOwnTeams, scopeOf } from '../lib/permissions.js';
 
 const router = express.Router();
 
@@ -52,6 +52,10 @@ router.post('/projects', requirePermission('projects.create'), (req, res) => {
   if (!name) return badRequest(res, 'Cần nhập tên project');
   const teamIds = parseTeamIds(body.team_ids ?? []);
   if (!teamIds) return badRequest(res, 'Danh sách team không hợp lệ');
+  // With projects.change_teams 'team', the project belongs to one or more of the creator's own teams.
+  if (scopeOf(me, 'projects.change_teams') === 'team' && (!teamIds.length || teamIds.some((id) => !me.team_ids.includes(id)))) {
+    return forbidden(res, 'Chỉ chọn được team của bạn');
+  }
 
   const id = transaction(() => {
     const { lastInsertRowid } = db
@@ -123,8 +127,12 @@ router.patch('/projects/:id', (req, res) => {
 
   const name = body.name?.trim() ?? project.name;
   if (!name) return badRequest(res, 'Cần nhập tên project');
-  const teamIds = changesTeams ? parseTeamIds(body.team_ids) : null;
+  const changeScope = scopeOf(req.user, 'projects.change_teams');
+  let teamIds = changesTeams ? parseTeamIds(body.team_ids) : null;
   if (changesTeams && !teamIds) return badRequest(res, 'Danh sách team không hợp lệ');
+  // With 'team', only the user's own teams are added or removed; the project's other teams stay, and it keeps a team.
+  if (teamIds) teamIds = mergeOwnTeams(req.user, changeScope, project.teams.map((t) => t.id), teamIds);
+  if (teamIds && changeScope === 'team' && !teamIds.length) return forbidden(res, 'Chỉ chọn được team của bạn');
   transaction(() => {
     db.prepare('UPDATE projects SET name = ?, color = ? WHERE id = ?').run(name, body.color ?? project.color, project.id);
     if (teamIds) setProjectTeams(project.id, teamIds);

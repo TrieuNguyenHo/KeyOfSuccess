@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { EMPTY_FILTERS, can, coversTeams, daysFromToday, isOverdue, todayStr } from '../../utils.js';
+import { EMPTY_FILTERS, can, coversTeams, daysFromToday, isOverdue, scopeOf, todayStr } from '../../utils.js';
 import BoardView from './BoardView.jsx';
 import CalendarView from './CalendarView.jsx';
 import ListView from './ListView.jsx';
@@ -204,7 +204,17 @@ export default function ProjectView({
             <details className="team-picker">
               <summary title={tr('{p0} · bấm để đổi team phụ trách', { p0: teamsLabel(project.teams) })}>{teamsLabel(project.teams)} ▾</summary>
               <div className="team-picker-menu">
-                <TeamPills teams={teams} selected={project.teams.map((t) => t.id)} onChange={changeTeams} />
+                {/* With projects.change_teams 'team', only the user's own teams are offered; the others stay. */}
+                {scopeOf(user, 'projects.change_teams') === 'team' ? (
+                  <TeamPills
+                    teams={teams.filter((t) => user.team_ids.includes(t.id))}
+                    selected={project.teams.map((t) => t.id)}
+                    onChange={changeTeams}
+                    noneLabel={null}
+                  />
+                ) : (
+                  <TeamPills teams={teams} selected={project.teams.map((t) => t.id)} onChange={changeTeams} />
+                )}
               </div>
             </details>
           ) : (

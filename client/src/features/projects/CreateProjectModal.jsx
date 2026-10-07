@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { TeamPills } from '../../components/Controls.jsx';
+import { CurrentUser } from '../../components/CurrentUser.js';
+import { scopeOf } from '../../utils.js';
 import { tr } from '../../i18n.js';
 
-// Only Managers create projects; they pick any number of owning teams (none = department-wide).
+// Only Managers create projects; they pick any number of owning teams (none = department-wide). With
+// projects.change_teams 'team' they pick among their own teams, at least one.
 export default function CreateProjectModal({ onCreate, onClose }) {
+  const user = useContext(CurrentUser);
+  const ownTeamsOnly = scopeOf(user, 'projects.change_teams') === 'team';
   const [name, setName] = useState('');
   const [teams, setTeams] = useState([]);
   const [teamIds, setTeamIds] = useState([]);
@@ -13,7 +18,9 @@ export default function CreateProjectModal({ onCreate, onClose }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api('/teams').then(setTeams).catch(() => {});
+    api('/teams')
+      .then((all) => setTeams(ownTeamsOnly ? all.filter((t) => user.team_ids.includes(t.id)) : all))
+      .catch(() => {});
   }, []);
 
   async function submit(e) {
@@ -51,7 +58,7 @@ export default function CreateProjectModal({ onCreate, onClose }) {
 
         <div className="form-field">
           <span>{tr('Team phụ trách')}</span>
-          <TeamPills teams={teams} selected={teamIds} onChange={setTeamIds} />
+          <TeamPills teams={teams} selected={teamIds} onChange={setTeamIds} noneLabel={ownTeamsOnly ? null : undefined} />
           <span className="muted small">
             {tr('Chọn nhiều team nếu cùng phụ trách. Manager và Leader của các team này có toàn quyền trên task.')}
           </span>
@@ -70,7 +77,7 @@ export default function CreateProjectModal({ onCreate, onClose }) {
           <button type="button" className="link-btn" onClick={onClose}>
             {tr('Huỷ')}
           </button>
-          <button className="btn primary" disabled={busy || !name.trim()}>
+          <button className="btn primary" disabled={busy || !name.trim() || (ownTeamsOnly && teamIds.length === 0)}>
             {tr('Tạo project')}
           </button>
         </div>
