@@ -9,6 +9,7 @@ import { sweepUploads } from '../lib/uploads.js';
 
 const router = express.Router();
 
+const BUILT_IN = 'Không đổi tên hay xoá được trạng thái mặc định (Planned, In-Progress, Completed, Pending)';
 const SECTION_ADMINS = 'Chỉ Manager hoặc Leader của team tham gia project mới quản lý được trạng thái';
 function loadSectionForAdmin(req, res) {
   const section = findSection(req.params.id);
@@ -42,6 +43,7 @@ router.post('/projects/:id/sections', (req, res) => {
 router.patch('/sections/:id', (req, res) => {
   const section = loadSectionForAdmin(req, res);
   if (!section) return;
+  if (section.kind) return badRequest(res, BUILT_IN);
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên trạng thái');
   db.prepare('UPDATE sections SET name = ? WHERE id = ?').run(name, section.id);
@@ -52,8 +54,8 @@ router.patch('/sections/:id', (req, res) => {
 router.delete('/sections/:id', (req, res) => {
   const section = loadSectionForAdmin(req, res);
   if (!section) return;
-  // The built-in statuses (Cần làm, Đang làm, Hoàn thành) stay: the done tick and new tasks rely on them.
-  if (section.kind) return badRequest(res, 'Không xoá được trạng thái mặc định (Cần làm, Đang làm, Hoàn thành); bạn vẫn đổi tên được');
+  // The built-in statuses stay: the done tick and new tasks rely on them.
+  if (section.kind) return badRequest(res, BUILT_IN);
   db.prepare('DELETE FROM sections WHERE id = ?').run(section.id);
   sweepUploads();
   pushChange(req, { project_id: section.project_id });

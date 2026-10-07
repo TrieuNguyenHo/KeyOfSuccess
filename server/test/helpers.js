@@ -44,6 +44,8 @@ export async function startServer({ prepareDb, env = {} } = {}) {
       MANAGER_EMAILS: MANAGER_EMAIL,
       DIRECTOR_EMAILS: DIRECTOR_EMAIL,
       ROOT_EMAILS: ROOT_EMAIL,
+      BACKUP_DIR: '',
+      CLIENT_DIST: join(dir, 'no-client'),
       ...env,
       JWT_SECRET: 'test-secret',
       NODE_ENV: 'test',

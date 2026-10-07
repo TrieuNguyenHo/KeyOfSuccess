@@ -5,7 +5,7 @@ File này được nạp tự động qua `.claude/CLAUDE.md`.
 
 **Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
 
-_Cập nhật lần cuối: 2026-10-06 · Schema database: v25 · Test: `npm test`, 247/247 pass (khoảng 5 giây)_
+_Cập nhật lần cuối: 2026-10-07 · Schema database: v26 · Test: `npm test`, 251/251 pass (khoảng 5 giây)_
 
 ---
 
@@ -83,6 +83,14 @@ _Cập nhật lần cuối: 2026-10-06 · Schema database: v25 · Test: `npm tes
 - Không đổi giao diện hay hành vi: CSS giữ nguyên từng dòng và thứ tự (chỉ dời khối task tags / kênh / lặp lại / Hint / lịch sử lên trước phần responsive, đã kiểm tra không có rule nào đè nhau). `i18n.test.js` giờ quét cả `components/` và `features/` (có thư mục con). 215/215 test pass, `vite build` chạy được, đã mở thử mọi màn trên trình duyệt, không có lỗi console.
 - Lưu ý: ghi chú cũ bên dưới còn nhắc `common.jsx`; các component đó nay nằm trong `components/` (vd. `SearchBox`, `Hint`, `TeamPills` trong `Controls.jsx`, `TaskTags` / `ChannelTag` trong `TaskParts.jsx`, `LanguageSwitch` / `ThemeSwitch` trong `Preferences.jsx`).
 
+### Chuẩn bị deploy (2026-10-06, không đổi schema)
+- Một process phục vụ cả API lẫn frontend: `npm run build` rồi `npm start`; server phục vụ `client/dist` (file trong `assets/` cache vĩnh viễn, `index.html` không cache để bản mới hiện ngay), đường dẫn ngoài `/api` trả `index.html`. Thêm header `nosniff` / `X-Frame-Options: DENY` / `Referrer-Policy`, bỏ `X-Powered-By`, `GET /api/health` không cần đăng nhập.
+- `NODE_ENV=production`: không khởi động nếu `JWT_SECRET` < 32 ký tự, thiếu `GOOGLE_CLIENT_ID` hoặc còn `DEV_LOGIN=1` (trước đây `DEV_LOGIN` chỉ âm thầm tắt); cảnh báo khi `MANAGER_EMAILS` trống. `API_HOST=127.0.0.1` để chỉ reverse proxy gọi được.
+- Sao lưu tự động (`server/src/lib/backup.js`): mỗi ngày một bản `server/data/backups/<ngày>/` (`app.db` bằng `VACUUM INTO` + `uploads/`, file không đổi là hard link), giữ 14 bản (`BACKUP_DIR`, `BACKUP_KEEP_DAYS`); bật mặc định khi production, tắt khi dev. `npm run backup` để sao lưu tay.
+- HTTPS qua Caddy (`deploy/Caddyfile`, Let's Encrypt tự động), chạy nền bằng systemd (`deploy/keyofsuccess.service`). Hướng dẫn từng bước, khôi phục bản sao lưu: README mục "Deploy".
+- Người dùng chọn thử trước trên **DigitalOcean**, domain `tasks.kingsport.vn`. `deploy/setup.sh <domain>` cài toàn bộ lên Droplet Ubuntu 24.04 (Node 22, Caddy, swap, user `keyofsuccess`, systemd, tường lửa, `server/.env` có `JWT_SECRET` ngẫu nhiên); `deploy/update.sh` sao lưu → pull → build → khởi động lại. Code thuộc root, app chỉ ghi được `server/data`. Đã kiểm tra bằng `bash -n` và shellcheck, chưa chạy trên Droplet thật.
+- Test `deploy.test.js` (4 test). Đã chạy thử `npm run build` + `npm start` ở chế độ production: trang và API cùng cổng, bản sao lưu được tạo lúc khởi động.
+
 ### Test tự động (2026-10-05)
 - `npm test`: 21 file `node:test` trong `server/test/` (215 test, gồm toàn bộ 224 kiểm tra của các script bash cũ, cộng kiểm tra xoá team làm project mất team đó).
 - Mỗi file tự bật server với database tạm; file fail nếu server ghi ra lỗi. Hàm dùng chung ở `server/test/helpers.js`.
@@ -100,7 +108,8 @@ _Cập nhật lần cuối: 2026-10-06 · Schema database: v25 · Test: `npm tes
 - Lịch sử thay đổi của task, 30 ngày (2026-10-06, schema v15, bảng `task_events`): người dùng chốt ghi mọi thay đổi, chỉ giữ 30 ngày, ai xem được task thì xem được, mô tả lưu cả bản trước / sau. Mục "Lịch sử thay đổi (30 ngày)" cuối panel task (`TaskHistory.jsx`), tự cập nhật khi task đổi. Server: `logEvent()` / `logTaskChanges()`, `GET /api/tasks/:id/history`, dọn dòng cũ khi khởi động và mỗi ngày. Lịch sử bắt đầu trống từ v15. Test `task-history.test.js`.
 - Bỏ nhãn team của requirement, nhãn team trên task theo người làm (2026-10-06, schema v16): người dùng đổi ý sau khi làm nhãn team cho requirement (v14), migration v16 xoá bảng `requirement_teams` và cột `all_teams` (2 nhãn + 1 "Tất cả team" người dùng đã gắn bị bỏ; còn trong `app.backup-before-assignee-teams.db`). Task trên Board / List hiện team của người làm trong project (`TaskTags` trong `common.jsx`, server trả `assignee_teams`); lọc "Mọi team" theo đó (`?team=3`).
 - Chỉ giao task cho người thuộc team của project (2026-10-06): `canBeAssigned()` ở server; project toàn phòng thì ai có team cũng được; thành viên ngoài team chỉ xem và bình luận, không tự thêm task (`project.can_add_tasks`, ẩn "+ Thêm task" và có dòng giải thích). Task cũ giữ người làm: hiện có 3 task giao cho Lan Anh (Marketing) trong project không có team Marketing (Setup CI/CD; Lan An Task; Thiết kế form đăng ký). Sửa kèm lỗi cũ: tạo task thiếu `section_id` trả 500, nay 400. Test cũ trong `requirements`, `dashboard`, `roles` được viết lại theo luật mới; test mới trong `assignees.test.js`.
-- 3 trạng thái mặc định (Cần làm, Đang làm, Hoàn thành) không xoá được, chỉ đổi tên (2026-10-06): không có nút ✕, server trả 400.
+- 3 trạng thái mặc định (Cần làm, Đang làm, Hoàn thành) không xoá được, chỉ đổi tên (2026-10-06): không có nút ✕, server trả 400. _Đã thay bằng 4 trạng thái cố định (v26, mục dưới)._
+- 4 trạng thái mặc định cố định (2026-10-06, schema v26, người dùng yêu cầu; làm song song với phiên Director / root nên ban đầu đánh số v22, đổi thành v26 khi gộp vào `main` ngày 2026-10-07): mọi project có Planned / In-Progress / Completed / Pending (`sections.kind` thêm `pending`), cùng tên ở VI và EN, không đổi tên, không xoá được (ẩn ✎ / ✕, server trả 400 "Không đổi tên hay xoá được trạng thái mặc định…"); trạng thái tự thêm vẫn đổi tên / xoá được. Pending là trạng thái mở bình thường; tick / bỏ tick / task lặp lại vẫn theo Completed / In-Progress / Planned. Migration dựng lại bảng `sections` (giữ id), đổi tên trạng thái mặc định cũ (kể cả đã đổi tên), thêm trạng thái còn thiếu vào cuối cột của project (Pending đứng sau các cột tự thêm). Đã thử migration trên database v21 tạo bằng code cũ. Test cập nhật trong `statuses`, `dashboard`, `task-history`.
 - File trong bình luận và góp ý (2026-10-06, schema v13): ô viết bình luận (`CommentComposer` trong `CommentList.jsx`) có 📎, kéo thả, dán ảnh Ctrl+V; gửi chỉ file được; file hiện dưới bình luận (`FileList` dùng chung với khu Đính kèm), xoá bình luận thì file bị xoá khỏi ổ đĩa. Chỉ người viết đính kèm vào bình luận của mình; xoá file: người tải lên hoặc người quản lý task / sửa requirement. Test trong `comments-attachments.test.js` và `statuses.test.js`.
 - Trạng thái và dấu hoàn thành đi cùng nhau (2026-10-06, schema v12, `sections.kind`): trạng thái mặc định Cần làm / Đang làm / Hoàn thành (đổi tên cột cũ To do / Doing / Done). Tick → task sang cuối Hoàn thành; bỏ tick → về Đang làm; kéo vào Hoàn thành → tự tick (báo Leader / Manager như tick); kéo ra cột khác → tự bỏ tick; thêm task trong cột Hoàn thành → đã xong. Logic ở server (`statusSync()`), nên mọi chỗ tick (Board, List, panel, Task của tôi) đều theo. Migration chuyển 2 task đã tick của Social Q4 sang Hoàn thành. Test `statuses.test.js`; 2 test dashboard cập nhật theo luật mới. Chưa thử tick trên trình duyệt với dữ liệu thật để không gửi thông báo cho người thật.
 - Section gọi là "trạng thái" (2026-10-06): mọi chữ trên giao diện (Thêm / Đổi tên / Xoá trạng thái, hộp thoại, Dashboard "Theo trạng thái") và thông báo lỗi của API; code vẫn dùng `sections`. Ô lọc "Mọi trạng thái" chỉ liệt kê các trạng thái của project (`?status=s8`); bỏ lọc Chưa xong / Đã xong theo yêu cầu người dùng (link cũ có `status=open|done` thì bỏ qua).
@@ -141,7 +150,7 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 ### Chất lượng và vận hành
 - Test cho phần chuyển dữ liệu (migration v1 → v10): tạo database phiên bản cũ ngay trong test rồi kiểm tra sau khi nâng cấp. Hiện mới chỉ kiểm tra tay trên bản sao lưu.
 - Test giao diện (React) cho các luồng chính, ví dụ bằng Playwright: hiện chỉ có test API.
-- ⭐ **Chuẩn bị deploy**: build production (server phục vụ `client/dist`), HTTPS, `JWT_SECRET` thật, tắt `DEV_LOGIN`, backup database tự động định kỳ.
+- ⭐ **Deploy thật** (code đã sẵn sàng, 2026-10-06; chốt DigitalOcean + `tasks.kingsport.vn`): merge nhánh vào `main`, tạo Droplet, nhờ người quản lý DNS `kingsport.vn` thêm bản ghi A, chạy `deploy/setup.sh`, thêm domain vào Authorized JavaScript origins của Google, đặt `BACKUP_DIR` ra ổ khác hoặc đồng bộ bản sao lưu lên nơi khác. Chưa có: giới hạn số lần đăng nhập sai / rate limit, theo dõi uptime.
 - Kiểm tra đăng nhập Google thật: `GOOGLE_CLIENT_ID` đã điền vào `server/.env` (2026-10-05), nút Google đã hiện; người dùng cần tự đăng nhập thử (lần đầu = đăng ký). Lưu ý: Google chỉ chạy ở `localhost` hoặc HTTPS, không chạy qua IP mạng LAN.
 - Bỏ cột cũ `projects.team_id` (không dùng từ v5) và `users.team_id` (không dùng từ v9); phải dựng lại bảng vì cột có khoá ngoại.
 
@@ -160,16 +169,16 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 
 ## Đề xuất tiếp theo
 
-1. **Root, đợt 3: thêm / sửa / xoá vai trò và ràng buộc theo vai trò** (mục Tính năng), sau khi người dùng dùng thử bảng quyền.
-2. **Chuẩn bị deploy** cho 40 người dùng thật (build production, HTTPS, backup tự động **cả database lẫn `server/data/uploads/`**), kèm Google OAuth Client ID.
-3. **Thông báo góp ý mới trên requirement** cho owner / Leader (mục Tính năng).
-4. **Thử trên iPad thật** (`http://<IP máy>:5173`, đăng nhập dev) và báo lại chỗ vướng.
+1. **Deploy thật** lên DigitalOcean (`tasks.kingsport.vn`, hoặc tạm `<IP>.sslip.io` trong lúc chờ DNS): README mục "Deploy", `deploy/setup.sh`.
+2. **Root, đợt 3: thêm / sửa / xoá vai trò và ràng buộc theo vai trò** (mục Tính năng), sau khi người dùng dùng thử bảng quyền.
+3. **Thông báo comment mới trên requirement** cho owner / Leader (mục Tính năng).
+4. **Thử trên iPad thật** (sau khi deploy thì dùng được cả đăng nhập Google qua HTTPS) và báo lại chỗ vướng.
 
 ---
 
 ## Ghi chú cho phiên sau
 
-- **Trước khi đổi schema** (`server/src/db.js`): tắt dev server (nó chạy `node --watch` nên chuyển dữ liệu ngay khi lưu file) và sao lưu bằng `VACUUM INTO`. Bản sao lưu hiện có trong `server/data/`: `app.backup-before-roles.db` (v1), `app.backup-v7-requirements.db`, `app.backup-before-mentions.db` (v7), `app.backup-before-multi-team-users.db` (v8), `app.backup-before-invited-by.db` (v9), `app.backup-before-attachments.db` (v10), `app.backup-before-status-sync.db` (v11), `app.backup-before-comment-files.db` (v12), `app.backup-before-requirement-teams.db` (v13), `app.backup-before-task-history.db` (v14), `app.backup-before-assignee-teams.db` (v15), `app.backup-before-channels.db` (v16), `app.backup-before-recurring.db` (v17), `app.backup-before-language.db` (v18), `app.backup-before-profile.db` (v19), `app.backup-before-avatar.db` (v20), `app.backup-before-director.db` (v21), `app.backup-before-root.db` (v22), `app.backup-before-permissions.db` (v23), `app.backup-before-joined.db` (v24).
+- **Trước khi đổi schema** (`server/src/db.js`): tắt dev server (nó chạy `node --watch` nên chuyển dữ liệu ngay khi lưu file) và sao lưu bằng `VACUUM INTO`. Bản sao lưu hiện có trong `server/data/`: `app.backup-before-roles.db` (v1), `app.backup-v7-requirements.db`, `app.backup-before-mentions.db` (v7), `app.backup-before-multi-team-users.db` (v8), `app.backup-before-invited-by.db` (v9), `app.backup-before-attachments.db` (v10), `app.backup-before-status-sync.db` (v11), `app.backup-before-comment-files.db` (v12), `app.backup-before-requirement-teams.db` (v13), `app.backup-before-task-history.db` (v14), `app.backup-before-assignee-teams.db` (v15), `app.backup-before-channels.db` (v16), `app.backup-before-recurring.db` (v17), `app.backup-before-language.db` (v18), `app.backup-before-profile.db` (v19), `app.backup-before-avatar.db` (v20), `app.backup-before-director.db` (v21), `app.backup-before-root.db` (v22), `app.backup-before-permissions.db` (v23), `app.backup-before-joined.db` (v24). **Trước khi chạy bản v26 (4 trạng thái cố định) trên máy**: tắt dev server và sao lưu `app.backup-before-fixed-statuses.db` (v25).
 - **Lịch sử schema** v1 → v10 có trong README, mục "Database".
 - **Cấu trúc server** (từ 2026-10-06): endpoint mới vào `server/src/routes/<tính năng>.js`, luật dùng chung vào `server/src/lib/`; không thêm code vào `index.js`. README mục "Cấu trúc" liệt kê từng file.
 - **Vite** đôi khi giữ bản trung gian của file khi sửa nhiều lần liên tiếp, gây lỗi giả trong console. `touch` file đó để Vite đọc lại.

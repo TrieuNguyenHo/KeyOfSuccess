@@ -66,12 +66,11 @@ test('ticking records the status move and the tick; status names are kept', asyn
   const [a, b] = (await history()).filter((e) => e.type === 'field').slice(0, 2);
   assert.deepEqual(
     [a, b].map((e) => `${e.user_name}|${e.field}|${e.from}→${e.to}`).sort(),
-    ['memA|completed|false→true', 'memA|section_id|Cần làm→Hoàn thành']
+    ['memA|completed|false→true', 'memA|section_id|Planned→Completed']
   );
-  await api.patch(`/sections/${doing}`, lead, { name: 'Đang xử lý' });
   await api.patch(`/tasks/${task}`, memA, { completed: false });
   const moved = (await history()).find((e) => e.field === 'section_id');
-  assert.equal(`${moved.from}→${moved.to}`, 'Hoàn thành→Đang xử lý');
+  assert.equal(`${moved.from}→${moved.to}`, 'Completed→In-Progress');
 });
 
 test('subtasks, comments and files show in the parent task history', async () => {
