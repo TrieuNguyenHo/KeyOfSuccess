@@ -3,6 +3,7 @@ import { api } from '../../api.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { askConfirm } from '../../components/Dialog.jsx';
 import { tr } from '../../i18n.js';
+import { PROJECT_ROLES } from '../../utils.js';
 
 export default function MembersPanel({ project, members, currentUser, canManage, onClose, onChanged, onLeft }) {
   const [email, setEmail] = useState('');
@@ -13,6 +14,17 @@ export default function MembersPanel({ project, members, currentUser, canManage,
     try {
       await api(`/projects/${project.id}/members`, { method: 'POST', body: { email } });
       setEmail('');
+      setError('');
+      onChanged();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  // role null: back to the team rules.
+  async function setRole(member, role) {
+    try {
+      await api(`/projects/${project.id}/members/${member.id}`, { method: 'PATCH', body: { role } });
       setError('');
       onChanged();
     } catch (err) {
@@ -80,6 +92,7 @@ export default function MembersPanel({ project, members, currentUser, canManage,
                   </div>
                   <div className="muted small">{m.email}</div>
                 </div>
+                <MemberRole member={m} onChange={(role) => setRole(m, role)} />
                 {m.id === project.owner_id ? (
                   <span className="tag owner">Owner</span>
                 ) : (
@@ -97,7 +110,37 @@ export default function MembersPanel({ project, members, currentUser, canManage,
         {!canManage && (
           <p className="muted small">{tr('Chỉ owner hoặc Leader của team mới thêm/xoá thành viên, đổi tên hoặc xoá project.')}</p>
         )}
+        <p className="muted small">
+          {tr(
+            'Vai trò gán tay thắng luật theo team: Quản lý = toàn quyền task, sửa project và thành viên (không xoá project); Thành viên project = tự tạo task, sửa task của mình, được giao task kể cả khi ở team khác; Chỉ xem = xem và comment. "Theo team" = quyền tính theo team như bình thường.'
+          )}
+        </p>
       </div>
     </div>
+  );
+}
+
+// A member's project role: a picker for whoever may set it (can_set_role from the server), otherwise its name.
+// "Theo team" shows what the team rules give them; the owner and whoever manages every project have no role.
+function MemberRole({ member, onChange }) {
+  const byTeam = tr('Theo team · {role}', { role: PROJECT_ROLES[member.team_role] });
+  if (member.fixed) return null;
+  if (!member.can_set_role) {
+    return <span className={`small ${member.role ? '' : 'muted'}`}>{member.role ? PROJECT_ROLES[member.role] : byTeam}</span>;
+  }
+  return (
+    <select
+      className="member-role"
+      value={member.role ?? ''}
+      onChange={(e) => onChange(e.target.value || null)}
+      aria-label={tr('Vai trò của {name} trong project', { name: member.name })}
+    >
+      <option value="">{byTeam}</option>
+      {Object.entries(PROJECT_ROLES).map(([key, label]) => (
+        <option key={key} value={key}>
+          {label}
+        </option>
+      ))}
+    </select>
   );
 }

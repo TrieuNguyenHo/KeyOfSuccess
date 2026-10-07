@@ -595,7 +595,23 @@ export default {
   'Vai trò còn {count} người giữ; hãy đổi vai trò của họ trước': '{count} people still hold this role; change their role first',
   'Vai trò tự tạo không có quyền mặc định': 'A role you added has no default permissions',
 
+  // Project roles (MembersPanel.jsx, server messages)
+  'Quản lý': 'Admin',
+  'Thành viên project': 'Member',
+  'Chỉ xem': 'Viewer',
+  'Theo team · {role}': 'By team · {role}',
+  'Vai trò của {name} trong project': "{name}'s role in the project",
+  'Vai trò gán tay thắng luật theo team: Quản lý = toàn quyền task, sửa project và thành viên (không xoá project); Thành viên project = tự tạo task, sửa task của mình, được giao task kể cả khi ở team khác; Chỉ xem = xem và comment. "Theo team" = quyền tính theo team như bình thường.':
+    'A role set by hand wins over the team rules: Admin = full task rights, edits the project and its members (does not delete the project); Member = adds tasks for themselves, edits their own tasks, can be assigned even from another team; Viewer = views and comments. "By team" = rights from the teams as usual.',
+  'Admin của project không xoá được project': "A project's Admin cannot delete the project",
+  'Vai trò trong project không hợp lệ': 'Invalid project role',
+  'Không đặt vai trò cho owner hay người quản lý mọi project': 'No role can be set for the owner or for someone who manages every project',
+  'Bạn không tự đổi vai trò của mình trong project': 'You cannot change your own role in the project',
+
   // User guide (GuidePage.jsx)
+  'Vai trò trong project': 'Project roles',
+  'Người quản lý project có thể gán vai trò cho từng thành viên trong hộp Thành viên: Quản lý (toàn quyền task, sửa project), Thành viên project (tự tạo task, được giao task kể cả khi ở team khác) hoặc Chỉ xem. Vai trò gán tay thắng quyền theo team, nên quyền của bạn ở một project có thể khác bình thường; để "Theo team" là như cũ.':
+    'Whoever manages a project can give each member a role in the Members dialog: Admin (full task rights, edits the project), Member (adds their own tasks, can be assigned even from another team) or Viewer. A role set by hand wins over the team rules, so your rights in one project may differ from usual; "By team" keeps them as before.',
   'Hướng dẫn': 'Guide',
   'Hướng dẫn sử dụng': 'User guide',
   'Mục lục': 'Contents',

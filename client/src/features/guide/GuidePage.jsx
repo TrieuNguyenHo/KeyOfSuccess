@@ -27,6 +27,7 @@ function sections(user) {
         taskAdmin
           ? ['rights', tr('Quyền của bạn với task'), tr('Ở project có team của bạn, bạn tạo, sửa, giao và xoá task, thêm trạng thái. Bạn giao task cho mình và người trong team của bạn tham gia project. Ở project khác bạn chỉ xem và comment.')]
           : ['rights', tr('Quyền của bạn với task'), tr('Bạn tự tạo task cho mình và sửa task được giao cho mình. Task của người khác bạn xem và comment được. Ở project không có team của bạn, bạn chỉ xem và comment.')],
+        ['members', tr('Vai trò trong project'), tr('Người quản lý project có thể gán vai trò cho từng thành viên trong hộp Thành viên: Quản lý (toàn quyền task, sửa project), Thành viên project (tự tạo task, được giao task kể cả khi ở team khác) hoặc Chỉ xem. Vai trò gán tay thắng quyền theo team, nên quyền của bạn ở một project có thể khác bình thường; để "Theo team" là như cũ.')],
       ],
     },
     {

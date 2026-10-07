@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import RequirementDetail from './RequirementDetail.jsx';
-import { coversTeams } from '../../utils.js';
 import { tr } from '../../i18n.js';
 
 // Full page for one requirement, opened from a task or from the Requirements tab.
-export default function RequirementPage({ projectId, requirementId, user, refreshKey, onBack, onOpenTask, onOpenProject, onShowOnBoard }) {
+export default function RequirementPage({ projectId, requirementId, refreshKey, onBack, onOpenTask, onOpenProject, onShowOnBoard }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
@@ -65,7 +64,7 @@ export default function RequirementPage({ projectId, requirementId, user, refres
           requirement={requirement}
           tasks={tasks}
           // Same rule as the Requirements tab: owner, a Leader of the project's teams, or any Manager.
-          canEdit={project.access === 'manage' || coversTeams(user, 'requirements.manage', project.teams.map((t) => t.id))}
+          canEdit={project.can_edit_requirements}
           onChanged={reload}
           onOpenTask={onOpenTask}
           onShowOnBoard={onShowOnBoard}

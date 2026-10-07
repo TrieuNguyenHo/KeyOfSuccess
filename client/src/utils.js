@@ -106,3 +106,10 @@ export const initials = (name = '') =>
 
 // The project Board/List filters when nothing is filtered (also the defaults left out of the URL).
 export const EMPTY_FILTERS = { requirement: '', team: '', channel: '', q: '', assignee: '', status: 'all', due: 'all' };
+
+// Project roles (set by hand per project member; none = the team rules decide), in the words of the members list.
+export const PROJECT_ROLES = labels({
+  admin: () => tr('Quản lý'),
+  member: () => tr('Thành viên project'),
+  viewer: () => tr('Chỉ xem'),
+});

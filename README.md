@@ -108,6 +108,16 @@ Bảng dưới mô tả hành vi với quyền mặc định:
 - Người quản lý task giao được cho chính mình và người đang hoạt động thuộc team của mình mà team đó tham gia project (project "Chung toàn phòng": mọi team của mình); giao cho người chưa là thành viên thì họ được tự thêm vào project. Ví dụ project của Content + Design: Leader Content chỉ giao cho người Content. Khi một người rời hoặc bị xoá khỏi project, task của họ trong project chuyển về "chưa giao".
 - Người không có quyền nhận 404 (không phải 403) để không dò được id nào tồn tại.
 
+**Vai trò trong project** (v30): người quản lý project gán vai trò cho từng thành viên trong hộp Thành viên. Vai trò gán tay **thắng luật theo team ở cả hai chiều** (nâng lên hay hạ xuống); để "Theo team" thì quyền tính như bảng trên.
+
+| Vai trò | Quyền |
+|---|---|
+| Quản lý (`admin`) | Như người quản lý task, cộng đổi tên project, thêm / xoá thành viên, gán vai trò, requirement. **Không xoá project.** |
+| Thành viên project (`member`) | Tự tạo task cho mình, sửa task giao cho mình, được giao task, **kể cả khi ở team khác** |
+| Chỉ xem (`viewer`) | Xem và comment; không được giao task. Dùng được để hạ cả Leader của team project |
+
+- Không gán được cho owner, cho người quản lý mọi project (`projects.manage` Toàn phòng, mặc định là Director), cho chính mình hay cho người có vai trò cao hơn mình.
+
 ## Cài đặt
 
 Yêu cầu Node.js >= 22.13 (dùng module có sẵn `node:sqlite`).
@@ -215,6 +225,7 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `profile.test.js` | Hồ sơ: sửa / xoá trường, kiểm tra dữ liệu, tên mới hiện ở mọi chỗ, chỉ chính mình và Manager thấy thông tin cá nhân |
 | `deploy.test.js` | Production: từ chối khởi động khi thiếu `JWT_SECRET` / `GOOGLE_CLIENT_ID` hoặc bật `DEV_LOGIN`, phục vụ frontend đã build (cache, header), `/api/health`, sao lưu hằng ngày và `npm run backup` |
 | `director.test.js` | Director: toàn quyền mọi project, quyền Manager, chỉ Director cấp vai trò Director / sửa tài khoản Director, hồ sơ, không nhận thông báo task xong, migration v22 |
+| `project-roles.test.js` | Vai trò trong project (v30): theo team khi không gán, Quản lý / Thành viên project / Chỉ xem (kể cả hạ Leader), về lại theo team, ai gán được cho ai |
 | `bootstrap-emails.test.js` | `DIRECTOR_EMAILS` / `MANAGER_EMAILS` cấp vai trò một lần: đổi vai trò / khoá trong app được giữ, email thêm sau được cấp, lời mời, migration v29 |
 | `root.test.js` | Root: chỉ dùng API cấu hình, ẩn khỏi mọi danh sách, cấp Director, không ai sửa được root, thu hồi khi bỏ khỏi `ROOT_EMAILS`, migration v23 |
 | `custom-roles.test.js` | Vai trò tự tạo (v27): chỉ root, sao chép quyền, đổi tên vai trò có sẵn, không đổi cấp / xoá vai trò có sẵn, số team theo vai trò, không xoá vai trò còn người giữ |
@@ -242,6 +253,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v30**: cột `project_members.role` (`admin` / `member` / `viewer`, NULL = theo team): vai trò gán tay trong project, thắng luật theo team. Lúc chuyển mọi dòng là NULL nên không ai đổi quyền.
 - **v29**: cột `users.env_role` (vai trò `ROOT_EMAILS` / `DIRECTOR_EMAILS` / `MANAGER_EMAILS` đã cấp). Đăng nhập chỉ cấp lại khi danh sách đổi, nên vai trò đổi / khoá trong app được giữ. Tài khoản đang có trong danh sách lúc chuyển được coi như đã cấp.
 - **v28** (là v26 trên bản `v1.0` đã deploy; database đi theo nhánh đó được chạy bù bước Manager theo team): 4 trạng thái mặc định tên cố định Planned / In-Progress / Completed / Pending (`sections.kind` thêm `pending`, dựng lại bảng `sections`, giữ id). Trạng thái mặc định cũ (Cần làm / Đang làm / Hoàn thành, kể cả đã đổi tên) lấy tên mới; project thiếu trạng thái nào thì được thêm vào cuối.
 - **v27**: root thêm / sửa / xoá vai trò: `roles` thêm `builtin`, `min_teams` (0/1), `max_teams` (1/NULL; Member 1, Leader tối thiểu 1); dựng lại `users` để bỏ CHECK trên `role`.
@@ -365,6 +377,7 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | GET | `/api/requirements/:id/attachments` | danh sách file của requirement (file của task nằm trong `GET /api/tasks/:id`, mục `attachments`) |
 | GET, DELETE | `/api/attachments/:id` | GET trả nội dung file (ảnh PNG/JPG/GIF/WebP trả đúng loại để xem trước, còn lại `application/octet-stream` + tải về, kèm `nosniff`); DELETE người tải lên, người có toàn quyền task, hoặc người sửa được requirement |
 | POST, DELETE | `/api/projects/:id/members`, `/api/projects/:id/members/:userId` | `manage`; thành viên tự rời được |
+| PATCH | `/api/projects/:id/members/:userId` | `{ role: "admin" | "member" | "viewer" | null }` (null = theo team); `manage`, không cho owner, người quản lý mọi project, chính mình, vai trò cao hơn |
 | POST, PATCH, DELETE | `/api/projects/:id/sections`, `/api/sections/:id` | thành viên project |
 | POST | `/api/tasks` | quyền sửa project; task cần `section_id` + `requirement_id` cùng project, subtask chỉ cần `parent_id` |
 | GET | `/api/tasks/:id` | có quyền xem; trả về `task.access` = `edit` hoặc `view`, `task.channels`, `assignees` (người giao được, kèm `is_member`) và `channels` (kênh chọn được, cho người sửa được task cha), `next_task` (`{ id, title, due_date }` của bản kế tiếp nếu là task lặp đã xong) |

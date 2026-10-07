@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { EMPTY_FILTERS, coversTeams } from '../../utils.js';
+import { EMPTY_FILTERS } from '../../utils.js';
 import BoardView from './BoardView.jsx';
 import CalendarView from './CalendarView.jsx';
 import ListView from './ListView.jsx';
@@ -73,13 +73,14 @@ export default function ProjectView({
   const { project, members, sections, tasks, requirements } = data;
   // 'manage' (owner or the team's Leader), 'edit' (member) or 'view' (Manager outside the project).
   const canManage = project.access === 'manage';
-  // task_admin: a Manager or Leader of a team taking part in the project (full rights on tasks and sections).
+  // task_admin: a Manager or Leader of a team taking part in the project, or the project role 'admin' (full rights
+  // on tasks and sections).
   // Other members add tasks for themselves and edit only the tasks assigned to them.
   const taskAdmin = project.task_admin;
   const readOnly = !taskAdmin && project.access === 'view';
   const canEditTask = (task) => taskAdmin || (!readOnly && task.assignee_id === user.id);
-  const canEditRequirements =
-    canManage || coversTeams(user, 'requirements.manage', project.teams.map((t) => t.id));
+  // From the server: requirement rights follow the team rules, or the project role when one is set.
+  const canEditRequirements = project.can_edit_requirements;
 
   const actions = {
     onOpen: onOpenTask,
