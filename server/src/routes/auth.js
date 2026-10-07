@@ -2,7 +2,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
-import { DEV_LOGIN, DIRECTOR_EMAILS, GOOGLE_CLIENT_ID, JWT_SECRET, MANAGER_EMAILS, ROOT_EMAILS } from '../config.js';
+import { DEV_LOGIN, GOOGLE_CLIENT_ID, JWT_SECRET, ROOT_EMAILS, envRoleOf } from '../config.js';
 import { db, makeRoot } from '../db.js';
 import { badRequest, conflict, forbidden, unauthorized } from '../lib/http.js';
 import { isRoot } from '../lib/roles.js';
@@ -22,14 +22,8 @@ router.get('/auth/config', (req, res) => res.json({ googleClientId: GOOGLE_CLIEN
 // empty) takes the name from Google; a name the inviter typed, or one already taken from Google, stays.
 function signIn(res, { email, name, googleSub }) {
   email = email.trim().toLowerCase();
-  const bootstrapRole = ROOT_EMAILS.includes(email)
-    ? 'root'
-    : DIRECTOR_EMAILS.includes(email)
-      ? 'director'
-      : MANAGER_EMAILS.includes(email)
-        ? 'manager'
-        : null;
-  const existing = db.prepare('SELECT id, name, google_sub FROM users WHERE email = ?').get(email);
+  const bootstrapRole = envRoleOf(email);
+  const existing = db.prepare('SELECT id, name, google_sub, env_role FROM users WHERE email = ?').get(email);
   if (existing?.google_sub && googleSub && existing.google_sub !== googleSub) {
     return conflict(res, 'Email này đã gắn với một tài khoản Google khác');
   }
@@ -37,8 +31,10 @@ function signIn(res, { email, name, googleSub }) {
   let id = existing?.id;
   if (!id) {
     ({ lastInsertRowid: id } = db
-      .prepare("INSERT INTO users (name, email, google_sub, role, status, joined_at) VALUES (?, ?, ?, ?, ?, datetime('now'))")
-      .run(name?.trim() || email, email, googleSub ?? null, bootstrapRole ?? 'member', bootstrapRole ? 'active' : 'pending'));
+      .prepare(
+        "INSERT INTO users (name, email, google_sub, role, status, joined_at, env_role) VALUES (?, ?, ?, ?, ?, datetime('now'), ?)"
+      )
+      .run(name?.trim() || email, email, googleSub ?? null, bootstrapRole ?? 'member', bootstrapRole ? 'active' : 'pending', bootstrapRole));
   } else {
     // The first sign-in of an invited account is how they accept the invitation.
     db.prepare("UPDATE users SET google_sub = COALESCE(google_sub, ?), joined_at = COALESCE(joined_at, datetime('now')) WHERE id = ?").run(
@@ -48,9 +44,13 @@ function signIn(res, { email, name, googleSub }) {
     if (name?.trim() && existing.name === email.split('@')[0]) {
       db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name.trim(), id);
     }
-    if (bootstrapRole === 'root') makeRoot(email);
-    else if (bootstrapRole) {
-      db.prepare("UPDATE users SET role = ?, status = 'active' WHERE id = ? AND role NOT IN ('director', 'root')").run(bootstrapRole, id);
+    // The lists give their role once (see v29 in db.js): a role changed or an account locked in the app since stays so.
+    if (bootstrapRole !== (existing.env_role ?? null)) {
+      if (bootstrapRole === 'root') makeRoot(email);
+      else if (bootstrapRole) {
+        db.prepare("UPDATE users SET role = ?, status = 'active' WHERE id = ? AND role NOT IN ('director', 'root')").run(bootstrapRole, id);
+      }
+      db.prepare('UPDATE users SET env_role = ? WHERE id = ?').run(bootstrapRole, id);
     }
   }
 

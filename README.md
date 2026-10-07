@@ -80,7 +80,7 @@ Bảng dưới mô tả hành vi với quyền mặc định:
 - Tài khoản bị khoá bị đăng xuất ngay ở request kế tiếp.
 - **Root** (email trong `ROOT_EMAILS`): tài khoản kỹ thuật, không thuộc công ty. Chỉ thấy màn **Cấu hình hệ thống**: gán vai trò (kể cả Director), duyệt / khoá tài khoản, xếp team. Không mở được project, task, dashboard, thông báo hay thông tin cá nhân của ai (server trả 403). Root không có team, không hiện trong bất kỳ danh sách người nào, và không ai sửa / khoá được root trong app; xoá email khỏi `ROOT_EMAILS` là thu hồi ngay. Chỉ root và Director cấp được vai trò Director.
 - **Lời mời** (Quản lý team, Sửa team, hoặc thẻ "Mời người dùng mới" của root): tạo sẵn tài khoản cho email, app không gửi email. Tài khoản ở trạng thái **"Đã mời, chưa tham gia"** tới lần đầu người đó đăng nhập Google bằng email ấy (đó là lúc họ chấp nhận). Trong lúc đó họ chưa được giao task, thêm vào project, theo dõi hay tính vào workload; người mời (hoặc người có `users.manage`, root) **huỷ lời mời** được, tức xoá hẳn tài khoản chưa dùng. Người đã tham gia thì chỉ khoá được.
-- Email trong `DIRECTOR_EMAILS` luôn đăng nhập với vai trò Director (dùng để tạo Director đầu tiên); email trong `MANAGER_EMAILS` luôn đăng nhập với vai trò Manager, trừ người đã là Director.
+- Email trong `DIRECTOR_EMAILS` / `MANAGER_EMAILS` được cấp vai trò Director / Manager (và kích hoạt) **một lần**, ở lần đăng nhập đầu tiên sau khi email được thêm vào danh sách (dùng để tạo Director / Manager đầu tiên); Manager không hạ được người đã là Director. Từ v29, vai trò đổi hay tài khoản bị khoá trong app được giữ nguyên ở các lần đăng nhập sau (`users.env_role` ghi vai trò danh sách đã cấp). Bỏ email khỏi danh sách không hạ vai trò; bỏ ra rồi thêm lại thì được cấp lại.
 - Director làm được mọi việc của Manager, cộng thêm: là "Quản lý task" và có quyền như owner trên mọi project (đổi tên, xoá, thành viên, đổi team), giao task cho bất kỳ ai thuộc team của project; xem hồ sơ của mọi người. Hồ sơ của Director chỉ Director xem được.
 
 ### Trong từng project
@@ -127,8 +127,8 @@ Copy `server/.env.example` thành `server/.env`:
 |---|---|
 | `GOOGLE_CLIENT_ID` | Client ID ở bước 1 |
 | `ROOT_EMAILS` | Tài khoản root (cấu hình hệ thống, không thuộc công ty), cách nhau bởi dấu phẩy. Dùng email riêng: email của tài khoản có sẵn sẽ thành root và rời mọi team |
-| `DIRECTOR_EMAILS` | Email Director đầu tiên, cách nhau bởi dấu phẩy |
-| `MANAGER_EMAILS` | Email Manager đầu tiên, cách nhau bởi dấu phẩy |
+| `DIRECTOR_EMAILS` | Email Director đầu tiên, cách nhau bởi dấu phẩy (cấp vai trò một lần, xem mục Phân quyền) |
+| `MANAGER_EMAILS` | Email Manager đầu tiên, cách nhau bởi dấu phẩy (cấp vai trò một lần) |
 | `JWT_SECRET` | Chuỗi ngẫu nhiên ≥ 32 ký tự. **Bắt buộc khi deploy** |
 | `DEV_LOGIN=1` | Đăng nhập bằng email bất kỳ, không cần Google. **Chỉ dùng khi dev local**; production từ chối khởi động nếu bật |
 | `NODE_ENV=production` | Chế độ deploy: kiểm tra cấu hình khi khởi động, bật sao lưu hằng ngày |
@@ -214,6 +214,7 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `profile.test.js` | Hồ sơ: sửa / xoá trường, kiểm tra dữ liệu, tên mới hiện ở mọi chỗ, chỉ chính mình và Manager thấy thông tin cá nhân |
 | `deploy.test.js` | Production: từ chối khởi động khi thiếu `JWT_SECRET` / `GOOGLE_CLIENT_ID` hoặc bật `DEV_LOGIN`, phục vụ frontend đã build (cache, header), `/api/health`, sao lưu hằng ngày và `npm run backup` |
 | `director.test.js` | Director: toàn quyền mọi project, quyền Manager, chỉ Director cấp vai trò Director / sửa tài khoản Director, hồ sơ, không nhận thông báo task xong, migration v22 |
+| `bootstrap-emails.test.js` | `DIRECTOR_EMAILS` / `MANAGER_EMAILS` cấp vai trò một lần: đổi vai trò / khoá trong app được giữ, email thêm sau được cấp, lời mời, migration v29 |
 | `root.test.js` | Root: chỉ dùng API cấu hình, ẩn khỏi mọi danh sách, cấp Director, không ai sửa được root, thu hồi khi bỏ khỏi `ROOT_EMAILS`, migration v23 |
 | `custom-roles.test.js` | Vai trò tự tạo (v27): chỉ root, sao chép quyền, đổi tên vai trò có sẵn, không đổi cấp / xoá vai trò có sẵn, số team theo vai trò, không xoá vai trò còn người giữ |
 | `permissions.test.js` | Bảng quyền: `/me` trả quyền, chỉ root đọc / sửa, kiểm tra phạm vi, đổi quyền có hiệu lực ngay, khôi phục mặc định, quyền theo team, thông báo, cấp bậc vai trò |
@@ -240,6 +241,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v29**: cột `users.env_role` (vai trò `ROOT_EMAILS` / `DIRECTOR_EMAILS` / `MANAGER_EMAILS` đã cấp). Đăng nhập chỉ cấp lại khi danh sách đổi, nên vai trò đổi / khoá trong app được giữ. Tài khoản đang có trong danh sách lúc chuyển được coi như đã cấp.
 - **v28** (là v26 trên bản `v1.0` đã deploy; database đi theo nhánh đó được chạy bù bước Manager theo team): 4 trạng thái mặc định tên cố định Planned / In-Progress / Completed / Pending (`sections.kind` thêm `pending`, dựng lại bảng `sections`, giữ id). Trạng thái mặc định cũ (Cần làm / Đang làm / Hoàn thành, kể cả đã đổi tên) lấy tên mới; project thiếu trạng thái nào thì được thêm vào cuối.
 - **v27**: root thêm / sửa / xoá vai trò: `roles` thêm `builtin`, `min_teams` (0/1), `max_teams` (1/NULL; Member 1, Leader tối thiểu 1); dựng lại `users` để bỏ CHECK trên `role`.
 - **v26**: Manager theo team: các quyền của Manager còn ở mặc định cũ "Toàn phòng" (xem project, đổi team project, requirement, theo dõi, hồ sơ, quản lý người dùng, thành viên team, team, thông báo task xong) chuyển sang "Team của mình"; ô root đã tự đổi được giữ.

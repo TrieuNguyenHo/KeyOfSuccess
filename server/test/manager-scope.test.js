@@ -143,7 +143,7 @@ test('a database deployed from v1.0 (v26 = fixed statuses) gets the Manager scop
     const sections = db.prepare('SELECT COUNT(*) AS n FROM sections WHERE project_id = 1').get().n;
     const builtin = db.prepare('SELECT COUNT(*) AS n FROM roles WHERE builtin = 1').get().n;
     db.close();
-    assert.equal(version, 28);
+    assert.ok(version >= 28, `schema v${version}`); // later migrations run on top
     const manager = Object.fromEntries(scopes.map((r) => r.s.split('=')));
     assert.deepEqual([manager['users.manage'], manager['projects.view'], manager['channels.manage']], ['team', 'team', 'all']);
     assert.equal(sections, 4, 'the fixed statuses are not added twice');

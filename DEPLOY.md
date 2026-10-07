@@ -175,6 +175,25 @@ Vì vậy, khi một bản mới có đổi database, nên kiểm tra kỹ ngay 
 
 ---
 
+### Đổi `DIRECTOR_EMAILS` / `MANAGER_EMAILS` / `ROOT_EMAILS`
+
+```bash
+nano /opt/keyofsuccess/server/.env      # nhiều email: cách nhau bởi dấu phẩy, không khoảng trắng
+systemctl restart keyofsuccess
+```
+
+| Bạn làm | Kết quả |
+|---|---|
+| Thêm email vào `DIRECTOR_EMAILS` / `MANAGER_EMAILS` | Người đó được cấp vai trò và kích hoạt ở **lần đăng nhập kế tiếp** (đang đăng nhập thì đăng xuất rồi vào lại). Chỉ cấp **một lần**. |
+| Sau đó đổi vai trò hoặc khoá người đó trong app | Được giữ nguyên, đăng nhập lại không đổi gì. |
+| Bỏ email khỏi danh sách | Không hạ vai trò; muốn hạ thì đổi trong Quản lý người dùng. Thêm lại sau thì được cấp lại. |
+| Thêm email vào `ROOT_EMAILS` | Thành root ở lần đăng nhập kế tiếp. ⚠ Tài khoản nhân viên có sẵn sẽ thành root và **rời mọi team**: chỉ dùng email riêng. |
+| Bỏ email khỏi `ROOT_EMAILS` | Mất quyền root ngay sau khi restart. |
+
+Chỉ cần giữ trong danh sách vài người để khởi tạo (Director, root); những người khác nên mời và cấp vai trò ngay trong app.
+
+---
+
 ## E. Gặp lỗi
 
 | Hiện tượng | Xử lý |
