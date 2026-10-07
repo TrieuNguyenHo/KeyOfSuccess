@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DIRECTOR_EMAILS, ROOT_EMAILS } from './config.js';
+import { DIRECTOR_EMAILS, ROOT_EMAILS, envRoleOf } from './config.js';
 
 export const dbPath = process.env.DB_PATH || join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'app.db');
 mkdirSync(dirname(dbPath), { recursive: true });
@@ -660,6 +660,19 @@ if (schemaVersion() < 28) {
       for (const { id } of projects) if (!has.get(id, kind)) insert.run(id, name, kind, id);
     }
     db.exec('PRAGMA user_version = 28');
+  });
+}
+
+// v29: users.env_role, the role ROOT_EMAILS / DIRECTOR_EMAILS / MANAGER_EMAILS last gave the account. Sign-in gives
+// that role (and unlocks the account) only when the lists now say something else, e.g. an email was just added, so a
+// role changed or an account locked in the app stays so (decided 2026-10-07). Accounts already in the lists count as
+// given their role.
+if (schemaVersion() < 29) {
+  if (!hasColumn('users', 'env_role')) db.exec('ALTER TABLE users ADD COLUMN env_role TEXT');
+  transaction(() => {
+    const mark = db.prepare('UPDATE users SET env_role = ? WHERE id = ?');
+    for (const { id, email } of db.prepare('SELECT id, email FROM users').all()) mark.run(envRoleOf(email), id);
+    db.exec('PRAGMA user_version = 29');
   });
 }
 

@@ -23,6 +23,9 @@ export const ROOT_EMAILS = emailList(process.env.ROOT_EMAILS);
 export const DIRECTOR_EMAILS = emailList(process.env.DIRECTOR_EMAILS);
 // These emails always sign in as an active Manager (a Director among them stays Director).
 export const MANAGER_EMAILS = emailList(process.env.MANAGER_EMAILS);
+// The role these lists give an email (root first, then Director, then Manager), or null.
+export const envRoleOf = (email) =>
+  ROOT_EMAILS.includes(email) ? 'root' : DIRECTOR_EMAILS.includes(email) ? 'director' : MANAGER_EMAILS.includes(email) ? 'manager' : null;
 // Sign in with any email, no Google involved. Local development only.
 export const DEV_LOGIN = process.env.DEV_LOGIN === '1' && !IS_PRODUCTION;
 // The built frontend (npm run build). Served by the API when it exists, so production needs a single process.
