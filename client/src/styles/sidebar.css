@@ -3,12 +3,15 @@
    Shades are the demo's lighten(5%) and lighten(9%). It looks the same in light and dark themes;
    brand red is only the accent (active marker, badges). Muted text #a3a8b5 is 6.8:1 (the demo's icon
    color, 1.7:1, was too faint). */
-.sidebar {
+/* Shared with the user guide's drawings of the sidebar (guide.css). */
+.sidebar, .guide-art {
   --sb-bg: #1e2027;
   --sb-raised: #292c35;
   --sb-hover: #323541;
   --sb-text: #ffffff;
   --sb-muted: #a3a8b5;
+}
+.sidebar {
   --sb-rail: 52px;
   position: relative; width: 272px; flex-shrink: 0; display: flex; flex-direction: column;
   padding: 18px 0 16px; background: var(--sb-bg); color: var(--sb-text);
@@ -87,6 +90,7 @@
 .theme-switch button:hover { color: var(--sb-text); }
 .theme-switch button.active { background: var(--sb-text); color: var(--sb-bg); font-weight: 600; }
 /* Theme and language side by side at the foot of the sidebar */
+.sidebar-guide { border-top: 1px solid var(--sb-raised); }
 .sidebar-switches { display: flex; gap: 8px; margin: 8px 16px 4px; }
 .sidebar-switches .theme-switch { margin: 0; }
 .sidebar-switches .theme-switch:last-child { flex: 0 0 auto; }

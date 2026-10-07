@@ -1,0 +1,164 @@
+/* User guide (#/guide): the page, and the animated illustrations of GuideArt.jsx. The illustrations use the theme
+   tokens only (and the sidebar's --sb-* tokens where they draw the sidebar), so they follow Light / Dark. Each
+   element's own state is the final picture; the keyframes start from the "before", so reduced motion shows the
+   final picture standing still. */
+.guide { display: flex; flex-direction: column; gap: 20px; max-width: 880px; }
+.guide-role { margin: 0; }
+.guide-toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.guide-section { scroll-margin-top: 16px; }
+.guide-section dl { display: flex; flex-direction: column; gap: 20px; margin: 0; }
+.guide-item { display: grid; grid-template-columns: 200px minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 4px 20px; }
+.guide-item .guide-art { grid-row: span 2; }
+.guide-item dt { font-weight: 600; padding-top: 6px; }
+.guide-item dd { margin: 0; line-height: 1.47; }
+@media (max-width: 700px) {
+  .guide-item { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .guide-item .guide-art { grid-row: auto; max-width: 320px; margin-bottom: 6px; }
+}
+
+.guide-art { display: block; width: 100%; height: auto; border-radius: var(--rounded-sm); background: var(--parchment); }
+.guide-art * { transform-box: fill-box; }
+
+/* Shapes */
+.ga-win { fill: var(--canvas); stroke: var(--hairline); }
+.ga-line { fill: var(--chip); }
+.ga-head { fill: var(--ink-muted-48); }
+.ga-field { fill: var(--parchment); stroke: var(--hairline); }
+.ga-col { fill: var(--parchment); }
+.ga-card { fill: var(--canvas); stroke: var(--hairline); }
+.ga-brand { fill: var(--brand); }
+.ga-primary { fill: var(--primary); }
+.ga-primaryline { fill: var(--primary-text); }
+.ga-tint { fill: var(--primary-tint); stroke: var(--primary); }
+.ga-tintfill { fill: var(--primary-tint); }
+.ga-ok { fill: var(--ok-text); }
+.ga-okbg { fill: var(--ok-bg); }
+.ga-warn { fill: var(--warn-text); }
+.ga-danger { fill: var(--danger); }
+.ga-neutral { fill: var(--neutral-mark); }
+.ga-chipfill { fill: var(--chip); }
+.ga-chipdark { fill: var(--ink-muted-48); }
+.ga-white { fill: var(--on-primary); }
+.ga-conn { fill: none; stroke: var(--hairline); stroke-width: 2; }
+.ga-ring { fill: none; stroke: var(--primary); stroke-width: 2.5; }
+.ga-ring-muted { fill: none; stroke: var(--chip); stroke-width: 1.5; }
+.ga-tick { fill: none; stroke: var(--canvas); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ga-cursor { fill: var(--ink); stroke: var(--canvas); stroke-width: 1.2; stroke-linejoin: round; }
+.ga-pen { fill: var(--brand); }
+.ga-eye { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.ga-eye circle { fill: var(--muted); stroke: none; }
+.ga-docfold { fill: var(--canvas); stroke: var(--muted); stroke-width: 1.5; stroke-linejoin: round; }
+.ga-clip { fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; }
+.ga-arc { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-linecap: round; }
+.ga-plus { fill: none; stroke: var(--on-primary); stroke-width: 2; stroke-linecap: round; }
+.ga-donut-track { fill: none; stroke: var(--chip); stroke-width: 10; }
+.ga-donut { fill: none; stroke: var(--brand); stroke-width: 10; stroke-dasharray: 163.4; stroke-dashoffset: 49; transform: rotate(-90deg); transform-origin: center; }
+.ga-own { stroke: var(--primary); stroke-width: 2; }
+.ga-sb { fill: var(--sb-bg); }
+.ga-sbhi { fill: var(--sb-hover); }
+.ga-sbline { fill: var(--sb-muted); }
+.ga-sbdim { fill: var(--sb-raised); }
+.ga-lift { stroke: var(--primary); }
+
+/* Motion: one 4 s loop (8 s for the views), staggered with .ga-d0 … .ga-d5. */
+.guide-art [class*='ga-a-'] { animation-duration: 4s; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-fill-mode: backwards; }
+.guide-art .ga-slow { animation-duration: 8s; }
+.ga-d1 { animation-delay: 0.3s; }
+.ga-d2 { animation-delay: 0.6s; }
+.ga-d3 { animation-delay: 0.9s; }
+.ga-d4 { animation-delay: 1.2s; }
+.ga-d5 { animation-delay: 1.5s; }
+
+.ga-a-seq { animation-name: ga-seq; }
+@keyframes ga-seq { 0% { opacity: 0; transform: translateY(6px); } 12%, 82% { opacity: 1; transform: none; } 94%, 100% { opacity: 0; } }
+.ga-a-pop { animation-name: ga-pop; transform-origin: center; }
+@keyframes ga-pop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.ga-a-type { animation-name: ga-type; transform-origin: left; }
+@keyframes ga-type { 0% { transform: scaleX(0); } 45%, 88% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+.ga-a-sidebar { animation-name: ga-sidebar; }
+@keyframes ga-sidebar {
+  0%, 16% { transform: none; } 25%, 41% { transform: translateY(14px); } 50%, 66% { transform: translateY(64px); }
+  75%, 91% { transform: translateY(78px); } 100% { transform: none; }
+}
+.ga-a-theme-bg { fill: var(--sb-bg); animation-name: ga-theme-bg; }
+@keyframes ga-theme-bg { 0%, 35% { fill: var(--canvas); } 50%, 88% { fill: var(--sb-bg); } 100% { fill: var(--canvas); } }
+.ga-a-theme-line { fill: var(--sb-muted); animation-name: ga-theme-line; }
+@keyframes ga-theme-line { 0%, 35% { fill: var(--chip); } 50%, 88% { fill: var(--sb-muted); } 100% { fill: var(--chip); } }
+.ga-a-knob { animation-name: ga-knob; }
+@keyframes ga-knob { 0%, 35% { transform: translateX(-28px); } 50%, 88% { transform: none; } 100% { transform: translateX(-28px); } }
+.ga-a-lang { animation-name: ga-lang; }
+@keyframes ga-lang { 0%, 35% { transform: translateX(-23px); } 50%, 88% { transform: none; } 100% { transform: translateX(-23px); } }
+.ga-a-select { animation-name: ga-select; }
+@keyframes ga-select { 0%, 12% { opacity: 0; } 22%, 70% { opacity: 1; } 80%, 100% { opacity: 0; } }
+.ga-a-fly { opacity: 0; animation-name: ga-fly; }
+@keyframes ga-fly {
+  0%, 28% { opacity: 0; transform: none; } 34% { opacity: 1; transform: none; }
+  66% { opacity: 1; transform: translate(118px, 62px); } 74%, 100% { opacity: 0; transform: translate(118px, 62px); }
+}
+.ga-a-later { animation-name: ga-later; }
+@keyframes ga-later { 0%, 68% { opacity: 0; } 76%, 94% { opacity: 1; } 100% { opacity: 0; } }
+.ga-a-appearmid { animation-name: ga-appearmid; }
+@keyframes ga-appearmid { 0%, 45% { opacity: 0; transform: translateY(6px); } 55%, 92% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.ga-a-tabs { animation-name: ga-tabs; }
+@keyframes ga-tabs {
+  0%, 22% { transform: none; } 25%, 47% { transform: translateX(52px); } 50%, 72% { transform: translateX(104px); }
+  75%, 97% { transform: translateX(156px); } 100% { transform: none; }
+}
+.ga-a-quarter { animation-name: ga-quarter; }
+@keyframes ga-quarter { 0% { opacity: 0; } 3%, 22% { opacity: 1; } 25%, 100% { opacity: 0; } }
+.ga-q2 { animation-delay: 2s; }
+.ga-q3 { animation-delay: 4s; }
+.ga-q4 { animation-delay: 6s; }
+.ga-a-status { animation-name: ga-status; }
+@keyframes ga-status { 0%, 25% { transform: translateX(-54px); } 50%, 90% { transform: none; } 100% { transform: translateX(-54px); } }
+.ga-a-checkpop { animation-name: ga-checkpop; transform-origin: center; }
+@keyframes ga-checkpop { 0%, 48% { opacity: 0; transform: scale(0.3); } 56%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.ga-a-pulse { animation-name: ga-pulse; }
+@keyframes ga-pulse { 0%, 100% { stroke-opacity: 0.35; } 50% { stroke-opacity: 1; } }
+.ga-a-hl { animation-name: ga-hl; }
+@keyframes ga-hl { 0%, 30% { opacity: 0; } 36%, 90% { opacity: 1; } 100% { opacity: 0; } }
+.ga-a-panel { animation-name: ga-panel; }
+@keyframes ga-panel { 0%, 34% { transform: translateX(110px); } 52%, 90% { transform: none; } 100% { transform: translateX(110px); } }
+.ga-a-opencursor { transform: translate(120px, 55px); animation-name: ga-opencursor; }
+@keyframes ga-opencursor {
+  0% { transform: translate(200px, 120px); opacity: 0; } 8% { opacity: 1; } 28% { transform: translate(120px, 55px); }
+  31% { transform: translate(120px, 55px) scale(0.85); } 34%, 60% { transform: translate(120px, 55px); opacity: 1; } 70%, 100% { opacity: 0; transform: translate(120px, 55px); }
+}
+.ga-a-drag { animation-name: ga-drag; }
+@keyframes ga-drag { 0%, 18% { transform: none; } 55%, 85% { transform: translate(72px, 0); } 100% { transform: none; } }
+.ga-a-newchip { animation-name: ga-newchip; }
+@keyframes ga-newchip { 0%, 58% { opacity: 0; transform: translateX(-24px); } 68%, 92% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.ga-a-spin { animation-name: ga-spin; animation-timing-function: linear; transform-origin: center; }
+@keyframes ga-spin { to { transform: rotate(360deg); } }
+.ga-a-drop { animation-name: ga-drop; }
+@keyframes ga-drop { 0% { opacity: 0; transform: translateY(-64px); } 12% { opacity: 1; } 40% { opacity: 1; transform: none; } 50%, 100% { opacity: 0; transform: none; } }
+.ga-a-bell { animation-name: ga-bell; transform-origin: 50% 0; }
+@keyframes ga-bell {
+  0%, 30%, 100% { transform: none; } 5% { transform: rotate(14deg); } 10% { transform: rotate(-12deg); }
+  15% { transform: rotate(9deg); } 20% { transform: rotate(-6deg); } 25% { transform: rotate(3deg); }
+}
+.ga-a-badge { animation-name: ga-badge; transform-origin: center; }
+@keyframes ga-badge { 0%, 8% { transform: scale(0); } 18%, 92% { transform: none; } 100% { transform: scale(0); } }
+.ga-a-grow { animation-name: ga-grow; transform-origin: bottom; }
+@keyframes ga-grow { 0% { transform: scaleY(0); } 30%, 86% { transform: none; } 100% { transform: scaleY(0); } }
+.ga-a-donut { animation-name: ga-donut; }
+@keyframes ga-donut { 0% { stroke-dashoffset: 163.4; } 40%, 86% { stroke-dashoffset: 49; } 100% { stroke-dashoffset: 163.4; } }
+.ga-a-watch { animation-name: ga-watch; }
+@keyframes ga-watch {
+  0%, 28% { transform: none; } 36%, 62% { transform: translateX(30px); } 70%, 94% { transform: translateX(60px); } 100% { transform: none; }
+}
+.ga-a-press { animation-name: ga-press; transform-origin: center; }
+@keyframes ga-press { 0%, 18%, 30%, 100% { transform: none; } 24% { transform: scale(0.8); } }
+.ga-a-modal { animation-name: ga-modal; transform-origin: center; }
+@keyframes ga-modal { 0%, 26% { opacity: 0; transform: scale(0.88); } 38%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.ga-a-join { animation-name: ga-join; }
+@keyframes ga-join { 0%, 18% { transform: translate(-148px, 8px); } 55%, 90% { transform: none; } 100% { transform: translate(-148px, 8px); } }
+.ga-a-approve { fill: var(--ok-bg); animation-name: ga-approve; }
+@keyframes ga-approve { 0%, 40% { fill: var(--warn-bg); } 52%, 90% { fill: var(--ok-bg); } 100% { fill: var(--warn-bg); } }
+.ga-a-approve-text { fill: var(--ok-text); animation-name: ga-approve-text; }
+@keyframes ga-approve-text { 0%, 40% { fill: var(--warn-text); } 52%, 90% { fill: var(--ok-text); } 100% { fill: var(--warn-text); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-art [class*='ga-a-'] { animation: none; }
+  .guide-art .ga-view:not(.ga-v1), .guide-art .ga-a-fly { opacity: 0; }
+}

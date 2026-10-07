@@ -208,9 +208,6 @@ export default function Sidebar({
             {tr('Quản trị')}
           </NavItem>
         )}
-        <NavItem active={view.type === 'guide'} onClick={() => go({ type: 'guide' })} icon="guide">
-          {tr('Hướng dẫn')}
-        </NavItem>
       </ul>
 
       <div className="sidebar-title">
@@ -278,6 +275,12 @@ export default function Sidebar({
           })}
       </ul>
 
+      {/* The guide sits at the foot of the sidebar, just above the switches (decided 2026-10-07). */}
+      <ul className="main-buttons sidebar-guide">
+        <NavItem active={view.type === 'guide'} onClick={() => go({ type: 'guide' })} icon="guide">
+          {tr('Hướng dẫn')}
+        </NavItem>
+      </ul>
       <div className="sidebar-switches">
         <ThemeSwitch />
         <LanguageSwitch />
