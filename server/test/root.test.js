@@ -81,6 +81,9 @@ test('root invites new people with any role; Members and Leaders need a team', a
 test('invitations respect role levels', async () => {
   assert.equal((await api.post('/admin/users', boss, { email: 'd2@t.test', role: 'director' })).status, 403);
   assert.equal((await api.post('/admin/users', boss, { email: 'm2@t.test', role: 'manager' })).body.role, 'manager');
+  // A Director invites anyone up to their own level, with or without a team for Managers and Directors.
+  assert.equal((await api.post('/admin/users', chief, { email: 'd3@t.test', role: 'director' })).body.role, 'director');
+  assert.equal((await api.post('/admin/users', chief, { email: 'l3@t.test', role: 'leader', team_id: content })).body.role, 'leader');
 });
 
 test('nobody changes a root account in the app, and root cannot be given', async () => {

@@ -6,8 +6,10 @@ import { tr } from '../../i18n.js';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Creates the account of someone who has never signed in (POST /api/admin/users), with a role up to the inviter's
-// level and a team. The account is active at once; nothing is emailed, the inviter sends the app link.
-export default function InviteUserCard({ user, teams, onInvited }) {
+// level and a team. The account is active at once; nothing is emailed, the inviter sends the app link. For root
+// (System configuration) and for users.manage (User management); teamRequired: the inviter manages their own teams
+// only, so the person goes into one of them (`teams` then lists just those).
+export default function InviteUserCard({ user, teams, onInvited, teamRequired = false }) {
   const roles = useRoles();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -18,7 +20,7 @@ export default function InviteUserCard({ user, teams, onInvited }) {
 
   // A team is needed unless the role may have none and any number (like Managers and Directors).
   const { min_teams, max_teams } = roleIn(roles, role);
-  const needsTeam = min_teams > 0 || max_teams != null;
+  const needsTeam = teamRequired || min_teams > 0 || max_teams != null;
   const valid = EMAIL_RE.test(email.trim()) && (teamId || !needsTeam);
 
   async function submit(e) {
