@@ -58,7 +58,7 @@ test('giving a permission takes effect at once, and reset brings the defaults ba
   assert.equal((await api.post('/channels', boss, { name: 'Zalo' })).status, 403);
 
   await api.post('/admin/permissions/reset', root, { role: 'member' });
-  await api.post('/admin/permissions/reset', root, { role: 'manager' });
+  await set('manager', 'channels.manage', 'all');
   assert.equal((await api.post('/projects', mem, { name: 'Again' })).status, 403);
   assert.equal((await api.post('/channels', boss, { name: 'Zalo' })).status, 201);
 });
@@ -98,7 +98,7 @@ test('notify.task_completed decides who is told', async () => {
   assert.equal(await api.unread(chief), chiefBefore + 1);
   assert.equal(await api.unread(boss), bossBefore);
   await api.post('/admin/permissions/reset', root, { role: 'director' });
-  await api.post('/admin/permissions/reset', root, { role: 'manager' });
+  await set('manager', 'notify.task_completed', 'all');
 });
 
 test('role levels: nobody changes or gives a role above their own', async () => {

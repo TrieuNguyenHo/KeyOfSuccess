@@ -9,15 +9,17 @@ export const setToken = (token) => (token ? localStorage.setItem(TOKEN_KEY, toke
 // tab skips its own changes. Not crypto.randomUUID(): that needs HTTPS, and the app also runs over plain LAN http.
 const CLIENT_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+// What every request to the API carries: the token (when signed in) and this tab's id.
+function headers(extra) {
+  const token = getToken();
+  return { ...extra, ...(token && { Authorization: `Bearer ${token}` }), 'X-Client-Id': CLIENT_ID };
+}
+
 export async function api(path, { method = 'GET', body } = {}) {
   const token = getToken();
   const res = await fetch(`/api${path}`, {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      'X-Client-Id': CLIENT_ID,
-    },
+    headers: headers({ 'Content-Type': 'application/json' }),
     body: body && JSON.stringify(body),
   });
   if (res.status === 401 && token) {
@@ -32,16 +34,13 @@ export async function api(path, { method = 'GET', body } = {}) {
 
 // Sends a file to an attachments endpoint as raw bytes, the name and type in headers (see the server).
 export async function uploadFile(path, file) {
-  const token = getToken();
   const res = await fetch(`/api${path}`, {
     method: 'POST',
-    headers: {
+    headers: headers({
       'Content-Type': 'application/octet-stream',
       'X-File-Name': encodeURIComponent(file.name),
       'X-File-Type': file.type || 'application/octet-stream',
-      'X-Client-Id': CLIENT_ID,
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
+    }),
     body: file,
   });
   const data = await res.json().catch(() => null);
@@ -51,7 +50,7 @@ export async function uploadFile(path, file) {
 
 // An attachment's bytes as a Blob. Fetched with the token header, so files never sit behind a bare URL.
 export async function fetchAttachment(id) {
-  const res = await fetch(`/api/attachments/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+  const res = await fetch(`/api/attachments/${id}`, { headers: headers() });
   if (!res.ok) throw new Error(tr('Không tải được file'));
   return res.blob();
 }

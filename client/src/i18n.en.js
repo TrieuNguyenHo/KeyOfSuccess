@@ -62,7 +62,6 @@ export default {
   'Chọn các team': 'Choose teams',
   'Tất cả team': 'All teams',
   'Team của {name}': '{name}\'s teams',
-  'Leader phụ trách tất cả team được chọn.': 'A Leader leads every team selected.',
   'Duyệt': 'Approve',
   'Từ chối {email}?': 'Decline {email}?',
   'Từ chối': 'Decline',
@@ -429,8 +428,31 @@ export default {
   'Tài khoản đang chờ Manager duyệt': 'The account is waiting for a Manager to approve it',
   'Chỉ Manager mới làm được việc này': 'Only a Manager can do this',
   'Cấu hình hệ thống': 'System configuration',
-  'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn đặt quyền cho từng vai trò, mời người dùng mới, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.':
-    'Root accounts are not part of the company: they only configure the system and cannot see projects, tasks or anyone\'s personal details. Here you set what each role may do, invite new people, give roles (Director included), approve or lock accounts and place people in teams.',
+  'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn thêm / sửa vai trò, đặt quyền cho từng vai trò, mời người dùng mới, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.':
+    'Root accounts are not part of the company: they only configure the system and cannot see projects, tasks or anyone\'s personal details. Here you add and edit roles, set what each role may do, invite new people, give roles (Director included), approve or lock accounts and place people in teams.',
+  // Roles card (System configuration)
+  'Đổi tên vai trò': 'Rename role',
+  'Tên vai trò': 'Role name',
+  'Xoá vai trò "{name}"?': 'Delete the role "{name}"?',
+  'Quyền của vai trò này cũng bị xoá.': 'Its permissions are deleted too.',
+  'Xoá vai trò': 'Delete role',
+  'Cấp bậc: không ai đổi tài khoản, cấp vai trò hay xem hồ sơ của vai trò cao hơn mình. Vai trò mới sao chép quyền và số team của vai trò được chọn; sửa quyền ở bảng bên dưới. 4 vai trò có sẵn chỉ đổi tên và số team.':
+    'Level: nobody changes the account of, gives, or reads the profile of a role above their own. A new role copies the permissions and number of teams of the role you pick; change its permissions in the table below. The 4 built-in roles only take a new name and number of teams.',
+  'Cấp bậc': 'Level',
+  'Ít nhất': 'Fewest teams',
+  'Nhiều nhất': 'Most teams',
+  'Người giữ': 'Holders',
+  'Có sẵn': 'Built-in',
+  'Cấp bậc của {name}': 'Level of {name}',
+  'Số team ít nhất của {name}': 'Fewest teams for {name}',
+  'Số team nhiều nhất của {name}': 'Most teams for {name}',
+  'Không bắt buộc': 'Not required',
+  '1 team': '1 team',
+  'Không giới hạn': 'No limit',
+  'Đổi vai trò của những người đang giữ trước khi xoá': 'Change the role of everyone holding it before deleting it',
+  'Thêm vai trò': 'Add a role',
+  'Sao chép quyền từ': 'Copy permissions from',
+  'Sao chép quyền từ {name}': 'Copy permissions from {name}',
   'Mời người dùng mới': 'Invite new people',
   'Tạo sẵn tài khoản cho email chưa có trong hệ thống. App không gửi email: bạn tự gửi link app cho họ.':
     'Creates the account of an email that is not in the system yet. The app sends no email: send them the app link yourself.',
@@ -464,8 +486,12 @@ export default {
   'Xem task của người khác, màn Theo dõi và Dashboard tổng.': 'See other people\'s tasks, Work tracking and the overview dashboard.',
   'Xem hồ sơ cá nhân': 'Read personal profiles',
   'Ngày sinh, số điện thoại… của người khác (không bao giờ của vai trò cao hơn mình).': 'Other people\'s birthday, phone… (never of a higher role).',
-  'Duyệt, khoá, đổi vai trò và team của người có vai trò không cao hơn mình; lời mời hoạt động ngay.':
-    'Approve, lock, change the role and teams of people whose role is not above one\'s own; invitations are active at once.',
+  'Duyệt, khoá, đổi vai trò và team của người có vai trò không cao hơn mình; lời mời hoạt động ngay. "Team của mình": người trong team mình và người chưa có team, chỉ xếp vào team mình.':
+    'Approve, lock, change the role and teams of people whose role is not above one\'s own; invitations are active at once. "Own teams": the people of one\'s teams and those with no team yet, placed only in one\'s own teams.',
+  '"Team của mình": chỉ chọn trong team mình, ít nhất một team; các team khác của project giữ nguyên.':
+    '"Own teams": only among one\'s own teams, at least one; the project\'s other teams stay.',
+  '"Team của mình": chỉ đổi tên team mình; tạo và xoá team cần "Toàn phòng".':
+    '"Own teams": rename one\'s own teams only; creating and deleting teams needs "Whole department".',
   'Quản lý thành viên team': 'Manage team members',
   'Thêm người chưa có team, duyệt người tự đăng ký, mời email (chờ duyệt), bỏ Member khỏi team.':
     'Add people without a team, approve self sign-ups, invite emails (waiting for approval), remove Members from a team.',
@@ -480,6 +506,7 @@ export default {
   'Không đổi được tài khoản có vai trò cao hơn bạn': 'You cannot change the account of a higher role than yours',
   'Vai trò hoặc quyền không tồn tại': 'Unknown role or permission',
   'Người này đã tham gia, chỉ khoá được tài khoản': 'This person has already joined; the account can only be locked',
+  'Chỉ chọn được team của bạn': 'You can only choose your own teams',
   'Phạm vi không hợp lệ cho quyền này': 'This scope is not valid for this permission',
   'Ngôn ngữ không hợp lệ': 'Invalid language',
   'Bạn chỉ có quyền xem và comment task này': 'You can only view and comment on this task',
@@ -549,4 +576,21 @@ export default {
   'Không có gì để lưu': 'Nothing to save',
   'Ảnh đại diện tối đa 1 MB': 'The profile picture can be at most 1 MB',
   'Ảnh đại diện phải là PNG, JPG hoặc WebP': 'The profile picture must be a PNG, JPG or WebP image',
+  // Roles (root, v27)
+  '{name} phụ trách tất cả team được chọn, ít nhất một team.': '{name} leads every team selected, at least one.',
+  '{name} thuộc một team: chọn team khác để chuyển.': '{name} belongs to one team: pick another team to move them.',
+  '{name} phải thuộc ít nhất một team': '{name} must belong to at least one team',
+  '{name} chỉ thuộc một team': '{name} belongs to one team only',
+  'Cần nhập tên vai trò': 'Enter a role name',
+  'Tên vai trò tối đa 40 ký tự': 'A role name can be at most 40 characters',
+  'Tên vai trò đã tồn tại': 'A role with this name already exists',
+  'Không đổi được cấp bậc của vai trò có sẵn': 'The level of a built-in role cannot change',
+  'Cấp bậc phải từ 1 đến {max}': 'The level must be between 1 and {max}',
+  'Số team không hợp lệ': 'Invalid number of teams',
+  'Chọn vai trò để sao chép quyền': 'Pick a role to copy the permissions from',
+  'Có {count} người giữ vai trò này không đúng số team mới; hãy đổi team của họ trước':
+    '{count} people holding this role do not fit the new number of teams; change their teams first',
+  'Không xoá được vai trò có sẵn': 'A built-in role cannot be deleted',
+  'Vai trò còn {count} người giữ; hãy đổi vai trò của họ trước': '{count} people still hold this role; change their role first',
+  'Vai trò tự tạo không có quyền mặc định': 'A role you added has no default permissions',
 };

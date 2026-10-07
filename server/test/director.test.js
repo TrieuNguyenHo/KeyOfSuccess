@@ -137,8 +137,11 @@ test('the v22 migration keeps every user and makes DIRECTOR_EMAILS Directors', a
     assert.deepEqual(users.sort(), ['7:director', '9:member']);
     const db = new DatabaseSync(old.dbPath);
     const [version, broken] = [db.prepare('PRAGMA user_version').get().user_version, db.prepare('PRAGMA foreign_key_check').all()];
+    const usersSql = db.prepare("SELECT sql FROM sqlite_master WHERE name = 'users'").get().sql;
     db.close();
     assert.ok(version >= 22, `schema v${version}`);
+    // v27 rebuilt the table once more, without the CHECK on users.role (roles live in the roles table).
+    assert.ok(!usersSql.includes('CHECK (role IN'), usersSql);
     assert.deepEqual(broken, []);
   } finally {
     await old.stop();

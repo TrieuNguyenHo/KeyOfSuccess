@@ -1,35 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { EMPTY_FILTERS, can, coversTeams, daysFromToday, isOverdue, todayStr } from '../../utils.js';
+import { EMPTY_FILTERS, coversTeams } from '../../utils.js';
 import BoardView from './BoardView.jsx';
 import CalendarView from './CalendarView.jsx';
 import ListView from './ListView.jsx';
 import MembersPanel from './MembersPanel.jsx';
+import ProjectHeader from './ProjectHeader.jsx';
+import TaskFilterBar, { matchesFilters } from './TaskFilterBar.jsx';
 import RequirementsPanel from '../requirements/RequirementsPanel.jsx';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
-import { Avatar } from '../../components/Avatar.jsx';
-import { SearchBox, TeamPills, teamsLabel } from '../../components/Controls.jsx';
+import { ErrorBanner } from '../../components/Controls.jsx';
 import { useAllTeams, useChannels } from '../../components/hooks.js';
 import { tr } from '../../i18n.js';
-
-function matchesFilters(task, filters) {
-  // The team of the assignee, as the task's team tags show it.
-  if (filters.team && !(task.assignee_teams ?? []).some((t) => t.id === Number(filters.team))) return false;
-  if (filters.channel && !(task.channels ?? []).some((c) => c.id === Number(filters.channel))) return false;
-  if (filters.requirement && task.requirement_id !== Number(filters.requirement)) return false;
-  const q = filters.q.trim().toLowerCase();
-  if (q && !task.title.toLowerCase().includes(q) && !(task.description ?? '').toLowerCase().includes(q)) return false;
-  if (filters.assignee === 'none' && task.assignee_id != null) return false;
-  if (filters.assignee && filters.assignee !== 'none' && task.assignee_id !== Number(filters.assignee)) return false;
-  // "s<id>": one status, i.e. one board column (section).
-  if (/^s\d+$/.test(filters.status) && task.section_id !== Number(filters.status.slice(1))) return false;
-  if (filters.due === 'overdue' && !isOverdue(task)) return false;
-  if (filters.due === 'week' && !(task.due_date && task.due_date >= todayStr() && task.due_date <= daysFromToday(7))) {
-    return false;
-  }
-  if (filters.due === 'none' && task.due_date) return false;
-  return true;
-}
 
 // initialTab / initialRequirementId let a notification open a requirement directly; with the board tab,
 // initialRequirementId filters the board to that requirement instead. initialFilters come from the URL.
@@ -55,7 +37,6 @@ export default function ProjectView({
   );
   const [showMembers, setShowMembers] = useState(false);
   const [error, setError] = useState('');
-  const changesTeams = can(user, 'projects.change_teams');
 
   // All teams: the Manager's team picker and the team-label filter.
   const teams = useAllTeams();
@@ -183,9 +164,7 @@ export default function ProjectView({
     }
   }
 
-  const setFilter = (key) => (e) => setFilters({ ...filters, [key]: e.target.value });
   const visibleTasks = tasks.filter((t) => matchesFilters(t, filters));
-  const filtering = JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
   // New tasks go to the filtered requirement, else the first one; the add form lets people change it.
   const taskViewProps = {
     requirements,
@@ -195,72 +174,23 @@ export default function ProjectView({
 
   return (
     <div className="project">
-      <header className="project-header">
-        {/* Two blocks that wrap as wholes on narrow screens: the name with its actions, then members and views. */}
-        <div className="project-title">
-          <span className="dot lg" style={{ background: project.color }} />
-          <h1>{project.name}</h1>
-          {changesTeams ? (
-            <details className="team-picker">
-              <summary title={tr('{p0} · bấm để đổi team phụ trách', { p0: teamsLabel(project.teams) })}>{teamsLabel(project.teams)} ▾</summary>
-              <div className="team-picker-menu">
-                <TeamPills teams={teams} selected={project.teams.map((t) => t.id)} onChange={changeTeams} />
-              </div>
-            </details>
-          ) : (
-            <span className="tag team-tag" title={teamsLabel(project.teams)}>
-              {teamsLabel(project.teams)}
-            </span>
-          )}
-          {canManage && (
-            <>
-              <button className="icon-btn" onClick={renameProject} title={tr('Đổi tên project')}>
-                ✎
-              </button>
-              <button className="icon-btn danger" onClick={deleteProject} title={tr('Xoá project')}>
-                🗑
-              </button>
-            </>
-          )}
-        </div>
-        <div className="project-header-actions">
-          <button className="members-btn" onClick={() => setShowMembers(true)} title={tr('Thành viên')}>
-            <span className="avatar-stack">
-              {members.slice(0, 4).map((m) => (
-                <Avatar key={m.id} name={m.name} userId={m.id} small />
-              ))}
-            </span>
-            {tr('{count} thành viên', { count: members.length })}
-          </button>
-          {/* Two groups: the requirements and calendar views, and the List / Board layouts of the task list. */}
-          <div className="tab-groups">
-            <div className="tabs" role="group" aria-label={tr('Requirements và lịch')}>
-              <button className={view === 'requirements' ? 'active' : ''} onClick={() => setView('requirements')}>
-                Requirements<span className="tab-count">{requirements.length}</span>
-              </button>
-              <button className={view === 'calendar' ? 'active' : ''} onClick={() => setView('calendar')}>
-                {tr('Lịch')}
-              </button>
-            </div>
-            <div className="tabs" role="group" aria-label={tr('Kiểu xem task')}>
-              <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>
-                List
-              </button>
-              <button className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}>
-                Board
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <ProjectHeader
+        project={project}
+        user={user}
+        teams={teams}
+        members={members}
+        requirementCount={requirements.length}
+        view={view}
+        onView={setView}
+        onRename={renameProject}
+        onDelete={deleteProject}
+        onChangeTeams={changeTeams}
+        onShowMembers={() => setShowMembers(true)}
+      />
 
       {view === 'requirements' ? (
         <>
-          {error && (
-            <div className="error banner" onClick={() => setError('')}>
-              {error} {tr('(bấm để ẩn)')}
-            </div>
-          )}
+          <ErrorBanner error={error} onClose={() => setError('')} />
           <RequirementsPanel
             project={project}
             requirements={requirements}
@@ -278,67 +208,17 @@ export default function ProjectView({
         </>
       ) : (
         <>
-          <div className="toolbar">
-            <select value={filters.requirement} onChange={setFilter('requirement')} aria-label={tr('Lọc theo requirement')}>
-              <option value="">{tr('Mọi requirement')}</option>
-              {requirements.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.title}
-                </option>
-              ))}
-            </select>
-            <select value={filters.team} onChange={setFilter('team')} aria-label={tr('Lọc theo team của người làm')}>
-              <option value="">{tr('Mọi team')}</option>
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>
-                  Team {t.name}
-                </option>
-              ))}
-            </select>
-            <select value={filters.channel} onChange={setFilter('channel')} aria-label={tr('Lọc theo kênh')}>
-              <option value="">{tr('Mọi kênh')}</option>
-              {channels.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <select value={filters.assignee} onChange={setFilter('assignee')}>
-              <option value="">{tr('Mọi người')}</option>
-              <option value="none">{tr('Chưa giao')}</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-            <select value={filters.status} onChange={setFilter('status')}>
-              <option value="all">{tr('Mọi trạng thái')}</option>
-              {sections.map((s) => (
-                <option key={s.id} value={`s${s.id}`}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            <select value={filters.due} onChange={setFilter('due')}>
-              <option value="all">{tr('Mọi hạn chót')}</option>
-              <option value="overdue">{tr('Quá hạn')}</option>
-              <option value="week">{tr('Trong 7 ngày tới')}</option>
-              <option value="none">{tr('Không có hạn')}</option>
-            </select>
-            <SearchBox value={filters.q} onChange={setFilter('q')} placeholder={tr('Tìm task…')} label={tr('Tìm task')} />
-            {filtering && (
-              <button className="link-btn" onClick={() => setFilters(EMPTY_FILTERS)}>
-                {tr('Xoá bộ lọc')}
-              </button>
-            )}
-          </div>
+          <TaskFilterBar
+            filters={filters}
+            setFilters={setFilters}
+            requirements={requirements}
+            teams={teams}
+            channels={channels}
+            members={members}
+            sections={sections}
+          />
 
-          {error && (
-            <div className="error banner" onClick={() => setError('')}>
-              {error} {tr('(bấm để ẩn)')}
-            </div>
-          )}
+          <ErrorBanner error={error} onClose={() => setError('')} />
 
           {readOnly ? (
             <div className="readonly-banner">{tr('Bạn đang xem project này ở chế độ chỉ xem. Mở một task để comment.')}</div>

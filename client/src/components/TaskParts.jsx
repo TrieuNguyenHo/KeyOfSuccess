@@ -21,6 +21,16 @@ export function CheckButton({ checked, onClick, disabled }) {
   );
 }
 
+// The done circle without the button, for rows that are buttons themselves (a button cannot hold another).
+export function CheckMark({ checked }) {
+  const label = checked ? tr('Đã xong') : tr('Chưa xong');
+  return (
+    <span className={`check static ${checked ? 'checked' : ''}`} role="img" aria-label={label} title={label}>
+      ✓
+    </span>
+  );
+}
+
 export function PriorityTag({ value }) {
   if (!value) return null;
   return <span className={`tag priority-${value}`}>{PRIORITIES[value]}</span>;

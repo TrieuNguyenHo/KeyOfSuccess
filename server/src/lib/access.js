@@ -31,6 +31,11 @@ export const findTask = (id) =>
     )
     .get(id);
 
+// Columns for task lists, over the alias t: subtasks (done / all) and comments.
+export const TASK_COUNTS = `(SELECT COUNT(*) FROM tasks s WHERE s.parent_id = t.id) AS subtask_count,
+  (SELECT COUNT(*) FROM tasks s WHERE s.parent_id = t.id AND s.completed = 1) AS subtask_done,
+  (SELECT COUNT(*) FROM comments c WHERE c.task_id = t.id) AS comment_count`;
+
 export const isMember = (projectId, userId) =>
   Boolean(db.prepare('SELECT 1 FROM project_members WHERE project_id = ? AND user_id = ?').get(projectId, userId));
 

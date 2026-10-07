@@ -15,7 +15,7 @@ const PERMISSION_TEXT = {
     return [tr('Tạo project'), ''];
   },
   get 'projects.change_teams'() {
-    return [tr('Đổi team của project'), ''];
+    return [tr('Đổi team của project'), tr('"Team của mình": chỉ chọn trong team mình, ít nhất một team; các team khác của project giữ nguyên.')];
   },
   get 'tasks.admin'() {
     return [tr('Toàn quyền task'), tr('Tạo, sửa, giao, xoá task và quản lý trạng thái. Không có quyền này: chỉ tạo task cho mình và sửa task giao cho mình.')];
@@ -30,13 +30,16 @@ const PERMISSION_TEXT = {
     return [tr('Xem hồ sơ cá nhân'), tr('Ngày sinh, số điện thoại… của người khác (không bao giờ của vai trò cao hơn mình).')];
   },
   get 'users.manage'() {
-    return [tr('Quản lý người dùng'), tr('Duyệt, khoá, đổi vai trò và team của người có vai trò không cao hơn mình; lời mời hoạt động ngay.')];
+    return [
+      tr('Quản lý người dùng'),
+      tr('Duyệt, khoá, đổi vai trò và team của người có vai trò không cao hơn mình; lời mời hoạt động ngay. "Team của mình": người trong team mình và người chưa có team, chỉ xếp vào team mình.'),
+    ];
   },
   get 'teams.members'() {
     return [tr('Quản lý thành viên team'), tr('Thêm người chưa có team, duyệt người tự đăng ký, mời email (chờ duyệt), bỏ Member khỏi team.')];
   },
   get 'teams.manage'() {
-    return [tr('Tạo / đổi tên / xoá team'), ''];
+    return [tr('Tạo / đổi tên / xoá team'), tr('"Team của mình": chỉ đổi tên team mình; tạo và xoá team cần "Toàn phòng".')];
   },
   get 'channels.manage'() {
     return [tr('Quản lý kênh'), tr('Thêm, đổi tên, đổi màu, xoá kênh; xem số task của mỗi kênh.')];
@@ -133,11 +136,16 @@ export default function PermissionsCard() {
               );
             })}
             <span />
-            {data.roles.map((r) => (
-              <button key={r.key} className="link-btn" onClick={() => reset(r)}>
-                {tr('Khôi phục mặc định')}
-              </button>
-            ))}
+            {/* Only the built-in roles have defaults; a role root added started as a copy of another. */}
+            {data.roles.map((r) =>
+              r.builtin ? (
+                <button key={r.key} className="link-btn" onClick={() => reset(r)}>
+                  {tr('Khôi phục mặc định')}
+                </button>
+              ) : (
+                <span key={r.key} />
+              )
+            )}
           </div>
         </div>
       )}

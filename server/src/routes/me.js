@@ -28,47 +28,33 @@ function validBirthday(value) {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value && value >= '1900-01-01' && value <= localDate(new Date());
 }
 
-// The signed-in user edits their own account. Body: any of { language: 'vi' | 'en' (the interface language, kept
-// with the account so it follows the user to every device), name, birthday, phone, job_title, bio, gender }.
-// '' or null clears an optional field; the display name cannot be cleared.
+// The fields a user edits on their own account, each read into { value } or refused with { error }. language is the
+// interface language, kept with the account so it follows the user to every device. '' or null clears an optional
+// field; the display name cannot be cleared.
+const text = (v) => (v == null ? null : String(v).trim() || null);
+const upTo = (max, error) => (v) => (text(v)?.length > max ? { error } : { value: text(v) });
+const ME_FIELDS = {
+  language: (v) => (['vi', 'en'].includes(v) ? { value: v } : { error: 'Ngôn ngữ không hợp lệ' }),
+  name: (v) => {
+    if (!text(v)) return { error: 'Tên hiển thị không được để trống' };
+    return upTo(80, 'Tên hiển thị tối đa 80 ký tự')(v);
+  },
+  birthday: (v) => (text(v) && !validBirthday(text(v)) ? { error: 'Ngày sinh không hợp lệ' } : { value: text(v) }),
+  phone: (v) => (text(v) && !PHONE_RE.test(text(v)) ? { error: 'Số điện thoại không hợp lệ' } : { value: text(v) }),
+  job_title: upTo(80, 'Chức danh tối đa 80 ký tự'),
+  bio: upTo(500, 'Giới thiệu tối đa 500 ký tự'),
+  gender: (v) => (v && !GENDERS.includes(v) ? { error: 'Giới tính không hợp lệ' } : { value: v || null }),
+};
+
+// The signed-in user edits their own account. Body: any of the ME_FIELDS.
 router.patch('/me', (req, res) => {
   const body = req.body ?? {};
-  const text = (v) => (v == null ? null : String(v).trim() || null);
   const set = {};
-  if (body.language !== undefined) {
-    if (!['vi', 'en'].includes(body.language)) return badRequest(res, 'Ngôn ngữ không hợp lệ');
-    set.language = body.language;
-  }
-  if (body.name !== undefined) {
-    const name = text(body.name);
-    if (!name) return badRequest(res, 'Tên hiển thị không được để trống');
-    if (name.length > 80) return badRequest(res, 'Tên hiển thị tối đa 80 ký tự');
-    set.name = name;
-  }
-  if (body.birthday !== undefined) {
-    const birthday = text(body.birthday);
-    if (birthday && !validBirthday(birthday)) return badRequest(res, 'Ngày sinh không hợp lệ');
-    set.birthday = birthday;
-  }
-  if (body.phone !== undefined) {
-    const phone = text(body.phone);
-    if (phone && !PHONE_RE.test(phone)) return badRequest(res, 'Số điện thoại không hợp lệ');
-    set.phone = phone;
-  }
-  if (body.job_title !== undefined) {
-    const title = text(body.job_title);
-    if (title?.length > 80) return badRequest(res, 'Chức danh tối đa 80 ký tự');
-    set.job_title = title;
-  }
-  if (body.bio !== undefined) {
-    const bio = text(body.bio);
-    if (bio?.length > 500) return badRequest(res, 'Giới thiệu tối đa 500 ký tự');
-    set.bio = bio;
-  }
-  if (body.gender !== undefined) {
-    const gender = body.gender || null;
-    if (gender && !GENDERS.includes(gender)) return badRequest(res, 'Giới tính không hợp lệ');
-    set.gender = gender;
+  for (const [field, read] of Object.entries(ME_FIELDS)) {
+    if (body[field] === undefined) continue;
+    const { value, error } = read(body[field]);
+    if (error) return badRequest(res, error);
+    set[field] = value;
   }
   const fields = Object.keys(set);
   if (!fields.length) return badRequest(res, 'Không có gì để lưu');

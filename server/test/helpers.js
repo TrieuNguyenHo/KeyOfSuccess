@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
 
 const SERVER_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MANAGER_EMAIL = 'boss@t.test'; // bootstrapped as Manager through MANAGER_EMAILS
@@ -27,9 +28,24 @@ const freePort = () =>
 
 // Starts the API with DEV_LOGIN (sign in by email) and returns { api, url, stop, output, uploadDir, dbPath }.
 // server/.env is not loaded and the test settings override the shell's, e.g. GOOGLE_CLIENT_ID is empty.
+// The Manager permissions that are team-scoped by default since v26. Most test files were written when a Manager ran
+// the whole department (their `boss` belongs to no team and sets everything up), so they run with these at 'all';
+// a file passes { managerScope: 'team' } to test the default.
+const MANAGER_TEAM_DEFAULTS = [
+  'projects.view',
+  'projects.change_teams',
+  'requirements.manage',
+  'people.watch',
+  'people.profiles',
+  'users.manage',
+  'teams.members',
+  'teams.manage',
+  'notify.task_completed',
+];
+
 // prepareDb(dbPath) runs before the server starts, e.g. to build a database of an older schema version.
 // env overrides the test settings, e.g. to take an email out of ROOT_EMAILS.
-export async function startServer({ prepareDb, env = {} } = {}) {
+export async function startServer({ prepareDb, env = {}, managerScope = 'all' } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'taskflow-test-'));
   prepareDb?.(join(dir, 'test.db'));
   const port = await freePort();
@@ -71,6 +87,14 @@ export async function startServer({ prepareDb, env = {} } = {}) {
       reject(new Error(`API exited with code ${code}:\n${output}`));
     });
   });
+
+  if (managerScope === 'all') {
+    // Straight in the database (the server reads permissions on every request), so no extra account is created.
+    const db = new DatabaseSync(join(dir, 'test.db'));
+    const update = db.prepare("UPDATE role_permissions SET scope = 'all' WHERE role = 'manager' AND permission = ?");
+    MANAGER_TEAM_DEFAULTS.forEach((permission) => update.run(permission));
+    db.close();
+  }
 
   const url = `http://localhost:${port}/api`;
   return {

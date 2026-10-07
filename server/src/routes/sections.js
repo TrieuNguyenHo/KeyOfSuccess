@@ -6,6 +6,7 @@ import { findSection, loadProject } from '../lib/access.js';
 import { badRequest, forbidden, notFound } from '../lib/http.js';
 import { pushChange } from '../lib/live.js';
 import { sweepUploads } from '../lib/uploads.js';
+import { nextPosition } from '../lib/util.js';
 
 const router = express.Router();
 
@@ -32,10 +33,9 @@ router.post('/projects/:id/sections', (req, res) => {
   if (!project.task_admin) return forbidden(res, SECTION_ADMINS);
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên trạng thái');
-  const { max } = db.prepare('SELECT COALESCE(MAX(position), 0) AS max FROM sections WHERE project_id = ?').get(project.id);
   const { lastInsertRowid } = db
     .prepare('INSERT INTO sections (project_id, name, position) VALUES (?, ?, ?)')
-    .run(project.id, name, max + 1);
+    .run(project.id, name, nextPosition('sections', 'project_id', project.id));
   pushChange(req, { project_id: project.id });
   res.status(201).json(findSection(lastInsertRowid));
 });

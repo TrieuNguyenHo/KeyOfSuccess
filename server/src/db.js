@@ -48,7 +48,9 @@ const usersTable = (name) => `
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     google_sub TEXT UNIQUE,
-    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('root', 'director', 'manager', 'leader', 'member')),
+    -- A key of roles, or 'root' (ROOT_EMAILS). No CHECK since v27, when root began adding roles; the API only
+    -- gives existing roles and never deletes a role someone holds.
+    role TEXT NOT NULL DEFAULT 'member',
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'disabled')),
     -- Legacy single team (v2). Unused since v9, where user_teams holds a user's teams;
     -- kept because SQLite cannot drop a column that has a foreign key.
@@ -499,11 +501,14 @@ if (schemaVersion() < 21) {
   db.exec('PRAGMA user_version = 21');
 }
 
-// Adds a role to users.role's CHECK. SQLite cannot change a CHECK constraint in place, so the users table is rebuilt
-// with the current schema (ids and every column kept), unless the role is already allowed.
+// SQLite cannot change a CHECK constraint in place, so the users table is rebuilt with the current schema (ids and
+// every column kept). v22 and v23 rebuilt it to add a role to the old CHECK on users.role; v27 to drop that CHECK.
+const usersSql = () => db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'").get().sql;
+const hasRoleCheck = () => usersSql().includes('CHECK (role IN');
 function allowUserRole(role, tempName) {
-  const usersSql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'").get().sql;
-  if (usersSql.includes(`'${role}'`)) return;
+  if (hasRoleCheck() && !usersSql().includes(`'${role}'`)) rebuildUsers(tempName);
+}
+function rebuildUsers(tempName) {
   const columns = db.prepare("SELECT name FROM pragma_table_info('users')").all().map((c) => c.name).join(', ');
   db.exec('PRAGMA foreign_keys = OFF');
   transaction(() =>
@@ -575,20 +580,69 @@ if (schemaVersion() < 25) {
   db.exec('PRAGMA user_version = 25');
 }
 
-// v26: four built-in statuses with fixed names, the same in Vietnamese and English: Planned (todo),
+// Two lines of work both took v26 and were merged on 2026-10-07 (release v1.0 was deployed from the second):
+//   - main: v26 Manager scope, v27 editable roles;
+//   - v1.0: v26 fixed statuses (now v28 below).
+// A database of the v1.0 line is at 26 with a sections table that already allows 'pending'; it skipped the Manager
+// scope, which runs for it here. Every step below can run on either line.
+const sectionsSql = () => db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'sections'").get().sql;
+const fromStatusesLine = schemaVersion() === 26 && sectionsSql().includes("'pending'");
+
+// v26: a Manager runs only their own teams (decided 2026-10-06). Manager permissions still on the old department-wide
+// default move to 'team'; scopes root set by hand are kept. A new database gets the new defaults from the seeding.
+function managerToOwnTeams() {
+  const toTeam = db.prepare("UPDATE role_permissions SET scope = 'team' WHERE role = 'manager' AND permission = ? AND scope = 'all'");
+  [
+    'projects.view',
+    'projects.change_teams',
+    'requirements.manage',
+    'people.watch',
+    'people.profiles',
+    'users.manage',
+    'teams.members',
+    'teams.manage',
+    'notify.task_completed',
+  ].forEach((permission) => toTeam.run(permission));
+}
+if (schemaVersion() < 26) {
+  managerToOwnTeams();
+  db.exec('PRAGMA user_version = 26');
+} else if (fromStatusesLine) managerToOwnTeams();
+
+// v27: root adds, renames and deletes roles (decided 2026-10-07). users.role loses its CHECK (rebuilt), and each role
+// carries how many teams its holders belong to: min_teams 0 or 1, max_teams 1 or NULL (no limit). The four built-in
+// roles (builtin = 1) keep the team rules that were hard-coded: a Member in one team at most, a Leader in at least
+// one. Built-in roles are renamed but never deleted, nor moved to another level.
+for (const [column, type] of [
+  ['builtin', 'INTEGER NOT NULL DEFAULT 0'],
+  ['min_teams', 'INTEGER NOT NULL DEFAULT 0 CHECK (min_teams IN (0, 1))'],
+  ['max_teams', 'INTEGER CHECK (max_teams IS NULL OR max_teams = 1)'],
+]) {
+  if (!hasColumn('roles', column)) db.exec(`ALTER TABLE roles ADD COLUMN ${column} ${type}`);
+}
+if (schemaVersion() < 27) {
+  if (hasRoleCheck()) rebuildUsers('users_v27');
+  transaction(() => {
+    db.exec("UPDATE roles SET builtin = 1 WHERE key IN ('member', 'leader', 'manager', 'director')");
+    db.exec("UPDATE roles SET max_teams = 1 WHERE key = 'member'");
+    db.exec("UPDATE roles SET min_teams = 1 WHERE key = 'leader'");
+  });
+  db.exec('PRAGMA user_version = 27');
+}
+
+// v28 (v26 on the v1.0 line, see above): four built-in statuses with fixed names, the same in Vietnamese and English: Planned (todo),
 // In-Progress (doing), Completed (done), Pending (new kind 'pending'). The kind CHECK gains 'pending', so the
 // table is rebuilt (ids kept). Built-in statuses take the fixed names; a project missing one gets it at the end.
-if (schemaVersion() < 26) {
-  const sql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'sections'").get().sql;
-  if (!sql.includes("'pending'")) {
+if (schemaVersion() < 28) {
+  if (!sectionsSql().includes("'pending'")) {
     db.exec('PRAGMA foreign_keys = OFF');
     transaction(() =>
       db.exec(`
-        ${sectionsTable('sections_v26')}
-        INSERT INTO sections_v26 (id, project_id, name, position, kind)
+        ${sectionsTable('sections_v28')}
+        INSERT INTO sections_v28 (id, project_id, name, position, kind)
           SELECT id, project_id, name, position, kind FROM sections;
         DROP TABLE sections;
-        ALTER TABLE sections_v26 RENAME TO sections;
+        ALTER TABLE sections_v28 RENAME TO sections;
       `)
     );
     db.exec('PRAGMA foreign_keys = ON');
@@ -605,7 +659,7 @@ if (schemaVersion() < 26) {
       rename.run(name, kind);
       for (const { id } of projects) if (!has.get(id, kind)) insert.run(id, name, kind, id);
     }
-    db.exec('PRAGMA user_version = 26');
+    db.exec('PRAGMA user_version = 28');
   });
 }
 

@@ -19,19 +19,16 @@ export const formatDate = (s) =>
 // SQLite datetime('now') is UTC without a timezone suffix.
 export const formatDateTime = (s) => new Date(`${s.replace(' ', 'T')}Z`).toLocaleString(locale());
 
-// Label tables are getters, so each read is in the current language.
-export const PRIORITIES = {
-  get low() {
-    return tr('Thấp');
-  },
-  get medium() {
-    return tr('Trung bình');
-  },
-  get high() {
-    return tr('Cao');
-  },
-};
-export const ROLES = { director: 'Director', manager: 'Manager', leader: 'Leader', member: 'Member' };
+// Label tables are getters, so each read is in the current language: labels({ key: () => tr('…') }).
+const labels = (table) =>
+  Object.defineProperties({}, Object.fromEntries(Object.entries(table).map(([key, get]) => [key, { get, enumerable: true }])));
+export const PRIORITIES = labels({
+  low: () => tr('Thấp'),
+  medium: () => tr('Trung bình'),
+  high: () => tr('Cao'),
+});
+// A person's role as root named it (role_name from the server); root accounts have no role of the company.
+export const roleLabel = (user) => user.role_name ?? (user.role === 'root' ? 'Root' : user.role);
 // What the signed-in user's role may do (user.permissions from /api/me, set by root): the scope ('none' / 'team' /
 // 'all') or whether they hold it at all. The server checks every request; these only shape the screens.
 export const scopeOf = (user, key) => user.permissions?.[key] ?? 'none';
@@ -43,43 +40,22 @@ export function coversTeams(user, key, teamIds) {
 }
 // Watching everyone's work (people.watch 'all'): the department-wide screens instead of the user's own teams.
 export const watchesAll = (user) => scopeOf(user, 'people.watch') === 'all';
-// Roles whose holders may belong to every team ("Tất cả team").
-export const takesAllTeams = (role) => role === 'manager' || role === 'director';
-export const STATUSES = {
-  get pending() {
-    return tr('Chờ duyệt');
-  },
-  get active() {
-    return tr('Đang hoạt động');
-  },
-  get disabled() {
-    return tr('Đã khoá');
-  },
-};
+export const STATUSES = labels({
+  pending: () => tr('Chờ duyệt'),
+  active: () => tr('Đang hoạt động'),
+  disabled: () => tr('Đã khoá'),
+});
 
-export const GENDERS = {
-  get male() {
-    return tr('Nam');
-  },
-  get female() {
-    return tr('Nữ');
-  },
-  get other() {
-    return tr('Khác');
-  },
-  get undisclosed() {
-    return tr('Không muốn nói');
-  },
-};
+export const GENDERS = labels({
+  male: () => tr('Nam'),
+  female: () => tr('Nữ'),
+  other: () => tr('Khác'),
+  undisclosed: () => tr('Không muốn nói'),
+});
 
 // Repeat rules of recurring tasks (tasks.recurrence, JSON): { freq: 'daily' } (Monday to Friday),
 // { freq: 'weekly' | 'biweekly', days: [1..7] } (1 = Monday) or { freq: 'monthly', day: 1..31 }.
-const weekday = (id, label) => ({
-  id,
-  get name() {
-    return label();
-  },
-});
+const weekday = (id, label) => Object.defineProperty({ id }, 'name', { get: label, enumerable: true });
 export const WEEKDAYS = [
   weekday(1, () => tr('T2')),
   weekday(2, () => tr('T3')),
@@ -89,20 +65,12 @@ export const WEEKDAYS = [
   weekday(6, () => tr('T7')),
   weekday(7, () => tr('CN')),
 ];
-export const FREQ_LABELS = {
-  get daily() {
-    return tr('Hằng ngày (T2–T6)');
-  },
-  get weekly() {
-    return tr('Hằng tuần');
-  },
-  get biweekly() {
-    return tr('Mỗi 2 tuần');
-  },
-  get monthly() {
-    return tr('Hằng tháng');
-  },
-};
+export const FREQ_LABELS = labels({
+  daily: () => tr('Hằng ngày (T2–T6)'),
+  weekly: () => tr('Hằng tuần'),
+  biweekly: () => tr('Mỗi 2 tuần'),
+  monthly: () => tr('Hằng tháng'),
+});
 
 // A repeat rule in words (also for the rules stored in the task history).
 export function recurrenceLabel(json) {

@@ -8,7 +8,9 @@ import { useCloseDetailsOutside } from '../../components/hooks.js';
 import { LanguageSwitch, ThemeSwitch } from '../../components/Preferences.jsx';
 import InviteUserCard from './InviteUserCard.jsx';
 import PermissionsCard from './PermissionsCard.jsx';
+import RolesCard from './RolesCard.jsx';
 import UsersCard from './UsersCard.jsx';
+import { ErrorBanner } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
 
 // The whole app for root accounts (ROOT_EMAILS): they are not part of the company and only configure the system:
@@ -18,6 +20,8 @@ export default function SystemConfigPage({ user, onLogout }) {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState('');
+  // Bumped when root changes a role: the cards that read the roles (permissions, invitations, users) read them again.
+  const [rolesVersion, setRolesVersion] = useState(0);
   useCloseDetailsOutside();
 
   const load = useCallback(async () => {
@@ -62,23 +66,26 @@ export default function SystemConfigPage({ user, onLogout }) {
                 </div>
               </header>
 
-              {error && (
-                <div className="error banner" onClick={() => setError('')}>
-                  {error} {tr('(bấm để ẩn)')}
-                </div>
-              )}
+              <ErrorBanner error={error} onClose={() => setError('')} />
 
               <div className="list admin">
                 <section className="admin-card">
                   <p className="muted card-sub">
                     {tr(
-                      'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn đặt quyền cho từng vai trò, mời người dùng mới, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.'
+                      'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn thêm / sửa vai trò, đặt quyền cho từng vai trò, mời người dùng mới, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.'
                     )}
                   </p>
                 </section>
-                <PermissionsCard />
-                <InviteUserCard user={user} teams={teams} onInvited={() => load().catch(() => {})} />
+                <RolesCard
+                  onChanged={() => {
+                    setRolesVersion((v) => v + 1);
+                    load().catch(() => {});
+                  }}
+                />
+                <PermissionsCard key={`p${rolesVersion}`} />
+                <InviteUserCard key={`i${rolesVersion}`} user={user} teams={teams} onInvited={() => load().catch(() => {})} />
                 <UsersCard
+                  key={`u${rolesVersion}`}
                   user={user}
                   users={users}
                   teams={teams}

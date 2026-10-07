@@ -2,6 +2,7 @@
 import express from 'express';
 import { db, transaction } from '../db.js';
 import {
+  TASK_COUNTS,
   assigneeTeamsIn,
   canBeAssigned,
   canEdit,
@@ -13,21 +14,17 @@ import {
   withTeams,
 } from '../lib/access.js';
 import { channelsByTask } from '../lib/channels.js';
-import { badRequest, forbidden, notFound, requirePermission } from '../lib/http.js';
+import { badRequest, conflict, forbidden, notFound, requirePermission } from '../lib/http.js';
 import { requirementsOf } from '../lib/requirements.js';
 import { DEFAULT_STATUSES } from '../lib/statuses.js';
 import { sweepUploads } from '../lib/uploads.js';
-import { parseTeamIds } from '../lib/users.js';
-import { IN_TEAM, placeholders } from '../lib/util.js';
-import { can } from '../lib/permissions.js';
+import { AT_WORK, parseTeamIds } from '../lib/users.js';
+import { IN_TEAM, placeholders, replaceLinks } from '../lib/util.js';
+import { can, mergeOwnTeams, scopeOf } from '../lib/permissions.js';
 
 const router = express.Router();
 
-function setProjectTeams(projectId, teamIds) {
-  db.prepare('DELETE FROM project_teams WHERE project_id = ?').run(projectId);
-  const insert = db.prepare('INSERT INTO project_teams (project_id, team_id) VALUES (?, ?)');
-  teamIds.forEach((teamId) => insert.run(projectId, teamId));
-}
+const setProjectTeams = (projectId, teamIds) => replaceLinks('project_teams', 'project_id', projectId, 'team_id', teamIds);
 
 // Every project the user can open, each with its access level and teams, for the grouped sidebar.
 router.get('/projects', (req, res) => {
@@ -52,6 +49,10 @@ router.post('/projects', requirePermission('projects.create'), (req, res) => {
   if (!name) return badRequest(res, 'Cần nhập tên project');
   const teamIds = parseTeamIds(body.team_ids ?? []);
   if (!teamIds) return badRequest(res, 'Danh sách team không hợp lệ');
+  // With projects.change_teams 'team', the project belongs to one or more of the creator's own teams.
+  if (scopeOf(me, 'projects.change_teams') === 'team' && (!teamIds.length || teamIds.some((id) => !me.team_ids.includes(id)))) {
+    return forbidden(res, 'Chỉ chọn được team của bạn');
+  }
 
   const id = transaction(() => {
     const { lastInsertRowid } = db
@@ -80,10 +81,7 @@ router.get('/projects/:id', (req, res) => {
   const sections = db.prepare('SELECT * FROM sections WHERE project_id = ? ORDER BY position').all(project.id);
   const tasks = db
     .prepare(
-      `SELECT t.*, u.name AS assignee_name,
-         (SELECT COUNT(*) FROM tasks s WHERE s.parent_id = t.id) AS subtask_count,
-         (SELECT COUNT(*) FROM tasks s WHERE s.parent_id = t.id AND s.completed = 1) AS subtask_done,
-         (SELECT COUNT(*) FROM comments c WHERE c.task_id = t.id) AS comment_count
+      `SELECT t.*, u.name AS assignee_name, ${TASK_COUNTS}
        FROM tasks t LEFT JOIN users u ON u.id = t.assignee_id
        WHERE t.project_id = ? AND t.parent_id IS NULL
        ORDER BY t.position`
@@ -123,8 +121,12 @@ router.patch('/projects/:id', (req, res) => {
 
   const name = body.name?.trim() ?? project.name;
   if (!name) return badRequest(res, 'Cần nhập tên project');
-  const teamIds = changesTeams ? parseTeamIds(body.team_ids) : null;
+  const changeScope = scopeOf(req.user, 'projects.change_teams');
+  let teamIds = changesTeams ? parseTeamIds(body.team_ids) : null;
   if (changesTeams && !teamIds) return badRequest(res, 'Danh sách team không hợp lệ');
+  // With 'team', only the user's own teams are added or removed; the project's other teams stay, and it keeps a team.
+  if (teamIds) teamIds = mergeOwnTeams(req.user, changeScope, project.teams.map((t) => t.id), teamIds);
+  if (teamIds && changeScope === 'team' && !teamIds.length) return forbidden(res, 'Chỉ chọn được team của bạn');
   transaction(() => {
     db.prepare('UPDATE projects SET name = ?, color = ? WHERE id = ?').run(name, body.color ?? project.color, project.id);
     if (teamIds) setProjectTeams(project.id, teamIds);
@@ -148,9 +150,9 @@ router.post('/projects/:id/members', (req, res) => {
   if (!project) return;
   const email = req.body?.email?.trim().toLowerCase();
   if (!email) return badRequest(res, 'Cần nhập email');
-  const user = db.prepare("SELECT id, name, email FROM users WHERE email = ? AND status = 'active' AND role != 'root' AND joined_at IS NOT NULL").get(email);
-  if (!user) return res.status(404).json({ error: 'Chưa có tài khoản đang hoạt động nào dùng email này' });
-  if (isMember(project.id, user.id)) return res.status(409).json({ error: 'Người này đã là thành viên' });
+  const user = db.prepare(`SELECT u.id, u.name, u.email FROM users u WHERE u.email = ? AND ${AT_WORK}`).get(email);
+  if (!user) return notFound(res, 'Chưa có tài khoản đang hoạt động nào dùng email này');
+  if (isMember(project.id, user.id)) return conflict(res, 'Người này đã là thành viên');
   db.prepare('INSERT INTO project_members (project_id, user_id) VALUES (?, ?)').run(project.id, user.id);
   res.status(201).json(user);
 });

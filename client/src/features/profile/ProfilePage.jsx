@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { api, uploadFile } from '../../api.js';
 import { setAvatarVersion } from '../../avatars.js';
 import { tr } from '../../i18n.js';
-import { GENDERS, ROLES, STATUSES, formatDate, todayStr } from '../../utils.js';
+import { GENDERS, STATUSES, formatDate, roleLabel, todayStr } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { LanguageSwitch, ThemeSwitch } from '../../components/Preferences.jsx';
 
@@ -19,7 +19,7 @@ function AccountFacts({ user }) {
       <dt>Email</dt>
       <dd>{user.email}</dd>
       <dt>{tr('Vai trò')}</dt>
-      <dd>{ROLES[user.role]}</dd>
+      <dd>{roleLabel(user)}</dd>
       <dt>Team</dt>
       <dd>{user.team_name ?? tr('Chưa có team')}</dd>
       <dt>{tr('Trạng thái')}</dt>
@@ -41,7 +41,7 @@ function ProfileSummary({ profile }) {
           <b className="ellipsis">{profile.name}</b>
           {profile.job_title && <span className="ellipsis">{profile.job_title}</span>}
           <span className="muted small ellipsis">
-            {ROLES[profile.role]}
+            {roleLabel(profile)}
             {profile.team_name && ` · ${profile.team_name}`}
           </span>
         </span>

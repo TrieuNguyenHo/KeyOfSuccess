@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { myTeamsLabel, watchesAll } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
+import { useAllTeams } from '../../components/hooks.js';
+import { ErrorBanner } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
 
 const dayLabel = (iso) => new Date(`${iso}T00:00`).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
@@ -86,13 +88,9 @@ export default function DashboardPage({ user, onOpenPerson }) {
   const watchAll = watchesAll(user);
   // 'all' (Manager), 'mine' (all of a Leader's teams) or 'team:<id>'.
   const [scope, setScope] = useState(watchAll ? 'all' : 'mine');
-  const [teams, setTeams] = useState([]);
+  const teams = useAllTeams(watchAll);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (watchAll) api('/teams').then(setTeams).catch(() => {});
-  }, [watchAll]);
 
   useEffect(() => {
     setData(null);
@@ -133,11 +131,7 @@ export default function DashboardPage({ user, onOpenPerson }) {
         )}
       </header>
 
-      {error && (
-        <div className="error banner" onClick={() => setError('')}>
-          {error} {tr('(bấm để ẩn)')}
-        </div>
-      )}
+      <ErrorBanner error={error} onClose={() => setError('')} />
 
       <div className="list dashboard">
         {!data ? (

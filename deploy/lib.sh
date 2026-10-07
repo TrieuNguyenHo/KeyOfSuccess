@@ -21,11 +21,17 @@ schema_of_ref() { git -C "$APP_DIR" show "$1:server/src/db.js" | grep -o 'user_v
 schema_of_db() { sqlite3 "$DATA/app.db" 'PRAGMA user_version'; }
 
 # The app answers, running the checked-out commit (so a previous process still holding the port does not count).
+# Versions from before /api/health reported its commit only answer {"ok":true}, which is accepted for them.
 health_ok() {
-  local want
+  local want reply
   want="$(git -C "$APP_DIR" rev-parse --short HEAD)"
   for _ in $(seq 1 30); do
-    curl -fs http://127.0.0.1:3001/api/health | grep -q "\"commit\":\"$want\"" && return 0
+    reply="$(curl -fs http://127.0.0.1:3001/api/health || true)"
+    case "$reply" in
+      *"\"commit\":\"$want\""*) return 0 ;;
+      *'"commit"'*) ;;
+      *'"ok":true'*) git -C "$APP_DIR" grep -q '"commit"' HEAD -- server/src/routes/health.js || return 0 ;;
+    esac
     sleep 1
   done
   return 1

@@ -2,7 +2,8 @@
 import express from 'express';
 import { db } from '../db.js';
 import { openEventStream } from '../lib/live.js';
-import { can } from '../lib/permissions.js';
+import { can, scopeOf } from '../lib/permissions.js';
+import { placeholders } from '../lib/util.js';
 
 const router = express.Router();
 
@@ -24,11 +25,21 @@ router.get('/notifications', (req, res) => {
   const { unread } = db
     .prepare('SELECT COUNT(*) AS unread FROM notifications WHERE user_id = ? AND read_at IS NULL')
     .get(req.user.id);
-  // Accounts waiting for this user's approval: all of them with users.manage; with teams.members only, the self
-  // sign-ups without a team, which they may approve into one of their teams (invitations wait for users.manage).
+  // Accounts waiting for this user's approval: all of them with users.manage 'all'; with 'team', those of the user's
+  // teams and those with no team; with teams.members only, the self sign-ups without a team, which they may approve
+  // into one of their teams (invitations wait for users.manage).
   let pendingUsers = 0;
-  if (can(req.user, 'users.manage')) pendingUsers = db.prepare("SELECT COUNT(*) AS n FROM users WHERE status = 'pending'").get().n;
-  else if (can(req.user, 'teams.members')) {
+  const users = scopeOf(req.user, 'users.manage');
+  if (users === 'all') pendingUsers = db.prepare("SELECT COUNT(*) AS n FROM users WHERE status = 'pending'").get().n;
+  else if (users === 'team') {
+    pendingUsers = db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM users u WHERE u.status = 'pending'
+         AND (NOT EXISTS (SELECT 1 FROM user_teams ut WHERE ut.user_id = u.id)
+           OR EXISTS (SELECT 1 FROM user_teams ut WHERE ut.user_id = u.id AND ut.team_id IN (${placeholders(req.user.team_ids)})))`
+      )
+      .get(...req.user.team_ids).n;
+  } else if (can(req.user, 'teams.members')) {
     pendingUsers = db
       .prepare(
         `SELECT COUNT(*) AS n FROM users u WHERE u.status = 'pending' AND u.invited_by IS NULL
