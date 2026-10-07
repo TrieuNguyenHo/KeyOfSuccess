@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../../api.js';
 import { askConfirm } from '../../components/Dialog.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
-import { CheckButton, DueDate } from '../../components/TaskParts.jsx';
+import { CheckMark, DueDate } from '../../components/TaskParts.jsx';
 import { tr } from '../../i18n.js';
 import RequirementComments from './RequirementComments.jsx';
 import RequirementFiles from './RequirementFiles.jsx';
@@ -142,7 +142,7 @@ export default function RequirementDetail({
       {requirementTasks.length === 0 && <p className="muted">{tr('Chưa có task nào. Thêm task từ Board hoặc List.')}</p>}
       {requirementTasks.map((t) => (
         <button key={t.id} className="req-task" onClick={() => onOpenTask(t.id)}>
-          <CheckButton checked={Boolean(t.completed)} disabled onClick={() => {}} />
+          <CheckMark checked={Boolean(t.completed)} />
           <span className={`ellipsis grow ${t.completed ? 'done' : ''}`}>{t.title}</span>
           {t.assignee_name && <Avatar name={t.assignee_name} userId={t.assignee_id} small />}
           <DueDate task={t} plainClass="muted small" />
