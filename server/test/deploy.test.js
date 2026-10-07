@@ -19,6 +19,7 @@ before(async () => {
   mkdirSync(join(dist, 'assets'), { recursive: true });
   writeFileSync(join(dist, 'index.html'), '<!doctype html><title>KeyOfSuccess</title>');
   writeFileSync(join(dist, 'assets', 'index-abc123.js'), 'console.log(1)');
+  writeFileSync(join(dist, 'version.json'), JSON.stringify({ version: 'v1.2', commit: 'abc1234' }));
   // A snapshot older than the kept ones and the leftover of an interrupted run, both cleaned up by the first backup.
   for (const old of ['2000-01-01', '2000-01-02.partial']) mkdirSync(join(backups, old), { recursive: true });
   server = await startServer({ env: { CLIENT_DIST: dist, BACKUP_DIR: backups, BACKUP_KEEP_DAYS: '1' } });
@@ -68,7 +69,12 @@ test('the built frontend is served next to the API', async () => {
   // API paths never fall back to the page.
   assert.equal((await api.get('/no-such-route', null)).status, 401);
   assert.equal((await api.get('/no-such-route', boss)).status, 404);
-  assert.deepEqual((await api.get('/health', null)).body, { ok: true });
+  // The health check reports the deployed version and the schema version.
+  const health = (await api.get('/health', null)).body;
+  assert.equal(health.ok, true);
+  assert.equal(health.version, 'v1.2');
+  assert.equal(health.commit, 'abc1234');
+  assert.ok(Number.isInteger(health.schema) && health.schema > 20);
 });
 
 test('a daily snapshot of the database and the uploads is written at start-up; old ones are pruned', async () => {
@@ -95,8 +101,8 @@ test('npm run backup writes a snapshot with the uploads, reusing unchanged files
   assert.equal(res.status, 201);
   const [stored] = readdirSync(server.uploadDir);
 
-  const run = (dir) =>
-    spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning', 'scripts/backup.js', dir], {
+  const run = (...args) =>
+    spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning', 'scripts/backup.js', ...args], {
       cwd: SERVER_DIR,
       env: { ...process.env, NODE_ENV: 'test', DB_PATH: server.dbPath, JWT_SECRET: 'test-secret', DEV_LOGIN: '1' },
       encoding: 'utf8',
@@ -117,4 +123,13 @@ test('npm run backup writes a snapshot with the uploads, reusing unchanged files
   renameSync(join(manual, day), yesterday);
   assert.equal(run(manual).status, 0);
   assert.equal(statSync(join(manual, day, 'uploads', stored)).ino, statSync(join(yesterday, 'uploads', stored)).ino);
+
+  // A named snapshot (taken before each deploy) prints its path and is left alone by the daily pruning.
+  const named = run(manual, '--name', 'before-v1.2');
+  assert.equal(named.status, 0, named.stderr);
+  assert.equal(named.stdout.trim().split('\n').pop(), join(manual, 'before-v1.2'));
+  assert.ok(existsSync(join(manual, 'before-v1.2', 'app.db')));
+  assert.equal(run(manual).status, 0);
+  assert.ok(existsSync(join(manual, 'before-v1.2', 'uploads', stored)));
+  assert.equal(run(manual, '--name', '../escape').status, 1);
 });

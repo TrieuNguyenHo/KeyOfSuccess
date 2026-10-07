@@ -158,16 +158,25 @@ Cách nhanh trên VPS Ubuntu 24.04 mới (vd. DigitalOcean Droplet), bằng root
 3. **Cài**: `bash /opt/keyofsuccess/deploy/setup.sh tasks.kingsport.vn`, nhập `GOOGLE_CLIENT_ID`, `DIRECTOR_EMAILS`, `MANAGER_EMAILS`, `ROOT_EMAILS` khi được hỏi. Script cài Node 22, Caddy (HTTPS), swap nếu ít RAM, user `keyofsuccess`, dịch vụ systemd, tường lửa (SSH / 80 / 443), tạo `server/.env` với `JWT_SECRET` ngẫu nhiên. Chạy lại được.
 4. **Google**: thêm `https://<domain>` vào *Authorized JavaScript origins* của OAuth Client.
 5. **Chuyển dữ liệu cũ** (nếu muốn): trên VPS `systemctl stop keyofsuccess`; trên máy cũ tắt dev server rồi `scp server/data/app.db` và `scp -r server/data/uploads` vào `/opt/keyofsuccess/server/data/`; trên VPS `chown -R keyofsuccess: /opt/keyofsuccess/server/data && systemctl start keyofsuccess`.
-6. Kiểm tra: `https://<domain>/api/health` trả `{"ok":true}`. Log: `journalctl -u keyofsuccess -f`.
+6. Kiểm tra: `https://<domain>/api/health` trả `{"ok":true,"schema":…,"version":…}`. Log: `journalctl -u keyofsuccess -f`.
 
-Cập nhật bản mới: `bash /opt/keyofsuccess/deploy/update.sh` (sao lưu, `git pull`, cài, build, khởi động lại; migration tự chạy).
+### Phiên bản, cập nhật và quay lại bản cũ
+
+- **Đánh phiên bản** bằng tag git trên `main` khi một bản đã ổn: `git tag v1.2 && git push origin v1.2` (hoặc tạo Release trên GitHub). `/api/health` cho biết bản đang chạy (`version`, `commit`) và schema database.
+- **Deploy**: `bash deploy/update.sh` (bản mới nhất của `main`) hoặc `bash deploy/update.sh v1.2` (đúng một tag / commit). Trước mỗi lần chuyển, database và file được sao lưu vào `server/data/backups/before-<thời gian>-<bản cũ>/` (giữ 10 bản gần nhất). App không lên được với bản mới thì script **tự quay về bản cũ cùng dữ liệu lúc trước khi deploy**.
+- **Quay lại bản cũ**: `bash deploy/rollback.sh --list` (lịch sử deploy, các tag), `bash deploy/rollback.sh` (bản chạy trước lần deploy gần nhất) hoặc `bash deploy/rollback.sh v1.1`. Luôn hỏi xác nhận.
+  - Bản cũ **cùng schema** database: chỉ đổi code, dữ liệu giữ nguyên.
+  - Bản cũ **schema thấp hơn** (bản mới đã đổi cấu trúc database, migration chỉ chạy một chiều): khôi phục database và file từ bản sao lưu lúc rời bản cũ đó, nên **mọi thay đổi sau thời điểm ấy bị mất** (script ghi rõ thời điểm; trạng thái hiện tại vẫn được sao lưu trước). Không còn bản sao lưu đó thì script từ chối.
+  - Chỉ quay về được các bản đã có `deploy/` (từ PR #1); tag `v1.0` cũ hơn, chưa tự phục vụ giao diện production.
+- **VPS cài trước khi có các script này** (`update.sh` cũ chỉ `git pull`): lấy script mới rồi deploy, một lần duy nhất: `cd /opt/keyofsuccess && git fetch --tags origin && git checkout v1.1 -- deploy && bash deploy/update.sh v1.1`.
+- Lịch sử: `server/data/deploys.log` (mỗi dòng: thời gian, deploy / rollback, từ commit, tới commit, bản, bản sao lưu, kết quả).
 
 Cài tay trên máy khác: `server/.env` theo `server/.env.example` (`NODE_ENV=production`, `API_HOST=127.0.0.1`, `JWT_SECRET` thật, `GOOGLE_CLIENT_ID`, `DIRECTOR_EMAILS` / `MANAGER_EMAILS` / `ROOT_EMAILS`, không có `DEV_LOGIN`; thiếu hoặc sai thì server báo lỗi và không chạy), `npm ci && npm run build && npm start` sau reverse proxy HTTPS (`deploy/Caddyfile`, `deploy/keyofsuccess.service`).
 
 ### Sao lưu
 
 - Tự động mỗi ngày (lúc khởi động và khi sang ngày mới): `server/data/backups/<YYYY-MM-DD>/` gồm `app.db` (chụp bằng `VACUUM INTO`, an toàn khi app đang chạy) và `uploads/` (đầy đủ file đính kèm, ảnh đại diện; file không đổi so với hôm trước là hard link nên không tốn thêm chỗ). Giữ 14 bản gần nhất.
-- Sao lưu tay: `npm run backup` (hoặc `npm run backup -- /đường/dẫn`).
+- Sao lưu tay: `npm run backup` (hoặc `npm run backup -- /đường/dẫn`). Trước mỗi lần deploy / rollback có thêm bản `before-…` (xem trên).
 - **Bản sao lưu nằm cùng ổ đĩa thì không cứu được khi hỏng máy**: đặt `BACKUP_DIR` sang ổ khác, hoặc đồng bộ thư mục này lên nơi khác (rclone lên Google Drive, NAS…) hằng ngày.
 - Khôi phục: tắt dịch vụ, chép `app.db` của bản cần dùng thành `server/data/app.db` (xoá `app.db-wal`, `app.db-shm` cũ) và `uploads/` thành `server/data/uploads/`, rồi bật lại.
 
@@ -255,7 +264,8 @@ server/src/db.js       schema SQLite + migration + helper transaction
 server/src/config.js   biến môi trường (cổng, JWT_SECRET, Google, ROOT_EMAILS, DIRECTOR_EMAILS, MANAGER_EMAILS, DEV_LOGIN, sao lưu); kiểm tra khi production
 server/src/index.js    dựng app Express: đăng nhập bắt buộc, gắn các router, phục vụ client/dist, xử lý lỗi, dọn dẹp và sao lưu định kỳ
 server/scripts/backup.js  npm run backup (sao lưu tay)
-deploy/                setup.sh (cài lên VPS Ubuntu), update.sh (cập nhật), Caddyfile (HTTPS), keyofsuccess.service (systemd)
+deploy/                setup.sh (cài lên VPS Ubuntu), update.sh (deploy một bản), rollback.sh (quay lại bản cũ), lib.sh (dùng chung),
+                       Caddyfile (HTTPS), keyofsuccess.service (systemd)
 server/src/routes/     REST API, mỗi tính năng một file (express.Router, gắn dưới /api)
   auth               đăng nhập Google / dev, middleware kiểm tra token (requireUser)
   me                 /me, hồ sơ, ảnh đại diện
