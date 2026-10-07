@@ -12,9 +12,9 @@ const localDate = (d = new Date()) => d.toLocaleDateString('sv-SE'); // YYYY-MM-
 const snapshots = (dir) => (existsSync(dir) ? readdirSync(dir).filter((n) => SNAPSHOT.test(n)).sort() : []);
 
 // Writes today's snapshot unless it exists (or `force`, which replaces it). Returns its path, or null if skipped.
-export function backupNow({ dir = BACKUP_DIR, force = false } = {}) {
+// `name` writes a named snapshot instead (deploy/update.sh: one before each deploy), which daily pruning leaves alone.
+export function backupNow({ dir = BACKUP_DIR, force = false, name = localDate() } = {}) {
   if (!dir) return null;
-  const name = localDate();
   const target = join(dir, name);
   if (existsSync(target) && !force) return null;
   const previous = snapshots(dir).filter((n) => n !== name).pop();

@@ -89,6 +89,7 @@ _Cập nhật lần cuối: 2026-10-07 · Schema database: v26 · Test: `npm tes
 - Sao lưu tự động (`server/src/lib/backup.js`): mỗi ngày một bản `server/data/backups/<ngày>/` (`app.db` bằng `VACUUM INTO` + `uploads/`, file không đổi là hard link), giữ 14 bản (`BACKUP_DIR`, `BACKUP_KEEP_DAYS`); bật mặc định khi production, tắt khi dev. `npm run backup` để sao lưu tay.
 - HTTPS qua Caddy (`deploy/Caddyfile`, Let's Encrypt tự động), chạy nền bằng systemd (`deploy/keyofsuccess.service`). Hướng dẫn từng bước, khôi phục bản sao lưu: README mục "Deploy".
 - Người dùng chọn thử trước trên **DigitalOcean**, domain `tasks.kingsport.vn`. `deploy/setup.sh <domain>` cài toàn bộ lên Droplet Ubuntu 24.04 (Node 22, Caddy, swap, user `keyofsuccess`, systemd, tường lửa, `server/.env` có `JWT_SECRET` ngẫu nhiên); `deploy/update.sh` sao lưu → pull → build → khởi động lại. Code thuộc root, app chỉ ghi được `server/data`. Đã kiểm tra bằng `bash -n` và shellcheck, chưa chạy trên Droplet thật.
+- Quản lý phiên bản deploy (2026-10-07, người dùng hỏi "deploy lại bản cũ thì sao"): phiên bản = tag git trên `main` (đã có `v1.0`). `deploy/update.sh [tag]` deploy đúng một bản, sao lưu `before-<thời gian>-<bản cũ>` trước mỗi lần chuyển (giữ 10 bản), app không lên thì tự quay về bản cũ cùng dữ liệu. `deploy/rollback.sh [--list | tag]`: cùng schema thì chỉ đổi code; schema thấp hơn thì khôi phục database + file từ bản sao lưu lúc rời bản đó (báo rõ thời điểm, mất thay đổi sau đó, sao lưu trạng thái hiện tại trước, hỏi "yes"). Lịch sử `server/data/deploys.log`. `/api/health` trả thêm `version`, `commit` (từ `client/dist/version.json`), `schema`; bước kiểm tra sau deploy so đúng commit (lần chạy thử đầu phát hiện process cũ vẫn trả lời health). `npm run backup -- --name <nhãn>`. Phần dùng chung trong `deploy/lib.sh`. Đã chạy thử thật trong container (systemctl giả lập, origin có tag v1.1 / v1.2 đổi schema / v1.3 hỏng / v1.2.1 cùng schema): deploy, tự quay về khi hỏng, rollback có khôi phục dữ liệu, rollback chỉ đổi code, tag không tồn tại. Không quay về được các bản trước khi có `deploy/` (vd. `v1.0`).
 - Test `deploy.test.js` (4 test). Đã chạy thử `npm run build` + `npm start` ở chế độ production: trang và API cùng cổng, bản sao lưu được tạo lúc khởi động.
 
 ### Test tự động (2026-10-05)
@@ -169,7 +170,7 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 
 ## Đề xuất tiếp theo
 
-1. **Deploy thật** lên DigitalOcean (`tasks.kingsport.vn`, hoặc tạm `<IP>.sslip.io` trong lúc chờ DNS): README mục "Deploy", `deploy/setup.sh`.
+1. **Deploy thật** lên DigitalOcean (Droplet `68.183.224.111`, tạm `68-183-224-111.sslip.io` trong lúc chờ `tasks.kingsport.vn`): README mục "Deploy", `deploy/setup.sh`. Đánh tag `v1.1` cho bản đầu tiên deploy.
 2. **Root, đợt 3: thêm / sửa / xoá vai trò và ràng buộc theo vai trò** (mục Tính năng), sau khi người dùng dùng thử bảng quyền.
 3. **Thông báo comment mới trên requirement** cho owner / Leader (mục Tính năng).
 4. **Thử trên iPad thật** (sau khi deploy thì dùng được cả đăng nhập Google qua HTTPS) và báo lại chỗ vướng.

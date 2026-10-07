@@ -6,14 +6,12 @@
 # Kết quả: Node 22, Caddy (HTTPS tự động), dịch vụ systemd "keyofsuccess" chạy bằng user riêng, tường lửa
 # chỉ mở SSH / 80 / 443. Code thuộc root (app không tự sửa được code), app chỉ ghi vào server/data.
 set -euo pipefail
+# shellcheck source=lib.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 DOMAIN="${1:?Cách dùng: sudo bash deploy/setup.sh <domain>}"
-APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_USER=keyofsuccess
 ENV_FILE="$APP_DIR/server/.env"
-
-[ "$(id -u)" = 0 ] || { echo "Cần chạy bằng root (sudo)."; exit 1; }
-step() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
+require_root
 
 step "Gói hệ thống"
 export DEBIAN_FRONTEND=noninteractive
@@ -46,9 +44,7 @@ mkdir -p "$APP_DIR/server/data"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR/server/data"
 
 step "Cài thư viện và build giao diện"
-cd "$APP_DIR"
-npm ci --no-audit --no-fund
-npm run build
+build_current
 
 if [ ! -f "$ENV_FILE" ]; then
   step "Cấu hình server/.env"
@@ -93,9 +89,9 @@ ufw allow 443/tcp >/dev/null
 ufw --force enable >/dev/null
 
 step "Kiểm tra"
-for _ in $(seq 1 20); do curl -fs http://127.0.0.1:3001/api/health >/dev/null && break; sleep 1; done
-if curl -fs http://127.0.0.1:3001/api/health >/dev/null; then
-  echo "App đang chạy. Mở https://$DOMAIN (lần đầu chờ Caddy lấy chứng chỉ, khoảng 1 phút)."
+if health_ok; then
+  log_deploy setup - "$(git -C "$APP_DIR" rev-parse HEAD)" "$(version_of HEAD)" - ok
+  echo "App đang chạy ($(version_of HEAD)). Mở https://$DOMAIN (lần đầu chờ Caddy lấy chứng chỉ, khoảng 1 phút)."
 else
   echo "App chưa chạy. Xem lỗi: journalctl -u keyofsuccess -n 50"
   exit 1
