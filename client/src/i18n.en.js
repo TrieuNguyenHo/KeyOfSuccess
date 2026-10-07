@@ -594,4 +594,86 @@ export default {
   'Không xoá được vai trò có sẵn': 'A built-in role cannot be deleted',
   'Vai trò còn {count} người giữ; hãy đổi vai trò của họ trước': '{count} people still hold this role; change their role first',
   'Vai trò tự tạo không có quyền mặc định': 'A role you added has no default permissions',
+
+  // User guide (GuidePage.jsx)
+  'Hướng dẫn': 'Guide',
+  'Hướng dẫn sử dụng': 'User guide',
+  'Mục lục': 'Contents',
+  'Bạn đang dùng app với vai trò {role}; hướng dẫn chỉ gồm những việc vai trò này làm được.':
+    'You are using the app as {role}; this guide only covers what this role can do.',
+  'Bắt đầu': 'Getting started',
+  'Thanh bên trái': 'The left sidebar',
+  'Các màn chính nằm ở trên; dưới đó là project, xếp theo từng team của bạn. Project của team khác nằm ở "Project khác", project chung cả phòng ở "Chung toàn phòng".':
+    'The main screens are at the top; below them are the projects, grouped by each of your teams. Projects of other teams are under "Other projects", department-wide ones under "Whole department".',
+  'Hồ sơ của bạn': 'Your profile',
+  'Bấm tên mình ở cuối thanh bên để sửa tên hiển thị, ảnh đại diện, ngày sinh, số điện thoại, chức danh. Thông tin cá nhân chỉ bạn, Manager và Leader của team bạn xem được.':
+    'Click your name at the bottom of the sidebar to edit your display name, profile picture, birthday, phone and job title. Only you, Managers and the Leaders of your teams can read your personal details.',
+  'Giao diện và ngôn ngữ': 'Appearance and language',
+  'Nút Sáng / Tối và VI | EN ở cuối thanh bên (và trong Hồ sơ). Ngôn ngữ được lưu theo tài khoản; tên project, task… giữ nguyên như người viết gõ.':
+    'The Light / Dark and VI | EN switches are at the bottom of the sidebar (and in your Profile). The language is saved with your account; project and task names stay as their authors typed them.',
+  'Gửi link cho đồng nghiệp': 'Sending a link to a colleague',
+  'Màn đang xem (kể cả bộ lọc và task đang mở) nằm trên địa chỉ trang. Tải lại trang vẫn đúng chỗ; sao chép địa chỉ để gửi cho người khác.':
+    'The screen you are on (filters and the open task included) is in the page address. Reloading keeps you there; copy the address to send it to someone.',
+  'Project, requirement và task': 'Projects, requirements and tasks',
+  'Cách tổ chức': 'How work is organised',
+  'Mỗi project gồm các requirement (đầu việc lớn), mỗi requirement gồm các task, mỗi task có thể có subtask. Task nào cũng thuộc một requirement, nên project cần có requirement trước khi thêm task.':
+    'A project holds requirements (the big pieces of work), each requirement holds tasks, and a task may have subtasks. Every task belongs to a requirement, so a project needs a requirement before tasks can be added.',
+  'Các cách xem': 'Views',
+  'Trong project: Requirements (tiến độ từng requirement và comments), Lịch (task theo hạn chót), List (bảng) và Board (cột theo trạng thái). Bộ lọc theo requirement, người làm, team, kênh, trạng thái, hạn chót và ô tìm task dùng chung cho List, Board và Lịch.':
+    'In a project: Requirements (each requirement\'s progress and comments), Calendar (tasks by due date), List (a table) and Board (columns by status). The filters by requirement, assignee, team, channel, status, due date and the task search apply to List, Board and Calendar alike.',
+  '4 trạng thái cố định': 'The 4 fixed statuses',
+  'Planned, In-Progress, Completed, Pending có ở mọi project, không đổi tên hay xoá được. Đánh dấu ✓ xong thì task tự sang Completed; kéo task vào Completed cũng là đánh dấu xong.':
+    'Planned, In-Progress, Completed and Pending exist in every project and cannot be renamed or deleted. Ticking ✓ moves a task to Completed; dragging a task into Completed ticks it too.',
+  'Quyền của bạn với task': 'What you can do with tasks',
+  'Ở project có team của bạn, bạn tạo, sửa, giao và xoá task, thêm trạng thái. Bạn giao task cho mình và người trong team của bạn tham gia project. Ở project khác bạn chỉ xem và comment.':
+    'In projects of your teams you create, edit, assign and delete tasks, and add statuses. You assign tasks to yourself and to people of your teams who take part in the project. In other projects you view and comment only.',
+  'Bạn tự tạo task cho mình và sửa task được giao cho mình. Task của người khác bạn xem và comment được. Ở project không có team của bạn, bạn chỉ xem và comment.':
+    'You create tasks for yourself and edit the tasks assigned to you. You can view and comment on other people\'s tasks. In projects outside your teams you view and comment only.',
+  'Làm việc với task': 'Working on a task',
+  'Mở task': 'Opening a task',
+  'Bấm vào task để mở panel bên phải; bấm ⤢ để mở trang đầy đủ. Ở đó có mô tả, subtask, người làm, hạn chót, ưu tiên, requirement, kênh, file đính kèm và comments.':
+    'Click a task to open it in the right panel; click ⤢ for the full page. There you find the description, subtasks, assignee, due date, priority, requirement, channels, attachments and comments.',
+  'Kéo thả': 'Drag and drop',
+  'Kéo thẻ giữa các cột trên Board để đổi trạng thái, kéo task sang ngày khác trên Lịch để đổi hạn chót. Trên iPad: giữ ngón tay khoảng nửa giây rồi kéo.':
+    'Drag a card between Board columns to change its status, or a task to another day on the Calendar to change its due date. On an iPad: hold your finger for about half a second, then drag.',
+  'Ô "Lặp lại" (hằng ngày, hằng tuần, mỗi 2 tuần, hằng tháng): xong task này thì app tự tạo bản kế tiếp ở Planned với hạn chót mới. Bấm "?" cạnh ô để xem chi tiết.':
+    'The "Repeat" field (daily, weekly, every 2 weeks, monthly): when the task is done, the app creates the next one in Planned with a new due date. Click "?" next to the field for details.',
+  'Gắn task với kênh (Facebook, TikTok…) để lọc và xem số liệu theo kênh trên Dashboard.':
+    'Tag tasks with channels (Facebook, TikTok…) to filter by them and see per-channel figures on the Dashboard.',
+  'Lịch sử thay đổi': 'Change history',
+  'Cuối panel task là mọi thay đổi trong 30 ngày qua: ai đổi gì, lúc nào.':
+    'The bottom of the task panel lists every change of the last 30 days: who changed what, and when.',
+  'Comments, nhắc tên và file': 'Comments, mentions and files',
+  'Task và requirement đều có comments. Gõ @ rồi chọn tên để nhắc ai đó: họ nhận thông báo (chỉ nhắc được người xem được nội dung đó). Bạn sửa và xoá comment của mình.':
+    'Tasks and requirements both have comments. Type @ and pick a name to mention someone: they get a notification (you can only mention people who can see it). You edit and delete your own comments.',
+  'Dán ảnh (Ctrl+V), kéo thả hoặc bấm 📎 để gửi file kèm comment; mục "Đính kèm" của task / requirement nhận file tối đa 25 MB.':
+    'Paste an image (Ctrl+V), drag and drop, or click 📎 to send files with a comment; the "Attachments" section of a task / requirement takes files up to 25 MB.',
+  'Chuông thông báo trên thanh bên báo khi bạn được giao task, được nhắc tên, hoặc task của người trong team bạn phụ trách đã xong. Thông báo đến ngay, không cần tải lại trang.':
+    'The bell in the sidebar tells you when a task is assigned to you, when you are mentioned, or when a task of someone in the teams you lead is done. Notifications arrive at once, no reload needed.',
+  'Chuông thông báo trên thanh bên báo khi bạn được giao task hoặc được nhắc tên. Thông báo đến ngay, không cần tải lại trang.':
+    'The bell in the sidebar tells you when a task is assigned to you or when you are mentioned. Notifications arrive at once, no reload needed.',
+  'Task của tôi và Dashboard': 'My tasks and Dashboard',
+  'Mọi task được giao cho bạn ở mọi project, chia theo Quá hạn, Hôm nay, 7 ngày tới…; nút Danh sách / Lịch để đổi cách xem, ô "Mọi kênh" để lọc theo kênh.':
+    'Every task assigned to you in every project, grouped by Overdue, Today, Next 7 days…; the List / Calendar switch changes the view, "All channels" filters by channel.',
+  '"Tổng quan" cho số liệu của các team bạn theo dõi: workload từng người, task hoàn thành 14 ngày, tiến độ project và kênh. Mỗi project cũng có dashboard riêng.':
+    '"Overview" shows the figures of the teams you watch: each person\'s workload, tasks completed over 14 days, project and channel progress. Each project has its own dashboard too.',
+  'Mỗi project bạn tham gia có dashboard riêng: phần trăm hoàn thành, tiến độ từng requirement, workload thành viên, tiến độ theo trạng thái và kênh.':
+    'Each project you take part in has its own dashboard: percent complete, progress of each requirement, members\' workload, progress by status and by channel.',
+  'Theo team hoặc theo người': 'By team or by person',
+  'Màn theo dõi liệt kê task của các team bạn phụ trách; chọn một team hoặc một người để xem riêng, đổi sang Lịch để xem theo hạn chót.':
+    'The watch screen lists the tasks of the teams you are in charge of; pick a team or a person to see theirs alone, or switch to Calendar to see them by due date.',
+  'Tạo và quản lý project': 'Creating and managing projects',
+  'Bấm "+" cạnh "Projects theo team" ở thanh bên: đặt tên, chọn team phụ trách (không chọn = chung toàn phòng), có thể thêm cả team vào project.':
+    'Click "+" next to "Projects by team" in the sidebar: give a name, pick the teams in charge (none = department-wide), and optionally add the whole teams to the project.',
+  'Sau khi tạo': 'After creating it',
+  'Tạo requirement đầu tiên trong tab Requirements, rồi thêm task. Đổi tên, đổi team, thêm / bỏ thành viên ở đầu trang project.':
+    'Create the first requirement in the Requirements tab, then add tasks. Rename, change teams, add or remove members at the top of the project page.',
+  'Thành viên team': 'Team members',
+  'Màn "Quản lý team": thêm người chưa có team, duyệt người tự đăng ký vào team của bạn, mời email mới (chờ Manager duyệt), bỏ Member khỏi team.':
+    'The "Manage team" screen: add people without a team, approve self sign-ups into your team, invite new emails (waiting for a Manager\'s approval), remove Members from the team.',
+  'Duyệt người tự đăng ký, mời người mới, đổi vai trò và team, khoá tài khoản. Người được mời phải đăng nhập lần đầu mới tính là đã tham gia và mới được giao task.':
+    'Approve self sign-ups, invite new people, change roles and teams, lock accounts. An invited person counts as joined, and can be assigned tasks, only after their first sign-in.',
+  'Bấm ✎ ở một team để đổi tên và quản lý thành viên.': 'Click ✎ on a team to rename it and manage its members.',
+  'Danh sách kênh dùng chung cả phòng: thêm, đổi tên, bấm chấm màu để đổi màu, xoá.':
+    'The department-wide channel list: add, rename, click the color dot to change the color, delete.',
 };

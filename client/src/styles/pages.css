@@ -101,6 +101,15 @@ img.avatar { object-fit: cover; }
   .profile-grid dd, .profile-grid > input, .profile-grid > select, .profile-grid > .profile-bio-field, .profile-grid > .tabs { margin-bottom: 10px; }
 }
 
+/* User guide (#/guide) */
+.guide { display: flex; flex-direction: column; gap: 20px; max-width: 760px; }
+.guide-role { margin: 0; }
+.guide-toc { display: flex; flex-wrap: wrap; gap: 8px; }
+.guide-section { scroll-margin-top: 16px; }
+.guide-section dl { display: flex; flex-direction: column; gap: 14px; margin: 0; }
+.guide-section dt { font-weight: 600; }
+.guide-section dd { margin: 2px 0 0; line-height: 1.47; }
+
 /* Someone's avatar opening the key facts of their profile (User management, team members) */
 .profile-pop { position: relative; flex-shrink: 0; }
 .profile-pop > summary { display: block; list-style: none; cursor: pointer; border-radius: 50%; }

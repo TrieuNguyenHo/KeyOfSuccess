@@ -14,6 +14,7 @@ const ICON_PATHS = {
   dashboard: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   team: 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 19v-1a4 4 0 0 0-3-3.87M16 2.13a4 4 0 0 1 0 7.75',
   admin: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+  guide: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01',
   folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
 };
 
@@ -207,6 +208,9 @@ export default function Sidebar({
             {tr('Quản trị')}
           </NavItem>
         )}
+        <NavItem active={view.type === 'guide'} onClick={() => go({ type: 'guide' })} icon="guide">
+          {tr('Hướng dẫn')}
+        </NavItem>
       </ul>
 
       <div className="sidebar-title">
