@@ -198,7 +198,6 @@ export default function Workspace({ user, onLogout, onUserChange }) {
         key={`${view.projectId}:${view.id}`}
         projectId={view.projectId}
         requirementId={view.id}
-        user={user}
         refreshKey={refreshKey}
         onBack={goBack}
         onOpenTask={setOpenTaskId}

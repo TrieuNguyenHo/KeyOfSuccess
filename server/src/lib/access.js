@@ -39,27 +39,53 @@ export const TASK_COUNTS = `(SELECT COUNT(*) FROM tasks s WHERE s.parent_id = t.
 export const isMember = (projectId, userId) =>
   Boolean(db.prepare('SELECT 1 FROM project_members WHERE project_id = ? AND user_id = ?').get(projectId, userId));
 
-// 'manage': the owner, or projects.manage covering the project (rename, delete, members). 'edit': project members
-// (tasks, sections). 'view': projects.view covering the project (read and comment). A department-wide project (no
-// teams) is covered only by an 'all' scope.
-export function projectAccess(user, project) {
+// Project roles (v30, decided 2026-10-07): a role set by hand for one member of one project wins over the team rules,
+// in both directions; without one, the team rules decide. 'admin' manages the project (not deleting it) and has full
+// task rights; 'member' works on their own tasks and may be assigned, even from another team; 'viewer' views and
+// comments.
+export const PROJECT_ROLES = ['admin', 'member', 'viewer'];
+const ROLE_ACCESS = { admin: 'manage', member: 'edit', viewer: 'view' };
+const roleOfMember = (projectId, userId) =>
+  db.prepare('SELECT role FROM project_members WHERE project_id = ? AND user_id = ?').get(projectId, userId)?.role ?? null;
+// No role applies to the owner, nor to whoever manages every project (projects.manage 'all', the Director by default).
+export const roleFixed = (user, project) => user.id === project.owner_id || scopeOf(user, 'projects.manage') === 'all';
+// The role set by hand that applies to this user in this project, or null when the team rules decide.
+export const projectRole = (user, project) => (roleFixed(user, project) ? null : roleOfMember(project.id, user.id));
+
+// By the team rules: 'manage' for the owner, or projects.manage covering the project (rename, delete, members).
+// 'edit' for project members (tasks, sections). 'view' for projects.view covering the project (read and comment).
+// A department-wide project (no teams) is covered only by an 'all' scope.
+function teamAccess(user, project) {
   const teamIds = project.teams.map((t) => t.id);
   if (project.owner_id === user.id || coversTeams(user, scopeOf(user, 'projects.manage'), teamIds)) return 'manage';
   if (isMember(project.id, user.id)) return 'edit';
   if (coversTeams(user, scopeOf(user, 'projects.view'), teamIds)) return 'view';
   return null;
 }
+export function projectAccess(user, project) {
+  const role = projectRole(user, project);
+  return role ? ROLE_ACCESS[role] : teamAccess(user, project);
+}
 const ACCESS_RANK = { view: 1, edit: 2, manage: 3 };
 export const canEdit = (access) => ACCESS_RANK[access] >= ACCESS_RANK.edit;
 
 // Full rights on a project's tasks (create, edit, assign, delete, sections), from tasks.admin: 'all' on every project,
 // 'team' on the projects one of the user's teams takes part in. A department-wide project (no teams) counts every
-// team, for those who can open it.
+// team, for those who can open it. A project role decides instead: only 'admin' has them.
 export function isTaskAdmin(user, project) {
+  const role = projectRole(user, project);
+  return role ? role === 'admin' : teamTaskAdmin(user, project);
+}
+function teamTaskAdmin(user, project) {
   const scope = scopeOf(user, 'tasks.admin');
   if (scope !== 'team') return scope === 'all';
-  if (!project.teams.length) return Boolean(projectAccess(user, project));
+  if (!project.teams.length) return Boolean(teamAccess(user, project));
   return project.teams.some((t) => user.team_ids.includes(t.id));
+}
+// What the team rules alone give a member of the project, in project-role words, for the members list.
+export function teamRoleOf(user, project) {
+  if (teamAccess(user, project) === 'manage' || teamTaskAdmin(user, project)) return 'admin';
+  return canBeAssignedByTeam(user.id, project) ? 'member' : 'viewer';
 }
 
 // 'admin' for task admins. 'edit' for project members on the tasks assigned to them (no assigning, no deleting).
@@ -111,13 +137,22 @@ export function loadProject(req, res, projectId, need = 'view') {
     );
     return null;
   }
-  return { ...project, access, task_admin: isTaskAdmin(req.user, project) };
+  const loaded = { ...project, access, role: projectRole(req.user, project), task_admin: isTaskAdmin(req.user, project) };
+  return { ...loaded, can_edit_requirements: canEditRequirements(req.user, loaded) };
+}
+
+// Requirements are written by whoever manages the project and by requirements.manage covering it; with a project
+// role, by its 'admin' only. `project` comes from loadProject (it carries `access`).
+export function canEditRequirements(user, project) {
+  const role = projectRole(user, project);
+  if (role) return role === 'admin';
+  return project.access === 'manage' || coversTeams(user, scopeOf(user, 'requirements.manage'), project.teams.map((t) => t.id));
 }
 
 export const membersOf = (project) =>
   db
     .prepare(
-      `SELECT u.id, u.name, u.email FROM project_members m JOIN users u ON u.id = m.user_id
+      `SELECT u.id, u.name, u.email, m.role FROM project_members m JOIN users u ON u.id = m.user_id
        WHERE m.project_id = ? ORDER BY u.id = ? DESC, m.added_at, u.name`
     )
     .all(project.id, project.owner_id);
@@ -125,7 +160,13 @@ export const membersOf = (project) =>
 // Only people of the project's teams (of any team for a department-wide project) are given its tasks. Members from
 // other teams still view and comment, but are not assigned and do not add tasks for themselves. Tasks assigned
 // before this rule keep their assignee. Invited people who have not signed in yet are not given tasks either.
+// A project role decides instead: 'admin' and 'member' are given tasks wherever their teams are, 'viewer' never.
 export function canBeAssigned(userId, project) {
+  const role = roleOfMember(project.id, userId);
+  if (role) return role !== 'viewer' && Boolean(db.prepare('SELECT 1 FROM users WHERE id = ? AND joined_at IS NOT NULL').get(userId));
+  return canBeAssignedByTeam(userId, project);
+}
+function canBeAssignedByTeam(userId, project) {
   const teamIds = project.teams.map((t) => t.id);
   const inTeams = teamIds.length ? ` AND team_id IN (${placeholders(teamIds)})` : '';
   if (!db.prepare('SELECT 1 FROM users WHERE id = ? AND joined_at IS NOT NULL').get(userId)) return false;
@@ -144,9 +185,13 @@ export function assigneeTeamsIn(project, userTeams) {
 // take part in the project (any own team for a department-wide project); themselves only if canBeAssigned().
 // With tasks.admin 'all', every team counts as their own, so they assign anyone of the project's teams.
 // Assigning someone who is not yet a member makes them one (see PATCH /api/tasks/:id).
+// Project roles: an 'admin' by role assigns anyone of the project's teams; everyone assigns the members given the
+// 'admin' or 'member' role (from any team), and nobody assigns a 'viewer'.
 export function assignableBy(user, project) {
   const ownTeams =
-    scopeOf(user, 'tasks.admin') === 'all' ? db.prepare('SELECT id FROM teams').all().map((t) => t.id) : user.team_ids;
+    scopeOf(user, 'tasks.admin') === 'all' || projectRole(user, project) === 'admin'
+      ? db.prepare('SELECT id FROM teams').all().map((t) => t.id)
+      : user.team_ids;
   const teamIds = project.teams.length ? project.teams.map((t) => t.id).filter((id) => ownTeams.includes(id)) : ownTeams;
   return db
     .prepare(
@@ -154,10 +199,12 @@ export function assignableBy(user, project) {
          EXISTS (SELECT 1 FROM project_members m WHERE m.project_id = ? AND m.user_id = u.id) AS is_member
        FROM users u
        WHERE u.status = 'active' AND u.joined_at IS NOT NULL
-         AND (u.id = ? OR u.id IN (SELECT user_id FROM user_teams WHERE team_id IN (${placeholders(teamIds)})))
+         AND (u.id = ? OR u.id IN (SELECT user_id FROM user_teams WHERE team_id IN (${placeholders(teamIds)}))
+           OR u.id IN (SELECT user_id FROM project_members WHERE project_id = ? AND role IN ('admin', 'member')))
+         AND u.id NOT IN (SELECT user_id FROM project_members WHERE project_id = ? AND role = 'viewer')
        ORDER BY is_member DESC, u.name`
     )
-    .all(project.id, user.id, ...teamIds)
+    .all(project.id, user.id, ...teamIds, project.id, project.id)
     .filter((u) => u.id !== user.id || canBeAssigned(user.id, project));
 }
 

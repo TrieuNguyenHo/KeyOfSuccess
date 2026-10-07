@@ -5,7 +5,7 @@ File này được nạp tự động qua `.claude/CLAUDE.md`.
 
 **Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
 
-_Cập nhật lần cuối: 2026-10-07 · Schema database: v29 · Test: `npm test`, 273/273 pass (khoảng 5 giây)_
+_Cập nhật lần cuối: 2026-10-07 · Schema database: v30 · Test: `npm test`, 280/280 pass (khoảng 5 giây)_
 
 ---
 
@@ -86,6 +86,13 @@ _Cập nhật lần cuối: 2026-10-07 · Schema database: v29 · Test: `npm tes
 ### Gộp bản đã deploy `v1.0` vào nhánh chính (2026-10-07, schema v28)
 - Hai nhánh cùng lấy số v26: nhánh chính (v26 Manager theo team, v27 vai trò) và PR #1 đã deploy lên VPS với tag `v1.0` (v26 = 4 trạng thái cố định Planned / In-Progress / Completed / Pending, chuẩn bị deploy, backup hằng ngày). Khi gộp, trạng thái cố định thành **v28** (migration chạy lại an toàn); database của VPS (v26 + bảng `sections` đã có `pending`) được nhận ra và chạy bù bước "Manager chỉ quản lý team mình" (`managerToOwnTeams()` trong `db.js`), rồi v27, v28. Database dev: v27 → v28. Đã thử trên bản sao của cả hai loại database và chạy đủ test trước khi đưa về `main`.
 - Chữ trong hướng dẫn task lặp lại (Completed / Planned) chuyển sang `RecurrenceField.jsx` (file tách từ `TaskDetail`).
+
+### Vai trò trong project (2026-10-07, schema v30)
+- Người dùng hỏi Jira phân quyền thế nào (theo project, không theo team), rồi chốt thêm quyền theo project cho cả 4 trường hợp: điều phối viên project, người team khác làm việc, người chỉ xem, giới hạn bớt quyền. Cách áp: **vai trò gán tay thắng luật theo team ở cả hai chiều, không gán thì theo team**; người quản lý project gán.
+- Cột `project_members.role` (`admin` / `member` / `viewer`, NULL = theo team). Quản lý = như người quản lý task, cộng đổi tên project, thành viên, gán vai trò, requirement, nhưng không xoá project; Thành viên project = tự tạo task, sửa task của mình, được giao kể cả khi ở team khác; Chỉ xem = xem và comment, không được giao (hạ được cả Leader của team project). Không gán cho owner, người quản lý mọi project (`projects.manage` Toàn phòng, mặc định Director), chính mình, người vai trò cao hơn.
+- Server: `projectRole()` / `roleFixed()` / `teamRoleOf()` trong `lib/access.js`; `projectAccess()`, `isTaskAdmin()`, `canBeAssigned()`, `assignableBy()` đọc vai trò; `canEditRequirements()` chuyển từ `lib/requirements.js` sang `lib/access.js`. `loadProject()` trả thêm `role` và `can_edit_requirements` (client không tự tính quyền requirement nữa, bỏ hai chỗ `coversTeams` trong `ProjectView` / `RequirementPage`). API `PATCH /api/projects/:id/members/:userId`; danh sách thành viên có `role`, `team_role`, `fixed`, `can_set_role`. Admin theo vai trò không thấy nút xoá project.
+- Client: hộp Thành viên của project có ô chọn vai trò cạnh từng người ("Theo team · …" / Quản lý / Thành viên project / Chỉ xem) và dòng giải thích; người không gán được thì thấy tên vai trò. Thêm mục "Vai trò trong project" vào Hướng dẫn.
+- Migration thử trên bản sao database dev trước (8 dòng giữ nguyên, không lỗi khoá ngoại, chạy lại không lỗi); bản sao lưu `app.backup-before-project-roles.db` (v29). Database dev đã ở v30. Test `project-roles.test.js` (7 test), tổng 280/280. Đã thử trên trình duyệt bằng Demo User (owner Website Redesign): đổi Lan Anh sang Thành viên project, server lưu, rồi trả lại "Theo team".
 
 ### Hướng dẫn: chuyển xuống chân sidebar, thêm hình minh hoạ động (2026-10-07)
 - Người dùng yêu cầu: mục "Hướng dẫn" nằm dưới cùng, ngay trên nút Sáng / Tối (danh sách riêng `.sidebar-guide`, có đường kẻ phía trên); mỗi tính năng trong Hướng dẫn có animation hoặc hình.
@@ -210,14 +217,15 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 ## Đề xuất tiếp theo
 
 1. **Kiểm tra VPS sau khi lên `beta_v1.2`**: `/api/health` (schema 28), `bash deploy/rollback.sh --list`, quyền Manager trong bảng quyền của root (giờ là "Team của mình"); đồng bộ `server/data/backups` ra ngoài VPS (rclone / Google Drive) vì bản sao lưu đang cùng ổ đĩa; database trên VPS chuyển v26 → v28 và Manager chuyển sang "Team của mình". Kiểm tra lại quyền Manager trong bảng quyền của root sau khi cập nhật.
-2. **Thông báo comment mới trên requirement** cho owner / Leader (mục Tính năng).
-3. **Thử trên iPad thật** (sau khi deploy thì dùng được cả đăng nhập Google qua HTTPS) và báo lại chỗ vướng.
+2. **Deploy vai trò trong project** (schema v30, chỉ thêm một cột, mọi dòng NULL nên không ai đổi quyền) lên VPS cùng các thay đổi Quản trị / Hướng dẫn; sau đó thử gán vai trò với người thật.
+3. **Thông báo comment mới trên requirement** cho owner / Leader (mục Tính năng).
+4. **Thử trên iPad thật** (sau khi deploy thì dùng được cả đăng nhập Google qua HTTPS) và báo lại chỗ vướng.
 
 ---
 
 ## Ghi chú cho phiên sau
 
-- **Trước khi đổi schema** (`server/src/db.js`): tắt dev server (nó chạy `node --watch` nên chuyển dữ liệu ngay khi lưu file) và sao lưu bằng `VACUUM INTO`. Bản sao lưu hiện có trong `server/data/`: `app.backup-before-roles.db` (v1), `app.backup-v7-requirements.db`, `app.backup-before-mentions.db` (v7), `app.backup-before-multi-team-users.db` (v8), `app.backup-before-invited-by.db` (v9), `app.backup-before-attachments.db` (v10), `app.backup-before-status-sync.db` (v11), `app.backup-before-comment-files.db` (v12), `app.backup-before-requirement-teams.db` (v13), `app.backup-before-task-history.db` (v14), `app.backup-before-assignee-teams.db` (v15), `app.backup-before-channels.db` (v16), `app.backup-before-recurring.db` (v17), `app.backup-before-language.db` (v18), `app.backup-before-profile.db` (v19), `app.backup-before-avatar.db` (v20), `app.backup-before-director.db` (v21), `app.backup-before-root.db` (v22), `app.backup-before-permissions.db` (v23), `app.backup-before-joined.db` (v24), `app.backup-before-manager-scope.db` (v25), `app.backup-before-custom-roles.db` (v26), `app.backup-before-merge-v1.db` (v27, trước khi gộp bản `v1.0`). v29 (`users.env_role`) chỉ thêm một cột; trên VPS `update.sh` tự sao lưu trước.
+- **Trước khi đổi schema** (`server/src/db.js`): tắt dev server (nó chạy `node --watch` nên chuyển dữ liệu ngay khi lưu file) và sao lưu bằng `VACUUM INTO`. Bản sao lưu hiện có trong `server/data/`: `app.backup-before-roles.db` (v1), `app.backup-v7-requirements.db`, `app.backup-before-mentions.db` (v7), `app.backup-before-multi-team-users.db` (v8), `app.backup-before-invited-by.db` (v9), `app.backup-before-attachments.db` (v10), `app.backup-before-status-sync.db` (v11), `app.backup-before-comment-files.db` (v12), `app.backup-before-requirement-teams.db` (v13), `app.backup-before-task-history.db` (v14), `app.backup-before-assignee-teams.db` (v15), `app.backup-before-channels.db` (v16), `app.backup-before-recurring.db` (v17), `app.backup-before-language.db` (v18), `app.backup-before-profile.db` (v19), `app.backup-before-avatar.db` (v20), `app.backup-before-director.db` (v21), `app.backup-before-root.db` (v22), `app.backup-before-permissions.db` (v23), `app.backup-before-joined.db` (v24), `app.backup-before-manager-scope.db` (v25), `app.backup-before-custom-roles.db` (v26), `app.backup-before-merge-v1.db` (v27, trước khi gộp bản `v1.0`), `app.backup-before-project-roles.db` (v29). v29 (`users.env_role`) chỉ thêm một cột; trên VPS `update.sh` tự sao lưu trước.
 - **Lịch sử schema** v1 → v10 có trong README, mục "Database".
 - **Cấu trúc server** (từ 2026-10-06): endpoint mới vào `server/src/routes/<tính năng>.js`, luật dùng chung vào `server/src/lib/`; không thêm code vào `index.js`. README mục "Cấu trúc" liệt kê từng file.
 - **Vite** đôi khi giữ bản trung gian của file khi sửa nhiều lần liên tiếp, gây lỗi giả trong console. `touch` file đó để Vite đọc lại.

@@ -676,6 +676,17 @@ if (schemaVersion() < 29) {
   });
 }
 
+// v30: project_members.role, a role set by hand for one person in one project (decided 2026-10-07): 'admin' (task
+// admin and project manager, but cannot delete the project), 'member' (own tasks, may be assigned even from another
+// team) or 'viewer' (view and comment). It wins over the team rules in both directions; NULL = the team rules decide,
+// as before, so nobody's rights change with this migration.
+if (schemaVersion() < 30) {
+  if (!hasColumn('project_members', 'role')) {
+    db.exec("ALTER TABLE project_members ADD COLUMN role TEXT CHECK (role IN ('admin', 'member', 'viewer'))");
+  }
+  db.exec('PRAGMA user_version = 30');
+}
+
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_attachments_comment ON attachments(comment_id);
   CREATE INDEX IF NOT EXISTS idx_attachments_requirement_comment ON attachments(requirement_comment_id);

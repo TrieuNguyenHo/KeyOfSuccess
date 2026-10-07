@@ -7,20 +7,24 @@ import {
   canBeAssigned,
   canEdit,
   findProject,
+  PROJECT_ROLES,
   isMember,
   loadProject,
   membersOf,
   projectAccess,
+  roleFixed,
+  teamRoleOf,
   withTeams,
 } from '../lib/access.js';
 import { channelsByTask } from '../lib/channels.js';
+import { pushChange } from '../lib/live.js';
 import { badRequest, conflict, forbidden, notFound, requirePermission } from '../lib/http.js';
 import { requirementsOf } from '../lib/requirements.js';
 import { DEFAULT_STATUSES } from '../lib/statuses.js';
 import { sweepUploads } from '../lib/uploads.js';
-import { AT_WORK, parseTeamIds } from '../lib/users.js';
+import { AT_WORK, findUser, parseTeamIds } from '../lib/users.js';
 import { IN_TEAM, placeholders, replaceLinks } from '../lib/util.js';
-import { can, mergeOwnTeams, scopeOf } from '../lib/permissions.js';
+import { can, mergeOwnTeams, outranks, scopeOf } from '../lib/permissions.js';
 
 const router = express.Router();
 
@@ -99,7 +103,7 @@ router.get('/projects/:id', (req, res) => {
   res.json({
     // can_add_tasks: task admins, and members of the project's teams (for tasks of their own).
     project: { ...project, can_add_tasks: project.task_admin || (canEdit(project.access) && canBeAssigned(req.user.id, project)) },
-    members: membersOf(project),
+    members: membersWithRoles(req.user, project),
     sections,
     tasks: tasks.map((t) => ({
       ...t,
@@ -138,12 +142,31 @@ router.patch('/projects/:id', (req, res) => {
 router.delete('/projects/:id', (req, res) => {
   const project = loadProject(req, res, req.params.id, 'manage');
   if (!project) return;
+  // The project role 'admin' manages the project but does not delete it.
+  if (project.role === 'admin') return forbidden(res, 'Admin của project không xoá được project');
   db.prepare('DELETE FROM projects WHERE id = ?').run(project.id);
   sweepUploads();
   res.status(204).end();
 });
 
 // ---------- Project members ----------
+
+// The members with their project role (null: the team rules decide), what the team rules alone give them (team_role),
+// whether a role can apply to them at all (fixed: the owner, whoever manages every project) and whether `me` may
+// set it: whoever manages the project, for others not above their own role level.
+function membersWithRoles(me, project) {
+  return membersOf(project).map((m) => {
+    const user = findUser(m.id);
+    const fixed = roleFixed(user, project);
+    return {
+      ...m,
+      role: fixed ? null : m.role,
+      team_role: teamRoleOf(user, project),
+      fixed,
+      can_set_role: project.access === 'manage' && !fixed && m.id !== me.id && !outranks(user, me),
+    };
+  });
+}
 
 router.post('/projects/:id/members', (req, res) => {
   const project = loadProject(req, res, req.params.id, 'manage');
@@ -155,6 +178,24 @@ router.post('/projects/:id/members', (req, res) => {
   if (isMember(project.id, user.id)) return conflict(res, 'Người này đã là thành viên');
   db.prepare('INSERT INTO project_members (project_id, user_id) VALUES (?, ?)').run(project.id, user.id);
   res.status(201).json(user);
+});
+
+// Sets a member's project role: { role: 'admin' | 'member' | 'viewer' | null } (null: back to the team rules).
+// Needs 'manage' access; never for the owner, whoever manages every project, oneself, or a higher role level.
+router.patch('/projects/:id/members/:userId', (req, res) => {
+  const project = loadProject(req, res, req.params.id, 'manage');
+  if (!project) return;
+  const userId = Number(req.params.userId);
+  if (!isMember(project.id, userId)) return notFound(res);
+  const role = req.body?.role ?? null;
+  if (role !== null && !PROJECT_ROLES.includes(role)) return badRequest(res, 'Vai trò trong project không hợp lệ');
+  const user = findUser(userId);
+  if (roleFixed(user, project)) return badRequest(res, 'Không đặt vai trò cho owner hay người quản lý mọi project');
+  if (userId === req.user.id) return badRequest(res, 'Bạn không tự đổi vai trò của mình trong project');
+  if (outranks(user, req.user)) return forbidden(res, 'Không đổi được vai trò của người có vai trò cao hơn bạn');
+  db.prepare('UPDATE project_members SET role = ? WHERE project_id = ? AND user_id = ?').run(role, project.id, userId);
+  pushChange(req, { project_id: project.id });
+  res.json(membersWithRoles(req.user, project).find((m) => m.id === userId));
 });
 
 // The owner or team Leader can remove anyone except the owner; a member can only remove themselves (leave).

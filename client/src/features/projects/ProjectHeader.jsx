@@ -53,9 +53,12 @@ export default function ProjectHeader({
             <button className="icon-btn" onClick={onRename} title={tr('Đổi tên project')}>
               ✎
             </button>
-            <button className="icon-btn danger" onClick={onDelete} title={tr('Xoá project')}>
-              🗑
-            </button>
+            {/* The project role 'admin' manages the project but does not delete it. */}
+            {project.role !== 'admin' && (
+              <button className="icon-btn danger" onClick={onDelete} title={tr('Xoá project')}>
+                🗑
+              </button>
+            )}
           </>
         )}
       </div>
