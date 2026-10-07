@@ -5,7 +5,7 @@
 // ?layout=calendar on #/my and #/team shows the calendar instead of the list; ?channel=2 keeps the tasks on channel 2.
 // Project filters go in the query, only when set: ?requirement=7&assignee=5&status=s8&due=week&q=banner
 // (assignee=none: unassigned; status=s8: status / board column 8; team=3: the assignee's team; channel=2: tasks on that channel), and ?task=12 when the task side panel is open.
-import { EMPTY_FILTERS, can } from './utils.js';
+import { EMPTY_FILTERS, can, canAdminister } from './utils.js';
 
 const id = (s) => (/^\d+$/.test(s ?? '') ? Number(s) : null);
 const TABS = ['board', 'list', 'requirements', 'calendar'];
@@ -62,7 +62,7 @@ export function parseRoute(hash, user) {
   if (type === 'dashboard' && id(a)) view = { type, projectId: id(a) };
   else if (type === 'dashboard' && !a && watcher) view = { type };
   else if (type === 'team' && watcher) view = { type, ...(a && { scope: decodeURIComponent(a) }) };
-  else if (type === 'admin' && can(user, 'users.manage')) view = { type };
+  else if (type === 'admin' && canAdminister(user)) view = { type };
   else if (type === 'profile') view = { type };
   else if (type === 'myteams' && can(user, 'teams.members') && !can(user, 'users.manage')) view = { type };
   else if (type === 'project' && id(a)) {

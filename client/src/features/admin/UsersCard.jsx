@@ -7,7 +7,7 @@ import { levelIn, roleIn, useRoles } from '../../components/hooks.js';
 import { ProfilePopover } from '../profile/ProfilePage.jsx';
 import { tr } from '../../i18n.js';
 
-// The people of the company with their status, role and teams, for users.manage (User management) and for root
+// The people of the company with their status, role and teams, for users.manage (Administration) and for root
 // (System configuration). Nobody changes the account of, or gives, a role above their own level. Invited people who
 // have not signed in yet show as such, and their invitation can be revoked (the account is deleted). The All / Pending
 // tabs reload the list (onReload), so they show sign-ups and changes made elsewhere since the screen opened.

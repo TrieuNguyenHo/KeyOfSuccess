@@ -12,7 +12,7 @@ const formOf = (user) => Object.fromEntries(FIELDS.map((f) => [f, user[f] ?? '']
 // created_at is a UTC "YYYY-MM-DD HH:MM:SS"; the day is enough.
 const joined = (user) => (user.created_at ? formatDate(user.created_at.slice(0, 10)) : '—');
 
-// Account facts nobody edits here (Managers set role, team and status in User management).
+// Account facts nobody edits here (Managers set role, team and status in Administration).
 function AccountFacts({ user }) {
   return (
     <dl className="profile-grid">

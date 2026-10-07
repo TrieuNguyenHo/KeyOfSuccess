@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { PROJECT_COLORS, can, scopeOf } from '../../utils.js';
+import { PROJECT_COLORS, can, coversTeams, scopeOf } from '../../utils.js';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
 import InviteUserCard from './InviteUserCard.jsx';
 import TeamModal from './TeamModal.jsx';
@@ -19,12 +19,16 @@ export default function AdminPage({ user, onChanged }) {
   const [editingTeamId, setEditingTeamId] = useState(null);
   const [error, setError] = useState('');
 
+  // The screen opens for any administration right (canAdminister); each card needs its own.
+  const manageUsers = can(user, 'users.manage');
+  const manageTeams = can(user, 'teams.manage');
+
   const load = useCallback(async () => {
-    const [u, t, c] = await Promise.all([api('/admin/users'), api('/teams'), api('/channels')]);
+    const [u, t, c] = await Promise.all([manageUsers ? api('/admin/users') : [], api('/teams'), api('/channels')]);
     setUsers(u);
     setTeams(t);
     setChannels(c);
-  }, []);
+  }, [manageUsers]);
 
   useEffect(() => {
     load().catch((e) => setError(e.message));
@@ -45,77 +49,92 @@ export default function AdminPage({ user, onChanged }) {
   const revokeInvite = (u) => act(() => api(`/admin/users/${u.id}`, { method: 'DELETE' }));
 
   const toggleTeam = (id) => setTeamFilter((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
-  // A Manager with users.manage 'team' works with their own teams only (the server lists only their people).
-  const myTeams = scopeOf(user, 'users.manage') === 'all' ? teams : teams.filter((t) => user.team_ids.includes(t.id));
+  // A Manager with users.manage 'team' works with their own teams only (the server lists only their people);
+  // without users.manage, teams.manage decides which teams show.
+  const teamScope = scopeOf(user, manageUsers ? 'users.manage' : 'teams.manage');
+  const myTeams = teamScope === 'all' ? teams : teams.filter((t) => user.team_ids.includes(t.id));
   const inTeams = teamFilter.length ? users.filter((u) => u.team_ids.some((id) => teamFilter.includes(id))) : users;
   const editingTeam = teams.find((t) => t.id === editingTeamId);
 
   return (
     <div className="project">
       <header className="project-header">
-        <h1>{tr('Quản lý người dùng')}</h1>
+        <h1>{tr('Quản trị')}</h1>
       </header>
 
       <ErrorBanner error={error} onClose={() => setError('')} />
 
       <div className="list admin">
-        <section className="admin-card">
-          <div className="section-header">
-            <h2>Teams</h2>
-            <span className="grow" />
-            {teamFilter.length > 0 && (
-              <button className="link-btn" onClick={() => setTeamFilter([])}>
-                {tr('Bỏ lọc')}
-              </button>
+        {(manageUsers || manageTeams) && (
+          <section className="admin-card">
+            <div className="section-header">
+              <h2>Teams</h2>
+              <span className="grow" />
+              {teamFilter.length > 0 && (
+                <button className="link-btn" onClick={() => setTeamFilter([])}>
+                  {tr('Bỏ lọc')}
+                </button>
+              )}
+            </div>
+            {manageUsers && (
+              <p className="muted card-sub">{tr('Bấm vào team để lọc danh sách người dùng; không chọn team nào là xem tất cả.')}</p>
             )}
-          </div>
-          <p className="muted card-sub">{tr('Bấm vào team để lọc danh sách người dùng; không chọn team nào là xem tất cả.')}</p>
-          <div className="team-chips">
-            {myTeams.map((t) => (
-              <span key={t.id} className={`team-chip ${teamFilter.includes(t.id) ? 'active' : ''}`}>
-                <button
-                  className="team-chip-toggle"
-                  onClick={() => toggleTeam(t.id)}
-                  aria-pressed={teamFilter.includes(t.id)}
-                  title={tr('Lọc người dùng theo team này')}
+            <div className="team-chips">
+              {myTeams.map((t) => (
+                <span key={t.id} className={`team-chip ${teamFilter.includes(t.id) ? 'active' : ''}`}>
+                  {manageUsers ? (
+                    <button
+                      className="team-chip-toggle"
+                      onClick={() => toggleTeam(t.id)}
+                      aria-pressed={teamFilter.includes(t.id)}
+                      title={tr('Lọc người dùng theo team này')}
+                    >
+                      <b>{t.name}</b>
+                      <span className="muted">{tr('{count} người', { count: t.member_count })}</span>
+                    </button>
+                  ) : (
+                    <span className="channel-chip-name">
+                      <b>{t.name}</b>
+                      <span className="muted">{tr('{count} người', { count: t.member_count })}</span>
+                    </span>
+                  )}
+                  {(coversTeams(user, 'teams.manage', [t.id]) || can(user, 'teams.members')) && (
+                    <button className="icon-btn" title={tr('Sửa team, thêm thành viên')} onClick={() => setEditingTeamId(t.id)}>
+                      ✎
+                    </button>
+                  )}
+                  {scopeOf(user, 'teams.manage') === 'all' && (
+                    <button
+                      className="icon-btn danger"
+                      title={tr('Xoá team')}
+                      onClick={async () =>
+                        (await askConfirm({ title: tr('Xoá team "{name}"?', { name: t.name }), confirmLabel: tr('Xoá team'), danger: true })) &&
+                        act(() => api(`/teams/${t.id}`, { method: 'DELETE' }))
+                      }
+                    >
+                      ✕
+                    </button>
+                  )}
+                </span>
+              ))}
+              {scopeOf(user, 'teams.manage') === 'all' && (
+                <form
+                  className="member-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const name = newTeam.trim();
+                    if (!name) return;
+                    setNewTeam('');
+                    act(() => api('/teams', { method: 'POST', body: { name } }));
+                  }}
                 >
-                  <b>{t.name}</b>
-                  <span className="muted">{tr('{count} người', { count: t.member_count })}</span>
-                </button>
-                <button className="icon-btn" title={tr('Sửa team, thêm thành viên')} onClick={() => setEditingTeamId(t.id)}>
-                  ✎
-                </button>
-                {scopeOf(user, 'teams.manage') === 'all' && (
-                  <button
-                    className="icon-btn danger"
-                    title={tr('Xoá team')}
-                    onClick={async () =>
-                      (await askConfirm({ title: tr('Xoá team "{name}"?', { name: t.name }), confirmLabel: tr('Xoá team'), danger: true })) &&
-                      act(() => api(`/teams/${t.id}`, { method: 'DELETE' }))
-                    }
-                  >
-                    ✕
-                  </button>
-                )}
-              </span>
-            ))}
-            {scopeOf(user, 'teams.manage') === 'all' && (
-              <form
-                className="member-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const name = newTeam.trim();
-                  if (!name) return;
-                  setNewTeam('');
-                  act(() => api('/teams', { method: 'POST', body: { name } }));
-                }}
-              >
-                <input placeholder={tr('Tên team mới')} value={newTeam} onChange={(e) => setNewTeam(e.target.value)} />
-                <button className="btn primary">{tr('Thêm team')}</button>
-              </form>
-            )}
-          </div>
-        </section>
+                  <input placeholder={tr('Tên team mới')} value={newTeam} onChange={(e) => setNewTeam(e.target.value)} />
+                  <button className="btn primary">{tr('Thêm team')}</button>
+                </form>
+              )}
+            </div>
+          </section>
+        )}
 
         {can(user, 'channels.manage') && (
           <section className="admin-card">
@@ -188,20 +207,24 @@ export default function AdminPage({ user, onChanged }) {
           </section>
         )}
 
-        <InviteUserCard
-          user={user}
-          teams={myTeams}
-          teamRequired={scopeOf(user, 'users.manage') !== 'all'}
-          onInvited={() => load().then(onChanged, (e) => setError(e.message))}
-        />
-        <UsersCard
-          user={user}
-          users={inTeams}
-          teams={myTeams}
-          updateUser={updateUser}
-          revokeInvite={revokeInvite}
-          onReload={() => load().catch((e) => setError(e.message))}
-        />
+        {manageUsers && (
+          <>
+            <InviteUserCard
+              user={user}
+              teams={myTeams}
+              teamRequired={scopeOf(user, 'users.manage') !== 'all'}
+              onInvited={() => load().then(onChanged, (e) => setError(e.message))}
+            />
+            <UsersCard
+              user={user}
+              users={inTeams}
+              teams={myTeams}
+              updateUser={updateUser}
+              revokeInvite={revokeInvite}
+              onReload={() => load().catch((e) => setError(e.message))}
+            />
+          </>
+        )}
       </div>
 
       {editingTeam && (
