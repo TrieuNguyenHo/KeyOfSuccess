@@ -38,6 +38,9 @@ export function coversTeams(user, key, teamIds) {
   const scope = scopeOf(user, key);
   return scope === 'all' || (scope === 'team' && teamIds.some((id) => user.team_ids.includes(id)));
 }
+// The Administration screen ("Quản trị") opens for any of the rights it gathers; each card checks its own.
+export const ADMIN_PERMISSIONS = ['users.manage', 'teams.manage', 'channels.manage'];
+export const canAdminister = (user) => ADMIN_PERMISSIONS.some((key) => can(user, key));
 // Watching everyone's work (people.watch 'all'): the department-wide screens instead of the user's own teams.
 export const watchesAll = (user) => scopeOf(user, 'people.watch') === 'all';
 export const STATUSES = labels({

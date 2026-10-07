@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../../api.js';
+import { can, coversTeams } from '../../utils.js';
 import TeamMembers from './TeamMembers.jsx';
 import { tr } from '../../i18n.js';
 
@@ -32,15 +33,17 @@ export default function TeamModal({ team, user, onClose, onChanged }) {
           </button>
         </div>
 
-        <form className="member-form" onSubmit={rename}>
-          <input value={name} onChange={(e) => setName(e.target.value)} aria-label={tr('Tên team')} />
-          <button className="btn primary" disabled={!name.trim() || name.trim() === team.name}>
-            {tr('Đổi tên')}
-          </button>
-        </form>
+        {coversTeams(user, 'teams.manage', [team.id]) && (
+          <form className="member-form" onSubmit={rename}>
+            <input value={name} onChange={(e) => setName(e.target.value)} aria-label={tr('Tên team')} />
+            <button className="btn primary" disabled={!name.trim() || name.trim() === team.name}>
+              {tr('Đổi tên')}
+            </button>
+          </form>
+        )}
         {error && <div className="error">{error}</div>}
 
-        <TeamMembers team={team} user={user} onChanged={onChanged} />
+        {can(user, 'teams.members') && <TeamMembers team={team} user={user} onChanged={onChanged} />}
       </div>
     </div>
   );

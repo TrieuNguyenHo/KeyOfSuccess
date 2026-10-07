@@ -7,7 +7,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Creates the account of someone who has never signed in (POST /api/admin/users), with a role up to the inviter's
 // level and a team. The account is active at once; nothing is emailed, the inviter sends the app link. For root
-// (System configuration) and for users.manage (User management); teamRequired: the inviter manages their own teams
+// (System configuration) and for users.manage (Administration); teamRequired: the inviter manages their own teams
 // only, so the person goes into one of them (`teams` then lists just those).
 export default function InviteUserCard({ user, teams, onInvited, teamRequired = false }) {
   const roles = useRoles();

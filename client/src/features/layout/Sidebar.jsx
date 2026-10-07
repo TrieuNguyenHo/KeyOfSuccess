@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { can, myTeamsLabel, roleLabel, watchesAll } from '../../utils.js';
+import { can, canAdminister, myTeamsLabel, roleLabel, watchesAll } from '../../utils.js';
 import NotificationBell from './NotificationBell.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { Brand } from '../../components/Brand.jsx';
@@ -197,14 +197,14 @@ export default function Sidebar({
             {tr('Quản lý team')}
           </NavItem>
         )}
-        {can(user, 'users.manage') && (
+        {canAdminister(user) && (
           <NavItem
             active={view.type === 'admin'}
             onClick={() => go({ type: 'admin' })}
             icon="admin"
-            badge={notifications.pendingUsers}
+            badge={can(user, 'users.manage') ? notifications.pendingUsers : 0}
           >
-            {tr('Quản lý người dùng')}
+            {tr('Quản trị')}
           </NavItem>
         )}
       </ul>

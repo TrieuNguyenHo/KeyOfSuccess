@@ -64,7 +64,7 @@ export default function TaskFields({
               itemLabel={(c) => c.name}
             />
           ) : (
-            <span className="muted small">{tr('Chưa có kênh nào; Manager thêm kênh trong Quản lý người dùng.')}</span>
+            <span className="muted small">{tr('Chưa có kênh nào; Manager thêm kênh trong Quản trị.')}</span>
           )}
 
           <label>{tr('Lặp lại')}</label>
