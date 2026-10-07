@@ -2,16 +2,14 @@
 // caller runs after its transaction.
 import { db } from '../db.js';
 import { scopeOf } from './permissions.js';
-import { findUser, shareTeam } from './users.js';
+import { activeUsers, shareTeam } from './users.js';
 
 // Tells whoever holds notify.task_completed over the assignee ('all', or 'team' when they share a team) that a
 // top-level task was completed.
 export function notifyCompleted(task, actor) {
-  const recipients = db
-    .prepare("SELECT id FROM users WHERE status = 'active' AND id != ?")
-    .all(actor.id)
-    .map((r) => findUser(r.id))
+  const recipients = activeUsers()
     .filter((u) => {
+      if (u.id === actor.id) return false;
       const scope = scopeOf(u, 'notify.task_completed');
       return scope === 'all' || (scope === 'team' && task.assignee_id != null && shareTeam(u.id, task.assignee_id));
     })

@@ -1,14 +1,12 @@
 // Mentions live inline in comment bodies as @[Name](userId); the client renders them as tags.
-import { db } from '../db.js';
 import { projectAccess, taskAccess } from './access.js';
-import { findUser } from './users.js';
+import { activeUsers } from './users.js';
 
 export const MENTION_RE = /@\[([^\]\n]{1,80})\]\((\d+)\)/g;
 const EXCERPT_LENGTH = 140;
 export const plainExcerpt = (body) => body.replace(MENTION_RE, '@$1').slice(0, EXCERPT_LENGTH);
 
 // Active users who may see the thing being discussed, i.e. who can be mentioned there.
-const activeUsers = () => db.prepare("SELECT id FROM users WHERE status = 'active'").all().map((r) => findUser(r.id));
 export const taskViewers = (task) => activeUsers().filter((u) => taskAccess(u, task));
 export const projectViewers = (project) => activeUsers().filter((u) => projectAccess(u, project));
 export const mentionList = (viewers, me) =>
@@ -27,6 +25,5 @@ export function resolveMentions(body, viewers, author) {
     if (Number(id) !== author.id) mentioned.add(Number(id));
     return markup;
   });
-  const excerpt = cleaned.replace(MENTION_RE, '@$1').slice(0, EXCERPT_LENGTH);
-  return { body: cleaned, mentioned: [...mentioned], excerpt };
+  return { body: cleaned, mentioned: [...mentioned], excerpt: plainExcerpt(cleaned) };
 }

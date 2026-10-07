@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import { DEV_LOGIN, DIRECTOR_EMAILS, GOOGLE_CLIENT_ID, JWT_SECRET, MANAGER_EMAILS, ROOT_EMAILS } from '../config.js';
 import { db, makeRoot } from '../db.js';
-import { badRequest, forbidden } from '../lib/http.js';
+import { badRequest, conflict, forbidden, unauthorized } from '../lib/http.js';
 import { isRoot } from '../lib/roles.js';
 import { asMe, findUser } from '../lib/users.js';
 
@@ -31,7 +31,7 @@ function signIn(res, { email, name, googleSub }) {
         : null;
   const existing = db.prepare('SELECT id, name, google_sub FROM users WHERE email = ?').get(email);
   if (existing?.google_sub && googleSub && existing.google_sub !== googleSub) {
-    return res.status(409).json({ error: 'Email này đã gắn với một tài khoản Google khác' });
+    return conflict(res, 'Email này đã gắn với một tài khoản Google khác');
   }
 
   let id = existing?.id;
@@ -68,9 +68,9 @@ router.post('/auth/google', async (req, res, next) => {
       const ticket = await googleClient.verifyIdToken({ idToken: req.body?.credential, audience: GOOGLE_CLIENT_ID });
       payload = ticket.getPayload();
     } catch {
-      return res.status(401).json({ error: 'Đăng nhập Google không hợp lệ' });
+      return unauthorized(res, 'Đăng nhập Google không hợp lệ');
     }
-    if (!payload.email_verified) return res.status(401).json({ error: 'Email Google chưa được xác minh' });
+    if (!payload.email_verified) return unauthorized(res, 'Email Google chưa được xác minh');
     signIn(res, { email: payload.email, name: payload.name, googleSub: payload.sub });
   } catch (err) {
     next(err);
@@ -111,7 +111,7 @@ export function requireUser(req, res, next) {
   } catch {
     // Treated as not signed in below.
   }
-  if (!user || user.status === 'disabled' || revokedRoot(user)) return res.status(401).json({ error: 'Phiên đăng nhập không hợp lệ' });
+  if (!user || user.status === 'disabled' || revokedRoot(user)) return unauthorized(res, 'Phiên đăng nhập không hợp lệ');
   if (user.status === 'pending' && req.path !== '/me') return forbidden(res, 'Tài khoản đang chờ Manager duyệt');
   if (isRoot(user) && !ROOT_ROUTES.some(([method, path]) => method === req.method && path.test(req.path))) {
     return forbidden(res, 'Tài khoản root chỉ dùng để cấu hình hệ thống');

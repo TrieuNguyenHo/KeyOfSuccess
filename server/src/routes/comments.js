@@ -1,13 +1,13 @@
 // Editing and deleting task comments and requirement feedback, and the files sent with them (see COMMENT_KINDS).
 import express from 'express';
 import { db, transaction } from '../db.js';
-import { COMMENT_KINDS, loadComment } from '../lib/comments.js';
+import { COMMENT_KINDS, commentById, loadComment } from '../lib/comments.js';
 import { logEvent } from '../lib/history.js';
 import { badRequest, forbidden } from '../lib/http.js';
 import { pushChange, pushNotifications } from '../lib/live.js';
 import { MENTION_RE, plainExcerpt, resolveMentions } from '../lib/mentions.js';
 import { notifyMentions } from '../lib/notifications.js';
-import { rawUpload, saveAttachment, sweepUploads, withCommentFiles } from '../lib/uploads.js';
+import { rawUpload, saveAttachment, sweepUploads } from '../lib/uploads.js';
 import { nameOfUser } from '../lib/users.js';
 import { can } from '../lib/permissions.js';
 
@@ -35,7 +35,7 @@ for (const [path, kind] of Object.entries(COMMENT_KINDS)) {
     });
     pushNotifications(added);
     pushChange(req, ...change);
-    res.json(withCommentFiles([db.prepare(`${kind.select} WHERE c.id = ?`).get(comment.id)], kind.fileColumn)[0]);
+    res.json(commentById(kind, comment.id));
   });
 
   router.delete(`/${path}/:id`, (req, res) => {

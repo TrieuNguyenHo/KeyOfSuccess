@@ -8,6 +8,7 @@ import { findTask } from './access.js';
 import { logEvent } from './history.js';
 import { badRequest } from './http.js';
 import { pushChange } from './live.js';
+import { placeholders } from './util.js';
 
 export const MAX_UPLOAD_MB = 25;
 export const ATTACHMENT_SELECT = `SELECT a.id, a.task_id, a.requirement_id, a.comment_id, a.requirement_comment_id, a.user_id,
@@ -24,7 +25,7 @@ export const attachmentsOf = (column, id) =>
 export function withCommentFiles(comments, column) {
   if (!comments.length) return comments;
   const files = db
-    .prepare(`${ATTACHMENT_SELECT} WHERE a.${column} IN (${comments.map(() => '?').join(', ')}) ORDER BY a.id`)
+    .prepare(`${ATTACHMENT_SELECT} WHERE a.${column} IN (${placeholders(comments)}) ORDER BY a.id`)
     .all(...comments.map((c) => c.id));
   return comments.map((c) => ({ ...c, attachments: files.filter((f) => f[column] === c.id) }));
 }

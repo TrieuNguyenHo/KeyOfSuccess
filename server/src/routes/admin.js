@@ -1,11 +1,21 @@
 // User administration (users.manage; root for roles, status and teams).
 import express from 'express';
 import { db, transaction } from '../db.js';
-import { badRequest, forbidden, notFound } from '../lib/http.js';
+import { badRequest, conflict, forbidden, notFound } from '../lib/http.js';
 import { can, levelOf, mergeOwnTeams, outranks, roleExists, scopeOf } from '../lib/permissions.js';
 import { isRoot } from '../lib/roles.js';
-import { USER_SELECT, canReadProfile, findUser, parseTeamIds, withProfile, withUserTeams } from '../lib/users.js';
-import { EMAIL_RE } from '../lib/util.js';
+import {
+  EMAIL_TAKEN,
+  USER_SELECT,
+  canReadProfile,
+  createInvitedUser,
+  emailTaken,
+  findUser,
+  parseTeamIds,
+  withProfile,
+  withUserTeams,
+} from '../lib/users.js';
+import { EMAIL_RE, replaceLinks } from '../lib/util.js';
 
 const router = express.Router();
 
@@ -58,9 +68,7 @@ router.patch('/admin/users/:id', userAdminOnly, (req, res) => {
   if (next.role === 'member' && teamIds.length > 1) return badRequest(res, 'Member chỉ thuộc một team');
   transaction(() => {
     db.prepare('UPDATE users SET role = ?, status = ? WHERE id = ?').run(next.role, next.status, target.id);
-    db.prepare('DELETE FROM user_teams WHERE user_id = ?').run(target.id);
-    const insert = db.prepare('INSERT INTO user_teams (user_id, team_id) VALUES (?, ?)');
-    teamIds.forEach((teamId) => insert.run(target.id, teamId));
+    replaceLinks('user_teams', 'user_id', target.id, 'team_id', teamIds);
   });
   res.json(asSeenBy(req.user, findUser(target.id)));
 });
@@ -81,17 +89,8 @@ router.post('/admin/users', userAdminOnly, (req, res) => {
   }
   // With a 'team' scope, people are invited into one of the caller's own teams.
   if (userScope(req.user) !== 'all' && !req.user.team_ids.includes(teamId)) return forbidden(res, 'Chỉ chọn được team của bạn');
-  if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) {
-    return res.status(409).json({ error: 'Email này đã có tài khoản, hãy thêm người đó từ danh sách' });
-  }
-  const name = req.body?.name?.trim() || email.split('@')[0];
-  const id = transaction(() => {
-    const { lastInsertRowid } = db
-      .prepare("INSERT INTO users (name, email, role, status, invited_by) VALUES (?, ?, ?, 'active', ?)")
-      .run(name, email, role, req.user.id);
-    if (teamId != null) db.prepare('INSERT INTO user_teams (user_id, team_id) VALUES (?, ?)').run(lastInsertRowid, teamId);
-    return lastInsertRowid;
-  });
+  if (emailTaken(email)) return conflict(res, EMAIL_TAKEN);
+  const id = createInvitedUser({ email, name: req.body.name, role, status: 'active', invitedBy: req.user.id, teamId });
   res.status(201).json(asSeenBy(req.user, findUser(id)));
 });
 

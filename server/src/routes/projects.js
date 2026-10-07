@@ -2,6 +2,7 @@
 import express from 'express';
 import { db, transaction } from '../db.js';
 import {
+  TASK_COUNTS,
   assigneeTeamsIn,
   canBeAssigned,
   canEdit,
@@ -13,21 +14,17 @@ import {
   withTeams,
 } from '../lib/access.js';
 import { channelsByTask } from '../lib/channels.js';
-import { badRequest, forbidden, notFound, requirePermission } from '../lib/http.js';
+import { badRequest, conflict, forbidden, notFound, requirePermission } from '../lib/http.js';
 import { requirementsOf } from '../lib/requirements.js';
 import { DEFAULT_STATUSES } from '../lib/statuses.js';
 import { sweepUploads } from '../lib/uploads.js';
-import { parseTeamIds } from '../lib/users.js';
-import { IN_TEAM, placeholders } from '../lib/util.js';
+import { AT_WORK, parseTeamIds } from '../lib/users.js';
+import { IN_TEAM, placeholders, replaceLinks } from '../lib/util.js';
 import { can, mergeOwnTeams, scopeOf } from '../lib/permissions.js';
 
 const router = express.Router();
 
-function setProjectTeams(projectId, teamIds) {
-  db.prepare('DELETE FROM project_teams WHERE project_id = ?').run(projectId);
-  const insert = db.prepare('INSERT INTO project_teams (project_id, team_id) VALUES (?, ?)');
-  teamIds.forEach((teamId) => insert.run(projectId, teamId));
-}
+const setProjectTeams = (projectId, teamIds) => replaceLinks('project_teams', 'project_id', projectId, 'team_id', teamIds);
 
 // Every project the user can open, each with its access level and teams, for the grouped sidebar.
 router.get('/projects', (req, res) => {
@@ -84,10 +81,7 @@ router.get('/projects/:id', (req, res) => {
   const sections = db.prepare('SELECT * FROM sections WHERE project_id = ? ORDER BY position').all(project.id);
   const tasks = db
     .prepare(
-      `SELECT t.*, u.name AS assignee_name,
-         (SELECT COUNT(*) FROM tasks s WHERE s.parent_id = t.id) AS subtask_count,
-         (SELECT COUNT(*) FROM tasks s WHERE s.parent_id = t.id AND s.completed = 1) AS subtask_done,
-         (SELECT COUNT(*) FROM comments c WHERE c.task_id = t.id) AS comment_count
+      `SELECT t.*, u.name AS assignee_name, ${TASK_COUNTS}
        FROM tasks t LEFT JOIN users u ON u.id = t.assignee_id
        WHERE t.project_id = ? AND t.parent_id IS NULL
        ORDER BY t.position`
@@ -156,9 +150,9 @@ router.post('/projects/:id/members', (req, res) => {
   if (!project) return;
   const email = req.body?.email?.trim().toLowerCase();
   if (!email) return badRequest(res, 'Cần nhập email');
-  const user = db.prepare("SELECT id, name, email FROM users WHERE email = ? AND status = 'active' AND role != 'root' AND joined_at IS NOT NULL").get(email);
-  if (!user) return res.status(404).json({ error: 'Chưa có tài khoản đang hoạt động nào dùng email này' });
-  if (isMember(project.id, user.id)) return res.status(409).json({ error: 'Người này đã là thành viên' });
+  const user = db.prepare(`SELECT u.id, u.name, u.email FROM users u WHERE u.email = ? AND ${AT_WORK}`).get(email);
+  if (!user) return notFound(res, 'Chưa có tài khoản đang hoạt động nào dùng email này');
+  if (isMember(project.id, user.id)) return conflict(res, 'Người này đã là thành viên');
   db.prepare('INSERT INTO project_members (project_id, user_id) VALUES (?, ?)').run(project.id, user.id);
   res.status(201).json(user);
 });

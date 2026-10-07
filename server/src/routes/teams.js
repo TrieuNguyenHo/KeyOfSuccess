@@ -1,8 +1,8 @@
 // Teams (teams.manage), their members (teams.members; users.manage adds the wider rights) and the people one may watch.
 import express from 'express';
 import { db, transaction } from '../db.js';
-import { badRequest, forbidden, notFound, requireAllScope } from '../lib/http.js';
-import { USER_SELECT, findUser, withUserTeams } from '../lib/users.js';
+import { badRequest, conflict, forbidden, notFound, requireAllScope } from '../lib/http.js';
+import { AT_WORK, EMAIL_TAKEN, USER_SELECT, createInvitedUser, emailTaken, findUser, withUserTeams } from '../lib/users.js';
 import { EMAIL_RE, placeholders } from '../lib/util.js';
 import { can, coversTeams, outranks, scopeOf } from '../lib/permissions.js';
 
@@ -24,7 +24,7 @@ router.get('/teams', (req, res) => {
 router.post('/teams', requireAllScope('teams.manage'), (req, res) => {
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên team');
-  if (db.prepare('SELECT 1 FROM teams WHERE name = ?').get(name)) return res.status(409).json({ error: 'Tên team đã tồn tại' });
+  if (db.prepare('SELECT 1 FROM teams WHERE name = ?').get(name)) return conflict(res, 'Tên team đã tồn tại');
   const { lastInsertRowid } = db.prepare('INSERT INTO teams (name) VALUES (?)').run(name);
   res.status(201).json(db.prepare('SELECT * FROM teams WHERE id = ?').get(lastInsertRowid));
 });
@@ -34,7 +34,7 @@ router.patch('/teams/:id', (req, res) => {
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên team');
   if (db.prepare('SELECT 1 FROM teams WHERE name = ? AND id != ?').get(name, req.params.id)) {
-    return res.status(409).json({ error: 'Tên team đã tồn tại' });
+    return conflict(res, 'Tên team đã tồn tại');
   }
   const { changes } = db.prepare('UPDATE teams SET name = ? WHERE id = ?').run(name, req.params.id);
   if (!changes) return notFound(res);
@@ -130,25 +130,16 @@ router.post('/teams/:id/invite', (req, res) => {
   const me = req.user;
   const email = req.body?.email?.trim().toLowerCase();
   if (!email || !EMAIL_RE.test(email)) return badRequest(res, 'Email không hợp lệ');
-  if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) {
-    return res.status(409).json({ error: 'Email này đã có tài khoản, hãy thêm người đó từ danh sách' });
-  }
-  const name = req.body?.name?.trim() || email.split('@')[0];
+  if (emailTaken(email)) return conflict(res, EMAIL_TAKEN);
   const status = can(me, 'users.manage') ? 'active' : 'pending';
-  const id = transaction(() => {
-    const { lastInsertRowid } = db
-      .prepare("INSERT INTO users (name, email, role, status, invited_by) VALUES (?, ?, 'member', ?, ?)")
-      .run(name, email, status, me.id);
-    db.prepare('INSERT INTO user_teams (user_id, team_id) VALUES (?, ?)').run(lastInsertRowid, team.id);
-    return lastInsertRowid;
-  });
+  const id = createInvitedUser({ email, name: req.body.name, role: 'member', status, invitedBy: me.id, teamId: team.id });
   res.status(201).json(findUser(id));
 });
 
 // The people this user may watch (people.watch): everyone, or the people of their teams.
 router.get('/people', (req, res) => {
   const me = req.user;
-  const base = `${USER_SELECT} WHERE u.status = 'active' AND u.role != 'root' AND u.joined_at IS NOT NULL`;
+  const base = `${USER_SELECT} WHERE ${AT_WORK}`;
   const watch = scopeOf(me, 'people.watch');
   let rows = [];
   if (watch === 'all') rows = db.prepare(`${base} ORDER BY u.name`).all();

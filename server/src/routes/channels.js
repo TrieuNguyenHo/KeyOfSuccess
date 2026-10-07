@@ -4,7 +4,7 @@ import { db, transaction } from '../db.js';
 import { findTask } from '../lib/access.js';
 import { channelNames, channelsByTask } from '../lib/channels.js';
 import { logEvent } from '../lib/history.js';
-import { badRequest, notFound, requirePermission } from '../lib/http.js';
+import { badRequest, conflict, notFound, requirePermission } from '../lib/http.js';
 import { pushChange } from '../lib/live.js';
 import { can } from '../lib/permissions.js';
 
@@ -45,7 +45,7 @@ const projectsOfChannel = (channelId) =>
 router.post('/channels', requirePermission('channels.manage'), (req, res) => {
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên kênh');
-  if (channelNameTaken(name)) return res.status(409).json({ error: 'Tên kênh đã tồn tại' });
+  if (channelNameTaken(name)) return conflict(res, 'Tên kênh đã tồn tại');
   const color = req.body.color ?? CHANNEL_COLORS[db.prepare('SELECT COUNT(*) AS n FROM channels').get().n % CHANNEL_COLORS.length];
   if (!HEX_COLOR.test(color)) return badRequest(res, 'Màu không hợp lệ');
   const { lastInsertRowid } = db.prepare('INSERT INTO channels (name, color) VALUES (?, ?)').run(name, color);
@@ -59,7 +59,7 @@ router.patch('/channels/:id', requirePermission('channels.manage'), (req, res) =
   const name = req.body?.name === undefined ? channel.name : String(req.body.name).trim();
   const color = req.body?.color ?? channel.color;
   if (!name) return badRequest(res, 'Cần nhập tên kênh');
-  if (channelNameTaken(name, channel.id)) return res.status(409).json({ error: 'Tên kênh đã tồn tại' });
+  if (channelNameTaken(name, channel.id)) return conflict(res, 'Tên kênh đã tồn tại');
   if (!HEX_COLOR.test(color)) return badRequest(res, 'Màu không hợp lệ');
   db.prepare('UPDATE channels SET name = ?, color = ? WHERE id = ?').run(name, color, channel.id);
   pushChannelChange(req, projectsOfChannel(channel.id));
