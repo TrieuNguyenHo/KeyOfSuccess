@@ -12,6 +12,7 @@ import { DialogHost } from '../../components/Dialog.jsx';
 import { Brand } from '../../components/Brand.jsx';
 import MyTeamsPage from '../admin/MyTeamsPage.jsx';
 import ProjectDashboardPage from '../dashboard/ProjectDashboardPage.jsx';
+import GuidePage from '../guide/GuidePage.jsx';
 import ProfilePage from '../profile/ProfilePage.jsx';
 import ProjectView from '../projects/ProjectView.jsx';
 import RequirementPage from '../requirements/RequirementPage.jsx';
@@ -231,6 +232,8 @@ export default function Workspace({ user, onLogout, onUserChange }) {
     );
   } else if (view.type === 'profile') {
     content = <ProfilePage user={user} onUserChange={onUserChange} />;
+  } else if (view.type === 'guide') {
+    content = <GuidePage user={user} />;
   } else if (view.type === 'admin') {
     content = <AdminPage user={user} onChanged={loadNotifications} />;
   } else if (view.type === 'myteams') {

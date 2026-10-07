@@ -1,5 +1,5 @@
 // The current screen lives in the URL hash, so a reload (F5) stays on it and a link can be sent to a colleague:
-//   #/my  #/dashboard  #/dashboard/3  #/team  #/team/user:5  #/admin  #/myteams  #/profile
+//   #/my  #/dashboard  #/dashboard/3  #/team  #/team/user:5  #/admin  #/myteams  #/profile  #/guide
 //   #/project/3/board  #/project/3/list  #/project/3/calendar  #/project/3/requirements/7 (requirement 7 selected)
 //   #/task/12  #/requirement/3/7 (project 3, requirement 7)
 // ?layout=calendar on #/my and #/team shows the calendar instead of the list; ?channel=2 keeps the tasks on channel 2.
@@ -63,7 +63,7 @@ export function parseRoute(hash, user) {
   else if (type === 'dashboard' && !a && watcher) view = { type };
   else if (type === 'team' && watcher) view = { type, ...(a && { scope: decodeURIComponent(a) }) };
   else if (type === 'admin' && canAdminister(user)) view = { type };
-  else if (type === 'profile') view = { type };
+  else if (type === 'profile' || type === 'guide') view = { type };
   else if (type === 'myteams' && can(user, 'teams.members') && !can(user, 'users.manage')) view = { type };
   else if (type === 'project' && id(a)) {
     const tab = TABS.includes(b) ? b : 'board';
