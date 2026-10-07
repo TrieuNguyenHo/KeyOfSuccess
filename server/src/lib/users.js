@@ -3,9 +3,10 @@ import { outranks, permissionsOf, scopeOf } from './permissions.js';
 import { isRoot } from './roles.js';
 
 // joined: 0 while an invited person has not signed in yet (v25).
-export const USER_SELECT = `SELECT u.id, u.name, u.email, u.role, u.status, u.language, u.invited_by, inv.name AS invited_by_name,
-  (u.joined_at IS NOT NULL) AS joined
-  FROM users u LEFT JOIN users inv ON inv.id = u.invited_by`;
+// role_name: the role's name as root set it (null for root accounts).
+export const USER_SELECT = `SELECT u.id, u.name, u.email, u.role, r.name AS role_name, u.status, u.language, u.invited_by,
+  inv.name AS invited_by_name, (u.joined_at IS NOT NULL) AS joined
+  FROM users u LEFT JOIN users inv ON inv.id = u.invited_by LEFT JOIN roles r ON r.key = u.role`;
 // Users carry their teams (user_teams) as `teams`, their ids as `team_ids`, and the names joined as `team_name`.
 export function withUserTeams(user) {
   if (!user) return user;

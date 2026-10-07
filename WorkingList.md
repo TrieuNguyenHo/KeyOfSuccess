@@ -5,7 +5,7 @@ File này được nạp tự động qua `.claude/CLAUDE.md`.
 
 **Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
 
-_Cập nhật lần cuối: 2026-10-07 · Schema database: v26 · Test: `npm test`, 254/254 pass (khoảng 5 giây)_
+_Cập nhật lần cuối: 2026-10-07 · Schema database: v27 · Test: `npm test`, 263/263 pass (khoảng 5 giây)_
 
 ---
 
@@ -83,6 +83,13 @@ _Cập nhật lần cuối: 2026-10-07 · Schema database: v26 · Test: `npm tes
 - Không đổi giao diện hay hành vi: CSS giữ nguyên từng dòng và thứ tự (chỉ dời khối task tags / kênh / lặp lại / Hint / lịch sử lên trước phần responsive, đã kiểm tra không có rule nào đè nhau). `i18n.test.js` giờ quét cả `components/` và `features/` (có thư mục con). 215/215 test pass, `vite build` chạy được, đã mở thử mọi màn trên trình duyệt, không có lỗi console.
 - Lưu ý: ghi chú cũ bên dưới còn nhắc `common.jsx`; các component đó nay nằm trong `components/` (vd. `SearchBox`, `Hint`, `TeamPills` trong `Controls.jsx`, `TaskTags` / `ChannelTag` trong `TaskParts.jsx`, `LanguageSwitch` / `ThemeSwitch` trong `Preferences.jsx`).
 
+### Root, đợt 3: thêm / sửa / xoá vai trò (2026-10-07, schema v27)
+- Người dùng chốt: 4 vai trò có sẵn (Member, Leader, Manager, Director) chỉ đổi tên và số team, không đổi cấp bậc, không xoá (đăng ký mới và lời mời của Leader vào Member; `MANAGER_EMAILS` / `DIRECTOR_EMAILS` dựa vào chúng); vai trò tự tạo sửa / xoá thoải mái khi không còn ai giữ. Số team theo vai trò: tối thiểu 0 / 1, tối đa 1 / không giới hạn.
+- Thẻ "Vai trò" trên màn Cấu hình hệ thống (`RolesCard.jsx`): tên (✎), cấp bậc (sửa được với vai trò tự tạo), số team ít nhất / nhiều nhất, số người giữ, Xoá; "Thêm vai trò": tên, cấp bậc, sao chép quyền từ vai trò nào. Đổi vai trò thì bảng quyền, ô mời và bảng người dùng tự đọc lại. Bảng quyền ẩn "Khôi phục mặc định" với vai trò tự tạo.
+- Server: v27 thêm `roles.builtin`, `min_teams`, `max_teams` và dựng lại `users` để bỏ CHECK trên `role` (đã thử trên bản sao: đủ 11 người, 17 dòng team, 20 thông báo, không lỗi khoá ngoại). Không dùng khoá ngoại tới `roles` vì `root` không phải một vai trò trong bảng; API chỉ cấp vai trò có thật và không xoá vai trò còn người giữ. `teamLimitsError()` / `singleTeam()` thay mọi chỗ viết cứng Member / Leader (Quản lý người dùng, mời, thêm / bỏ thành viên team). Không có `users.manage` (Leader) thì quản lý thành viên team áp dụng cho người có cấp thấp hơn mình (mặc định: Member, như cũ). `USER_SELECT` trả `role_name`. API `/api/admin/roles`. Test `custom-roles.test.js` (9 test) và kiểm tra migration từ v21 trong `director.test.js`.
+- Client: bỏ `ROLES` và `takesAllTeams` trong `utils.js`; tên vai trò là `roleLabel(user)`, luật số team từ `roleIn(roles, key)` (`hooks.js`). Gợi ý trong ô chọn team đổi thành "{tên vai trò} thuộc một team…" / "{tên vai trò} phụ trách tất cả team được chọn, ít nhất một team.". Pill "Tất cả team" cho vai trò không bắt buộc team và không giới hạn (Manager, Director).
+- Đã thử trên trình duyệt bằng root: thêm vai trò "Thử nghiệm" (hiện ở bảng quyền và ô chọn vai trò), xoá đi; database dev đã về như cũ (chỉ còn 4 vai trò có sẵn). Trieu (Director) hiện đúng tên vai trò ở sidebar và Quản lý người dùng.
+
 ### Gộp code trùng lặp (2026-10-07)
 - Rà soát toàn bộ codebase, gộp các chỗ lặp; không đổi hành vi, API hay schema (254/254 test pass, `vite build` chạy được, đã mở thử Theo dõi, Dashboard, Quản lý người dùng, project, Profile, hộp Tạo project: không lỗi console).
 - Server: `unauthorized()` / `conflict()` / `notFound(res, msg)` trong `lib/http.js`; `nextPosition()` và `replaceLinks()` trong `lib/util.js` (thay các câu `MAX(position)` và xoá-rồi-chèn bảng nối `project_teams`, `user_teams`, `task_channels`); `activeUsers()`, `AT_WORK` (điều kiện SQL "người đang làm việc": active, đã tham gia, không phải root) và `createInvitedUser()` (dùng chung cho mời từ Quản lý team và từ Quản lý người dùng / root) trong `lib/users.js`; `postComment()`, `commentsOf()`, `commentById()` trong `lib/comments.js` dùng chung cho comment task và requirement (`COMMENT_KINDS[kind].context()` thay `open()`); `TASK_COUNTS` trong `lib/access.js`; `PATCH /api/me` đọc các trường theo bảng `ME_FIELDS`.
@@ -154,7 +161,6 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 - Bỏ cột cũ `projects.team_id` (không dùng từ v5) và `users.team_id` (không dùng từ v9); phải dựng lại bảng vì cột có khoá ngoại.
 
 ### Tính năng
-- ⭐ **Root, đợt 3** (người dùng yêu cầu 2026-10-06): thêm / sửa / xoá vai trò (tạo bằng cách sao chép vai trò có sẵn, đặt cấp bậc; không xoá vai trò còn người giữ) và ràng buộc theo vai trò (số team tối thiểu / tối đa, đang viết cứng: Member đúng 1 team, Leader ≥ 1). Cần dựng lại bảng `users` lần nữa để bỏ CHECK trên `role` (thay bằng khoá ngoại tới `roles`); tên vai trò hiển thị lấy từ `/api/roles` thay cho `ROLES` trong `client/src/utils.js`.
 - Task lặp lại, đợt sau (nếu cần): hiện mờ các lần sắp tới trên Lịch (xem trước lịch đăng bài cả tháng), lặp kiểu "thứ Sáu cuối cùng của tháng".
 - Thông báo khi có góp ý mới trên requirement của mình (owner / Leader), không chỉ khi được tag.
 
@@ -167,16 +173,15 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 
 ## Đề xuất tiếp theo
 
-1. **Root, đợt 3: thêm / sửa / xoá vai trò và ràng buộc theo vai trò** (mục Tính năng), sau khi người dùng dùng thử bảng quyền.
-2. **Chuẩn bị deploy** cho 40 người dùng thật (build production, HTTPS, backup tự động **cả database lẫn `server/data/uploads/`**), kèm Google OAuth Client ID.
-3. **Thông báo góp ý mới trên requirement** cho owner / Leader (mục Tính năng).
-4. **Thử trên iPad thật** (`http://<IP máy>:5173`, đăng nhập dev) và báo lại chỗ vướng.
+1. **Chuẩn bị deploy** cho 40 người dùng thật (build production, HTTPS, backup tự động **cả database lẫn `server/data/uploads/`**), kèm Google OAuth Client ID.
+2. **Thông báo góp ý mới trên requirement** cho owner / Leader (mục Tính năng).
+3. **Thử trên iPad thật** (`http://<IP máy>:5173`, đăng nhập dev) và báo lại chỗ vướng.
 
 ---
 
 ## Ghi chú cho phiên sau
 
-- **Trước khi đổi schema** (`server/src/db.js`): tắt dev server (nó chạy `node --watch` nên chuyển dữ liệu ngay khi lưu file) và sao lưu bằng `VACUUM INTO`. Bản sao lưu hiện có trong `server/data/`: `app.backup-before-roles.db` (v1), `app.backup-v7-requirements.db`, `app.backup-before-mentions.db` (v7), `app.backup-before-multi-team-users.db` (v8), `app.backup-before-invited-by.db` (v9), `app.backup-before-attachments.db` (v10), `app.backup-before-status-sync.db` (v11), `app.backup-before-comment-files.db` (v12), `app.backup-before-requirement-teams.db` (v13), `app.backup-before-task-history.db` (v14), `app.backup-before-assignee-teams.db` (v15), `app.backup-before-channels.db` (v16), `app.backup-before-recurring.db` (v17), `app.backup-before-language.db` (v18), `app.backup-before-profile.db` (v19), `app.backup-before-avatar.db` (v20), `app.backup-before-director.db` (v21), `app.backup-before-root.db` (v22), `app.backup-before-permissions.db` (v23), `app.backup-before-joined.db` (v24), `app.backup-before-manager-scope.db` (v25).
+- **Trước khi đổi schema** (`server/src/db.js`): tắt dev server (nó chạy `node --watch` nên chuyển dữ liệu ngay khi lưu file) và sao lưu bằng `VACUUM INTO`. Bản sao lưu hiện có trong `server/data/`: `app.backup-before-roles.db` (v1), `app.backup-v7-requirements.db`, `app.backup-before-mentions.db` (v7), `app.backup-before-multi-team-users.db` (v8), `app.backup-before-invited-by.db` (v9), `app.backup-before-attachments.db` (v10), `app.backup-before-status-sync.db` (v11), `app.backup-before-comment-files.db` (v12), `app.backup-before-requirement-teams.db` (v13), `app.backup-before-task-history.db` (v14), `app.backup-before-assignee-teams.db` (v15), `app.backup-before-channels.db` (v16), `app.backup-before-recurring.db` (v17), `app.backup-before-language.db` (v18), `app.backup-before-profile.db` (v19), `app.backup-before-avatar.db` (v20), `app.backup-before-director.db` (v21), `app.backup-before-root.db` (v22), `app.backup-before-permissions.db` (v23), `app.backup-before-joined.db` (v24), `app.backup-before-manager-scope.db` (v25), `app.backup-before-custom-roles.db` (v26).
 - **Lịch sử schema** v1 → v10 có trong README, mục "Database".
 - **Cấu trúc server** (từ 2026-10-06): endpoint mới vào `server/src/routes/<tính năng>.js`, luật dùng chung vào `server/src/lib/`; không thêm code vào `index.js`. README mục "Cấu trúc" liệt kê từng file.
 - **Vite** đôi khi giữ bản trung gian của file khi sửa nhiều lần liên tiếp, gây lỗi giả trong console. `touch` file đó để Vite đọc lại.

@@ -27,7 +27,8 @@ export const PRIORITIES = labels({
   medium: () => tr('Trung bình'),
   high: () => tr('Cao'),
 });
-export const ROLES = { director: 'Director', manager: 'Manager', leader: 'Leader', member: 'Member' };
+// A person's role as root named it (role_name from the server); root accounts have no role of the company.
+export const roleLabel = (user) => user.role_name ?? (user.role === 'root' ? 'Root' : user.role);
 // What the signed-in user's role may do (user.permissions from /api/me, set by root): the scope ('none' / 'team' /
 // 'all') or whether they hold it at all. The server checks every request; these only shape the screens.
 export const scopeOf = (user, key) => user.permissions?.[key] ?? 'none';
@@ -39,8 +40,6 @@ export function coversTeams(user, key, teamIds) {
 }
 // Watching everyone's work (people.watch 'all'): the department-wide screens instead of the user's own teams.
 export const watchesAll = (user) => scopeOf(user, 'people.watch') === 'all';
-// Roles whose holders may belong to every team ("Tất cả team").
-export const takesAllTeams = (role) => role === 'manager' || role === 'director';
 export const STATUSES = labels({
   pending: () => tr('Chờ duyệt'),
   active: () => tr('Đang hoạt động'),

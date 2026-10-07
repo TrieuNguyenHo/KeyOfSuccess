@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { ROLES, STATUSES, can } from '../../utils.js';
+import { STATUSES, can, roleLabel } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { SearchBox } from '../../components/Controls.jsx';
 import { askConfirm } from '../../components/Dialog.jsx';
-import { levelIn, useRoles } from '../../components/hooks.js';
+import { levelIn, roleIn, useRoles } from '../../components/hooks.js';
 import { ProfilePopover } from '../profile/ProfilePage.jsx';
 import { tr } from '../../i18n.js';
 
@@ -84,7 +84,7 @@ export default function TeamMembers({ team, user, onChanged }) {
   async function remove(u) {
     const ok = await askConfirm({
       title: tr('Bỏ {name} khỏi team {name1}?', { name: u.name, name1: team.name }),
-      message: u.role === 'member' ? tr('Họ sẽ thành "Chưa có team" cho tới khi được xếp vào team khác.') : undefined,
+      message: u.team_ids.length === 1 ? tr('Họ sẽ thành "Chưa có team" cho tới khi được xếp vào team khác.') : undefined,
       confirmLabel: tr('Bỏ khỏi team'),
       danger: true,
     });
@@ -103,11 +103,13 @@ export default function TeamMembers({ team, user, onChanged }) {
     if (ok) act(() => api(`/admin/users/${u.id}`, { method: 'DELETE' }), tr('Đã huỷ lời mời {email}.', { email: u.email }));
   }
 
+  // Without users.manage, only people of a lower role level (Leaders remove Members); nobody is left with fewer teams
+  // than their role needs (a Leader keeps one).
   const canRemove = (u) =>
     u.joined &&
     u.id !== user.id &&
-    levelIn(roles, u.role) <= levelIn(roles, user.role) &&
-    (isManager ? !(u.role === 'leader' && u.team_ids.length === 1) : u.role === 'member');
+    (isManager ? levelIn(roles, u.role) <= levelIn(roles, user.role) : levelIn(roles, u.role) < levelIn(roles, user.role)) &&
+    u.team_ids.length > roleIn(roles, u.role).min_teams;
 
   return (
     <div className="team-members">
@@ -130,7 +132,7 @@ export default function TeamMembers({ team, user, onChanged }) {
             <Avatar name={u.name} userId={u.id} small />
             <div className="grow user-info">
               <span className="ellipsis">{u.name}</span>
-              <span className="muted small ellipsis">{u.team_name ? `${ROLES[u.role]} · ${u.team_name}` : u.email}</span>
+              <span className="muted small ellipsis">{u.team_name ? `${roleLabel(u)} · ${u.team_name}` : u.email}</span>
             </div>
             {u.status !== 'active' && (
               <span className={`tag status-${u.status}`}>
@@ -189,7 +191,7 @@ export default function TeamMembers({ team, user, onChanged }) {
               </span>
             )}
             {!u.joined && <span className="muted small">{tr('Đã mời, chưa tham gia')}</span>}
-            <span className="muted small">{ROLES[u.role]}</span>
+            <span className="muted small">{roleLabel(u)}</span>
             {canRevoke(u) && (
               <button className="link-btn danger" onClick={() => revoke(u)}>
                 {tr('Huỷ lời mời')}

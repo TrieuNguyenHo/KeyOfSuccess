@@ -21,6 +21,8 @@ export const useChannels = () => useFetched('/channels');
 // The roles that can be given, highest level first ({ key, name, level }), for role pickers and the level rule:
 // nobody changes the account of, or gives, a role above their own level (root stands above every role).
 export const useRoles = () => useFetched('/roles');
+// A role's team rule (v27): min_teams 0 or 1, max_teams 1 or null (no limit). Unknown roles (root) have none.
+export const roleIn = (roles, key) => roles.find((r) => r.key === key) ?? { min_teams: 0, max_teams: null };
 export const levelIn = (roles, role) => (role === 'root' ? Infinity : (roles.find((r) => r.key === role)?.level ?? 0));
 
 // Pop-ups built on <details> (team pickers, profile cards, hints) close on a click outside them or on Escape.

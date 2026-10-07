@@ -165,6 +165,17 @@ img.avatar { object-fit: cover; }
 .perm-grid select.perm-none { color: var(--muted); }
 .perm-grid .link-btn { justify-self: start; border-bottom: 0; }
 
+/* Roles (System configuration, root): name, level, fewest / most teams, holders, delete. */
+.role-row {
+  display: grid; grid-template-columns: minmax(180px, 1fr) 72px 140px 140px 80px 60px;
+  align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--divider-soft);
+}
+.role-row .cell { gap: 8px; min-width: 0; }
+.role-level-input { width: 64px; }
+.role-add-title { font-size: 14px; font-weight: 600; margin: 18px 0 10px; }
+.role-level { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; }
+.role-level input { width: 64px; flex: none; }
+
 /* Dashboard (mark specs from the dataviz guide: thin bars, 4px data-ends, 2px surface gaps) */
 .dashboard { display: flex; flex-direction: column; gap: 20px; }
 .card-sub { margin: -8px 0 14px; }

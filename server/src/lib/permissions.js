@@ -41,17 +41,30 @@ export const PERMISSIONS = [
   // Being told when a top-level task is completed: of the holder's teams, or of everyone.
   { key: 'notify.task_completed', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'team', 'none'] },
 ];
+// The built-in roles, in the order of each permission's defaults.
 const DEFAULT_ROLES = ['member', 'leader', 'manager', 'director'];
 export const findPermission = (key) => PERMISSIONS.find((p) => p.key === key);
 
-// Fills in every permission a role lacks with its default; scopes root already set are kept. Runs at startup, so a
-// permission added in a later version starts with its default.
+// Fills in every permission a role lacks: the default for a built-in role, 'none' for one root added (it started as a
+// copy of another role, so only permissions added since then are missing). Scopes root already set are kept. Runs at
+// startup, so a permission added in a later version starts with its default.
 export function seedPermissions() {
   const insert = db.prepare('INSERT OR IGNORE INTO role_permissions (role, permission, scope) VALUES (?, ?, ?)');
   for (const p of PERMISSIONS) DEFAULT_ROLES.forEach((role, i) => insert.run(role, p.key, p.defaults[i]));
+  for (const { key } of db.prepare('SELECT key FROM roles WHERE builtin = 0').all()) {
+    for (const p of PERMISSIONS) insert.run(key, p.key, 'none');
+  }
 }
 
-// Puts one role back on the default scopes.
+// Gives a new role the scopes another role holds.
+export function copyPermissions(from, to) {
+  db.prepare('INSERT INTO role_permissions (role, permission, scope) SELECT ?, permission, scope FROM role_permissions WHERE role = ?').run(
+    to,
+    from
+  );
+}
+
+// Puts a built-in role back on the default scopes (a role root added has no defaults).
 export function resetPermissions(role) {
   const i = DEFAULT_ROLES.indexOf(role);
   const update = db.prepare('UPDATE role_permissions SET scope = ? WHERE role = ? AND permission = ?');
@@ -87,4 +100,17 @@ export function levelOf(role) {
 }
 export const outranks = (target, me) => levelOf(target.role) > levelOf(me.role);
 // The roles that can be given in the app (root cannot: it comes from ROOT_EMAILS).
-export const roleExists = (key) => Boolean(db.prepare('SELECT 1 FROM roles WHERE key = ?').get(key));
+export const findRole = (key) => db.prepare('SELECT * FROM roles WHERE key = ?').get(key);
+export const roleExists = (key) => Boolean(findRole(key));
+
+// How many teams the holders of a role belong to (v27): min_teams 0 or 1, max_teams 1 or null (no limit). Returns
+// the error for a list of teams that breaks the role's rule, else null. Root has no teams.
+export function teamLimitsError(roleKey, teamIds) {
+  const role = findRole(roleKey);
+  if (!role) return null;
+  if (role.min_teams > 0 && teamIds.length < role.min_teams) return `${role.name} phải thuộc ít nhất một team`;
+  if (role.max_teams != null && teamIds.length > role.max_teams) return `${role.name} chỉ thuộc một team`;
+  return null;
+}
+// Roles whose holders belong to one team at most (Member by default): adding them to a team moves them there.
+export const singleTeam = (roleKey) => findRole(roleKey)?.max_teams === 1;

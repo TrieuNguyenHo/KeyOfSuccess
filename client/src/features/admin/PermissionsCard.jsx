@@ -136,11 +136,16 @@ export default function PermissionsCard() {
               );
             })}
             <span />
-            {data.roles.map((r) => (
-              <button key={r.key} className="link-btn" onClick={() => reset(r)}>
-                {tr('Khôi phục mặc định')}
-              </button>
-            ))}
+            {/* Only the built-in roles have defaults; a role root added started as a copy of another. */}
+            {data.roles.map((r) =>
+              r.builtin ? (
+                <button key={r.key} className="link-btn" onClick={() => reset(r)}>
+                  {tr('Khôi phục mặc định')}
+                </button>
+              ) : (
+                <span key={r.key} />
+              )
+            )}
           </div>
         </div>
       )}

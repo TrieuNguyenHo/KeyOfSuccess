@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
-import { STATUSES, takesAllTeams } from '../../utils.js';
+import { STATUSES, roleLabel } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { TeamPills } from '../../components/Controls.jsx';
 import { askConfirm } from '../../components/Dialog.jsx';
-import { levelIn, useRoles } from '../../components/hooks.js';
+import { levelIn, roleIn, useRoles } from '../../components/hooks.js';
 import { ProfilePopover } from '../profile/ProfilePage.jsx';
 import { tr } from '../../i18n.js';
 
@@ -53,6 +53,10 @@ export default function UsersCard({ user, users, teams, updateUser, revokeInvite
       {shown.map((u) => {
         const self = u.id === user.id;
         const locked = levelIn(roles, u.role) > myLevel;
+        // The team rule of their role (v27): one team at most (Member), at least one (Leader), or any (Manager).
+        const rule = roleIn(roles, u.role);
+        // Roles that may have no team and any number of them get the "Tất cả team" pill (Managers, Directors).
+        const anyTeams = rule.min_teams === 0 && rule.max_teams == null;
         return (
           <div key={u.id} className="admin-row">
             <span className="cell">
@@ -78,8 +82,9 @@ export default function UsersCard({ user, users, teams, updateUser, revokeInvite
               disabled={self || locked}
               onChange={(e) => {
                 const role = e.target.value;
-                // A Member keeps only one team: the first of a Leader's or Manager's teams.
-                updateUser(u, role === 'member' && u.team_ids.length > 1 ? { role, team_ids: u.team_ids.slice(0, 1) } : { role });
+                // A one-team role (Member) keeps only the first of their teams.
+                const oneTeam = roleIn(roles, role).max_teams === 1 && u.team_ids.length > 1;
+                updateUser(u, oneTeam ? { role, team_ids: u.team_ids.slice(0, 1) } : { role });
               }}
             >
               {roles
@@ -93,12 +98,11 @@ export default function UsersCard({ user, users, teams, updateUser, revokeInvite
             {locked ? (
               <span className="muted">{u.team_name ?? tr('Chưa có team')}</span>
             ) : (
-              // The same pill picker for every role. Leaders, Managers and Directors may belong to several teams (a
-              // Leader to at least one); a Member to one: picking a team moves them there, unpicking it leaves them
-              // without a team.
+              // The same pill picker for every role. Most roles may belong to several teams (a Leader to at least
+              // one); a one-team role (Member): picking a team moves them there, unpicking it leaves them without one.
               <details className="team-picker">
                 <summary title={tr('Chọn các team')}>
-                  {takesAllTeams(u.role) && teams.length > 0 && u.team_ids.length === teams.length
+                  {anyTeams && teams.length > 0 && u.team_ids.length === teams.length
                     ? tr('Tất cả team')
                     : u.team_name ?? tr('Chưa có team')}{' '}
                   ▾
@@ -109,16 +113,20 @@ export default function UsersCard({ user, users, teams, updateUser, revokeInvite
                     selected={u.team_ids}
                     label={tr('Team của {name}', { name: u.name })}
                     noneLabel={null}
-                    allLabel={takesAllTeams(u.role) ? tr('Tất cả team') : undefined}
+                    allLabel={anyTeams ? tr('Tất cả team') : undefined}
                     onChange={(ids) => {
-                      if (u.role === 'member') {
+                      if (rule.max_teams === 1) {
                         const added = ids.find((id) => !u.team_ids.includes(id));
                         updateUser(u, { team_ids: added ? [added] : [] });
                       } else if (ids.length > 0) updateUser(u, { team_ids: ids });
                     }}
                   />
-                  {u.role === 'leader' && <span className="muted small">{tr('Leader phụ trách tất cả team được chọn.')}</span>}
-                  {u.role === 'member' && <span className="muted small">{tr('Member thuộc một team: chọn team khác để chuyển.')}</span>}
+                  {rule.min_teams > 0 && (
+                    <span className="muted small">{tr('{name} phụ trách tất cả team được chọn, ít nhất một team.', { name: roleLabel(u) })}</span>
+                  )}
+                  {rule.max_teams === 1 && (
+                    <span className="muted small">{tr('{name} thuộc một team: chọn team khác để chuyển.', { name: roleLabel(u) })}</span>
+                  )}
                 </div>
               </details>
             )}

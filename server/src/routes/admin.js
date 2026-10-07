@@ -2,7 +2,7 @@
 import express from 'express';
 import { db, transaction } from '../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../lib/http.js';
-import { can, levelOf, mergeOwnTeams, outranks, roleExists, scopeOf } from '../lib/permissions.js';
+import { can, findRole, levelOf, mergeOwnTeams, outranks, roleExists, scopeOf, teamLimitsError } from '../lib/permissions.js';
 import { isRoot } from '../lib/roles.js';
 import {
   EMAIL_TAKEN,
@@ -64,8 +64,8 @@ router.patch('/admin/users/:id', userAdminOnly, (req, res) => {
   if (target.id === req.user.id && (next.role !== target.role || next.status !== 'active')) {
     return badRequest(res, 'Không thể tự hạ quyền hoặc khoá chính mình');
   }
-  if (next.role === 'leader' && teamIds.length === 0) return badRequest(res, 'Leader phải thuộc ít nhất một team');
-  if (next.role === 'member' && teamIds.length > 1) return badRequest(res, 'Member chỉ thuộc một team');
+  const teamsError = teamLimitsError(next.role, teamIds);
+  if (teamsError) return badRequest(res, teamsError);
   transaction(() => {
     db.prepare('UPDATE users SET role = ?, status = ? WHERE id = ?').run(next.role, next.status, target.id);
     replaceLinks('user_teams', 'user_id', target.id, 'team_id', teamIds);
@@ -75,8 +75,8 @@ router.patch('/admin/users/:id', userAdminOnly, (req, res) => {
 
 // Invites someone who has never signed in: creates their account already active. Sign-in matches accounts by email,
 // so their first Google sign-in with that email lands straight in the app. No email is sent.
-// Body { email, name?, role? (default 'member', not above the inviter's level), team_id? (required for Members and
-// Leaders, who belong to a team) }. For users.manage and root (System configuration).
+// Body { email, name?, role? (default 'member', not above the inviter's level), team_id? (required unless the role
+// may have no team and any number of them, like Managers) }. For users.manage and root (System configuration).
 router.post('/admin/users', userAdminOnly, (req, res) => {
   const email = req.body?.email?.trim().toLowerCase();
   const role = req.body?.role ?? 'member';
@@ -84,7 +84,8 @@ router.post('/admin/users', userAdminOnly, (req, res) => {
   if (!email || !EMAIL_RE.test(email)) return badRequest(res, 'Email không hợp lệ');
   if (!roleExists(role)) return badRequest(res, 'Vai trò hoặc trạng thái không hợp lệ');
   if (levelOf(role) > levelOf(req.user.role)) return forbidden(res, 'Không đổi được tài khoản có vai trò cao hơn bạn');
-  if (teamId != null || role === 'member' || role === 'leader') {
+  const { min_teams, max_teams } = findRole(role);
+  if (teamId != null || min_teams > 0 || max_teams != null) {
     if (!db.prepare('SELECT 1 FROM teams WHERE id = ?').get(teamId)) return badRequest(res, 'Team không tồn tại');
   }
   // With a 'team' scope, people are invited into one of the caller's own teams.

@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { api } from '../../api.js';
-import { levelIn, useRoles } from '../../components/hooks.js';
+import { levelIn, roleIn, useRoles } from '../../components/hooks.js';
 import { tr } from '../../i18n.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// Members and Leaders belong to a team; Managers and Directors may have none.
-const needsTeam = (role) => role === 'member' || role === 'leader';
 
 // Creates the account of someone who has never signed in (POST /api/admin/users), with a role up to the inviter's
 // level and a team. The account is active at once; nothing is emailed, the inviter sends the app link.
@@ -18,7 +16,10 @@ export default function InviteUserCard({ user, teams, onInvited }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  const valid = EMAIL_RE.test(email.trim()) && (teamId || !needsTeam(role));
+  // A team is needed unless the role may have none and any number (like Managers and Directors).
+  const { min_teams, max_teams } = roleIn(roles, role);
+  const needsTeam = min_teams > 0 || max_teams != null;
+  const valid = EMAIL_RE.test(email.trim()) && (teamId || !needsTeam);
 
   async function submit(e) {
     e.preventDefault();
@@ -58,7 +59,7 @@ export default function InviteUserCard({ user, teams, onInvited }) {
             ))}
         </select>
         <select aria-label="Team" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
-          <option value="">{needsTeam(role) ? tr('Chọn team') : tr('Chưa có team')}</option>
+          <option value="">{needsTeam ? tr('Chọn team') : tr('Chưa có team')}</option>
           {teams.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}

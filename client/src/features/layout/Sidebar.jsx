@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ROLES, can, myTeamsLabel, watchesAll } from '../../utils.js';
+import { can, myTeamsLabel, roleLabel, watchesAll } from '../../utils.js';
 import NotificationBell from './NotificationBell.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { Brand } from '../../components/Brand.jsx';
@@ -290,7 +290,7 @@ export default function Sidebar({
           <span className="grow user-info">
             <span className="ellipsis">{user.name}</span>
             <span className="role-line ellipsis">
-              {ROLES[user.role]}
+              {roleLabel(user)}
               {user.team_name && ` · ${user.team_name}`}
             </span>
           </span>

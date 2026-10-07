@@ -176,6 +176,7 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `profile.test.js` | Hồ sơ: sửa / xoá trường, kiểm tra dữ liệu, tên mới hiện ở mọi chỗ, chỉ chính mình và Manager thấy thông tin cá nhân |
 | `director.test.js` | Director: toàn quyền mọi project, quyền Manager, chỉ Director cấp vai trò Director / sửa tài khoản Director, hồ sơ, không nhận thông báo task xong, migration v22 |
 | `root.test.js` | Root: chỉ dùng API cấu hình, ẩn khỏi mọi danh sách, cấp Director, không ai sửa được root, thu hồi khi bỏ khỏi `ROOT_EMAILS`, migration v23 |
+| `custom-roles.test.js` | Vai trò tự tạo (v27): chỉ root, sao chép quyền, đổi tên vai trò có sẵn, không đổi cấp / xoá vai trò có sẵn, số team theo vai trò, không xoá vai trò còn người giữ |
 | `permissions.test.js` | Bảng quyền: `/me` trả quyền, chỉ root đọc / sửa, kiểm tra phạm vi, đổi quyền có hiệu lực ngay, khôi phục mặc định, quyền theo team, thông báo, cấp bậc vai trò |
 | `invitations.test.js` | Lời mời: "Đã mời, chưa tham gia" tới lần đăng nhập đầu, chưa giao task / thêm vào project / theo dõi / tính workload được, huỷ lời mời |
 | `manager-scope.test.js` | Manager theo team (mặc định v26): danh sách người dùng, sửa / mời / số chờ duyệt theo team, đổi tên team mình, project chỉ thuộc team mình, theo dõi / hồ sơ / thông báo theo team |
@@ -200,6 +201,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v27**: root thêm / sửa / xoá vai trò: `roles` thêm `builtin`, `min_teams` (0/1), `max_teams` (1/NULL; Member 1, Leader tối thiểu 1); dựng lại `users` để bỏ CHECK trên `role`.
 - **v26**: Manager theo team: các quyền của Manager còn ở mặc định cũ "Toàn phòng" (xem project, đổi team project, requirement, theo dõi, hồ sơ, quản lý người dùng, thành viên team, team, thông báo task xong) chuyển sang "Team của mình"; ô root đã tự đổi được giữ.
 - **v25**: cột `users.joined_at`, ghi ở lần đăng nhập đầu (đăng nhập = chấp nhận lời mời). Tài khoản đã có trước v25 được coi là đã tham gia.
 - **v24**: bảng `roles` (key, tên, `level`) và `role_permissions` (vai trò, quyền, phạm vi `none` / `team` / `all`). Quyền nào thiếu được điền giá trị mặc định mỗi khi server khởi động, nên quyền thêm ở bản sau tự có mặc định; ô root đã đặt được giữ nguyên.
@@ -235,7 +237,7 @@ server/src/routes/     REST API, mỗi tính năng một file (express.Router, g
   attachments        tải về / xoá file đính kèm
   dashboard          Dashboard tổng và Dashboard project
   notifications      chuông thông báo, luồng sự kiện /events
-  permissions        /roles (mọi người), bảng quyền /admin/permissions (root)
+  permissions        /roles (mọi người), thêm / sửa / xoá vai trò /admin/roles và bảng quyền /admin/permissions (root)
 server/src/lib/        luật và helper dùng chung giữa các route
   access             quyền project / task (projectAccess, taskAccess, isTaskAdmin, canBeAssigned, taskScope…)
   permissions        danh mục quyền + mặc định, scopeOf / can / coversTeams, cấp bậc (levelOf, outranks), seedPermissions
@@ -288,9 +290,11 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | GET | `/api/channels` | mọi người; Manager thấy thêm `task_count` |
 | POST, PATCH, DELETE | `/api/channels`, `/api/channels/:id` | Manager. `{ name, color? }` (màu `#rrggbb`, bỏ trống thì lấy màu kế tiếp trong bảng màu); tên không trùng (không phân biệt hoa thường) |
 | DELETE | `/api/admin/users/:id` | huỷ lời mời chưa ai nhận (tài khoản chưa đăng nhập lần nào bị xoá): người mời, hoặc `users.manage` / root với tài khoản không cao cấp hơn mình. 400 nếu người đó đã tham gia (chỉ khoá được) |
-| GET | `/api/roles` | mọi người đã đăng nhập: `[{ key, name, level }]`, cấp cao trước |
+| GET | `/api/roles` | mọi người đã đăng nhập: `[{ key, name, level, builtin, min_teams, max_teams }]`, cấp cao trước; root có thêm `user_count` |
+| POST | `/api/admin/roles` | chỉ root: `{ name, level, copy_from }`, vai trò mới chép quyền và số team của `copy_from`; trả lại danh sách vai trò |
+| PATCH, DELETE | `/api/admin/roles/:key` | chỉ root. PATCH: bất kỳ `{ name, level, min_teams (0/1), max_teams (1/null) }`; vai trò có sẵn không đổi cấp bậc; 400 nếu có người giữ không đúng số team mới. DELETE: chỉ vai trò tự tạo, không còn ai giữ |
 | GET, PATCH | `/api/admin/permissions` | chỉ root. GET: `{ roles, permissions: [{ key, scopes }], grants: { role: { quyền: phạm vi } } }`; PATCH `{ role, permission, scope }` (400 nếu phạm vi không hợp lệ cho quyền đó) |
-| POST | `/api/admin/permissions/reset` | chỉ root: `{ role }`, về quyền mặc định |
+| POST | `/api/admin/permissions/reset` | chỉ root: `{ role }`, vai trò có sẵn về quyền mặc định (vai trò tự tạo: 400) |
 | GET | `/api/admin/users` | Manager |
 | PATCH | `/api/admin/users/:id` | Manager / Director / root (root: 404 với tài khoản root; không trả thông tin cá nhân): `{ role, status, team_ids }` (hoặc `team_id` cho một team). Member tối đa 1 team, Leader ít nhất 1. `role: 'director'` và mọi thay đổi trên tài khoản Director: chỉ Director hoặc root (403) |
 | GET | `/api/teams/:id/members` | Manager (mọi team) / Leader (team mình): `{ team, members, candidates }`. `candidates` là người được phép thêm |

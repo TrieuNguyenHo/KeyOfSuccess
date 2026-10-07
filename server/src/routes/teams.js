@@ -4,7 +4,7 @@ import { db, transaction } from '../db.js';
 import { badRequest, conflict, forbidden, notFound, requireAllScope } from '../lib/http.js';
 import { AT_WORK, EMAIL_TAKEN, USER_SELECT, createInvitedUser, emailTaken, findUser, withUserTeams } from '../lib/users.js';
 import { EMAIL_RE, placeholders } from '../lib/util.js';
-import { can, coversTeams, outranks, scopeOf } from '../lib/permissions.js';
+import { can, coversTeams, levelOf, outranks, scopeOf, singleTeam, teamLimitsError } from '../lib/permissions.js';
 
 const router = express.Router();
 
@@ -63,16 +63,17 @@ function loadManagedTeam(req, res) {
   return team;
 }
 
-// Whom this user may add to the team. Without users.manage (Leaders): Members with no team who are active or signed
-// up themselves and wait for approval. With users.manage (Managers): anyone not disabled and not in the team, except
-// a Member who already has a team (Members belong to one team; move them in the user table). Nobody changes the teams
-// of someone of a higher role level.
+// Whom this user may add to the team. Without users.manage (Leaders): people of a lower role level (Members) with no
+// team who are active or signed up themselves and wait for approval. With users.manage (Managers): anyone not
+// disabled and not in the team, except someone of a one-team role (Members) who already has a team (move them in the
+// user table). Nobody changes the teams of someone of a higher role level.
 function canAddToTeam(me, user, teamId) {
   if (user.status === 'disabled' || user.team_ids.includes(teamId)) return false;
   if (outranks(user, me)) return false;
-  if (can(me, 'users.manage')) return user.role !== 'member' || user.team_ids.length === 0;
-  return user.role === 'member' && user.team_ids.length === 0 && (user.status === 'active' || user.invited_by == null);
+  if (can(me, 'users.manage')) return !singleTeam(user.role) || user.team_ids.length === 0;
+  return below(user, me) && user.team_ids.length === 0 && (user.status === 'active' || user.invited_by == null);
 }
+const below = (user, me) => levelOf(user.role) < levelOf(me.role);
 
 // The team's members plus the people the user may add (candidates), for the team editors.
 router.get('/teams/:id/members', (req, res) => {
@@ -107,17 +108,18 @@ router.post('/teams/:id/members', (req, res) => {
   res.status(201).json(findUser(user.id));
 });
 
-// Takes someone out of the team. Leaders only remove Members (who are left without a team);
-// a Leader keeps at least one team.
+// Takes someone out of the team. Without users.manage, only people of a lower role level (Leaders remove Members,
+// who are left without a team). Nobody is left with fewer teams than their role needs (a Leader keeps one).
 router.delete('/teams/:id/members/:userId', (req, res) => {
   const team = loadManagedTeam(req, res);
   if (!team) return;
   const me = req.user;
   const user = findUser(req.params.userId);
   if (!user || !user.team_ids.includes(team.id)) return notFound(res);
-  if (!can(me, 'users.manage') && user.role !== 'member') return forbidden(res, 'Leader chỉ bỏ được Member khỏi team');
+  if (!can(me, 'users.manage') && !below(user, me)) return forbidden(res, 'Leader chỉ bỏ được Member khỏi team');
   if (outranks(user, me)) return forbidden(res, 'Không đổi được tài khoản có vai trò cao hơn bạn');
-  if (user.role === 'leader' && user.team_ids.length === 1) return badRequest(res, 'Leader phải thuộc ít nhất một team');
+  const teamsError = teamLimitsError(user.role, user.team_ids.filter((id) => id !== team.id));
+  if (teamsError) return badRequest(res, teamsError);
   db.prepare('DELETE FROM user_teams WHERE user_id = ? AND team_id = ?').run(user.id, team.id);
   res.status(204).end();
 });
