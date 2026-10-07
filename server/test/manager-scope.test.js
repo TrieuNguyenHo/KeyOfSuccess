@@ -2,6 +2,7 @@
 // tracking, profiles and completion notifications are all team-scoped; the Director alone sees the whole department.
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
 import { startServer } from './helpers.js';
 
 let server, api;
@@ -91,4 +92,64 @@ test("a Manager is told of completed tasks of their own teams' people only", asy
   assert.equal(await api.unread(mgr), before);
   await done(contentProject.id, memC);
   assert.equal(await api.unread(mgr), before + 1);
+});
+
+// Release v1.0 was deployed from a line where v26 meant the fixed statuses; it never ran the Manager scope. Such a
+// database (version 26, sections already allowing 'pending') gets it while moving on to v27 and v28.
+test('a database deployed from v1.0 (v26 = fixed statuses) gets the Manager scope on its way to v28', async () => {
+  const old = await startServer({
+    managerScope: 'team',
+    prepareDb(dbPath) {
+      const db = new DatabaseSync(dbPath);
+      db.exec(`
+        CREATE TABLE teams (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+        CREATE TABLE users (
+          id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, google_sub TEXT UNIQUE,
+          role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('root', 'director', 'manager', 'leader', 'member')),
+          status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'disabled')),
+          team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
+          invited_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          language TEXT NOT NULL DEFAULT 'vi' CHECK (language IN ('vi', 'en')),
+          birthday TEXT, phone TEXT, job_title TEXT, bio TEXT,
+          gender TEXT CHECK (gender IN ('male', 'female', 'other', 'undisclosed')),
+          avatar TEXT, joined_at TEXT
+        );
+        CREATE TABLE projects (id INTEGER PRIMARY KEY, name TEXT NOT NULL, color TEXT NOT NULL DEFAULT '#4573d2',
+          owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL, team_id INTEGER,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')));
+        CREATE TABLE sections (id INTEGER PRIMARY KEY,
+          project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE, name TEXT NOT NULL, position REAL NOT NULL,
+          kind TEXT CHECK (kind IN ('todo', 'doing', 'done', 'pending')));
+        CREATE TABLE roles (key TEXT PRIMARY KEY, name TEXT NOT NULL, level INTEGER NOT NULL);
+        CREATE TABLE role_permissions (role TEXT NOT NULL REFERENCES roles(key) ON DELETE CASCADE, permission TEXT NOT NULL,
+          scope TEXT NOT NULL CHECK (scope IN ('none', 'team', 'all')), PRIMARY KEY (role, permission));
+        INSERT INTO roles VALUES ('member', 'Member', 1), ('leader', 'Leader', 2), ('manager', 'Manager', 3), ('director', 'Director', 4);
+        INSERT INTO role_permissions VALUES ('manager', 'users.manage', 'all'), ('manager', 'projects.view', 'all'),
+          ('manager', 'channels.manage', 'all');
+        INSERT INTO users (id, name, email, role, status, joined_at) VALUES (5, 'Hue', 'hue@t.test', 'manager', 'active', datetime('now'));
+        INSERT INTO projects (id, name) VALUES (1, 'Tet');
+        INSERT INTO sections (project_id, name, position, kind) VALUES (1, 'Planned', 1, 'todo'), (1, 'In-Progress', 2, 'doing'),
+          (1, 'Completed', 3, 'done'), (1, 'Pending', 4, 'pending');
+        PRAGMA user_version = 26;
+      `);
+      db.close();
+    },
+  });
+  try {
+    const db = new DatabaseSync(old.dbPath);
+    const version = db.prepare('PRAGMA user_version').get().user_version;
+    const scopes = db.prepare("SELECT permission || '=' || scope AS s FROM role_permissions WHERE role = 'manager' ORDER BY permission").all();
+    const sections = db.prepare('SELECT COUNT(*) AS n FROM sections WHERE project_id = 1').get().n;
+    const builtin = db.prepare('SELECT COUNT(*) AS n FROM roles WHERE builtin = 1').get().n;
+    db.close();
+    assert.equal(version, 28);
+    const manager = Object.fromEntries(scopes.map((r) => r.s.split('=')));
+    assert.deepEqual([manager['users.manage'], manager['projects.view'], manager['channels.manage']], ['team', 'team', 'all']);
+    assert.equal(sections, 4, 'the fixed statuses are not added twice');
+    assert.equal(builtin, 4);
+    assert.equal((await old.api.user('hue')).role, 'manager');
+  } finally {
+    await old.stop();
+  }
 });

@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DIRECTOR_EMAILS, ROOT_EMAILS } from './config.js';
 
-const dbPath = process.env.DB_PATH || join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'app.db');
+export const dbPath = process.env.DB_PATH || join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'app.db');
 mkdirSync(dirname(dbPath), { recursive: true });
 
 export const db = new DatabaseSync(dbPath);
@@ -12,6 +12,18 @@ export const db = new DatabaseSync(dbPath);
 export const UPLOAD_DIR = join(dirname(dbPath), 'uploads');
 mkdirSync(UPLOAD_DIR, { recursive: true });
 db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
+
+// A project's statuses ("trạng thái" in the UI): its board columns. kind marks the four built-in ones
+// (v26: Planned, In-Progress, Completed, Pending; fixed names, never renamed or deleted); 'done' keeps the
+// completed tick in step (lib/statuses.js). Shared by the schema below and the v26 migration, which rebuilds it.
+const sectionsTable = (name) => `
+  CREATE TABLE IF NOT EXISTS ${name} (
+    id INTEGER PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    position REAL NOT NULL,
+    kind TEXT CHECK (kind IN ('todo', 'doing', 'done', 'pending'))
+  );`;
 
 // Shared by the schema below and the v2 migration, which rebuilds the table.
 // Shared by the schema below and the v8 migration, which rebuilds the table.
@@ -104,15 +116,7 @@ db.exec(`
     PRIMARY KEY (project_id, team_id)
   );
 
-  -- A project's statuses ("trạng thái" in the UI): its board columns. kind (v12) marks the three built-in
-  -- ones, whatever they are renamed to; 'done' keeps the completed tick in step (see index.js).
-  CREATE TABLE IF NOT EXISTS sections (
-    id INTEGER PRIMARY KEY,
-    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    position REAL NOT NULL,
-    kind TEXT CHECK (kind IN ('todo', 'doing', 'done'))
-  );
+  ${sectionsTable('sections')}
 
   -- A project's requirements; every top-level task belongs to one.
   CREATE TABLE IF NOT EXISTS requirements (
@@ -518,6 +522,15 @@ function rebuildUsers(tempName) {
   db.exec('PRAGMA foreign_keys = ON');
 }
 
+// A database that ran this branch's earlier v22 (the four fixed statuses, now v26) before the Director role took
+// that number: step back to v21 so v22-v25 run; v26 then finds its statuses already in place.
+{
+  const tableSql = (name) => db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?").get(name)?.sql ?? '';
+  if (schemaVersion() === 22 && tableSql('sections').includes("'pending'") && !tableSql('users').includes("'director'")) {
+    db.exec('PRAGMA user_version = 21');
+  }
+}
+
 // v22: the Director role; then DIRECTOR_EMAILS become Directors, so a Director already signed in has the role at once.
 if (schemaVersion() < 22) {
   allowUserRole('director', 'users_v22');
@@ -567,9 +580,17 @@ if (schemaVersion() < 25) {
   db.exec('PRAGMA user_version = 25');
 }
 
+// Two lines of work both took v26 and were merged on 2026-10-07 (release v1.0 was deployed from the second):
+//   - main: v26 Manager scope, v27 editable roles;
+//   - v1.0: v26 fixed statuses (now v28 below).
+// A database of the v1.0 line is at 26 with a sections table that already allows 'pending'; it skipped the Manager
+// scope, which runs for it here. Every step below can run on either line.
+const sectionsSql = () => db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'sections'").get().sql;
+const fromStatusesLine = schemaVersion() === 26 && sectionsSql().includes("'pending'");
+
 // v26: a Manager runs only their own teams (decided 2026-10-06). Manager permissions still on the old department-wide
 // default move to 'team'; scopes root set by hand are kept. A new database gets the new defaults from the seeding.
-if (schemaVersion() < 26) {
+function managerToOwnTeams() {
   const toTeam = db.prepare("UPDATE role_permissions SET scope = 'team' WHERE role = 'manager' AND permission = ? AND scope = 'all'");
   [
     'projects.view',
@@ -582,8 +603,11 @@ if (schemaVersion() < 26) {
     'teams.manage',
     'notify.task_completed',
   ].forEach((permission) => toTeam.run(permission));
-  db.exec('PRAGMA user_version = 26');
 }
+if (schemaVersion() < 26) {
+  managerToOwnTeams();
+  db.exec('PRAGMA user_version = 26');
+} else if (fromStatusesLine) managerToOwnTeams();
 
 // v27: root adds, renames and deletes roles (decided 2026-10-07). users.role loses its CHECK (rebuilt), and each role
 // carries how many teams its holders belong to: min_teams 0 or 1, max_teams 1 or NULL (no limit). The four built-in
@@ -604,6 +628,39 @@ if (schemaVersion() < 27) {
     db.exec("UPDATE roles SET min_teams = 1 WHERE key = 'leader'");
   });
   db.exec('PRAGMA user_version = 27');
+}
+
+// v28 (v26 on the v1.0 line, see above): four built-in statuses with fixed names, the same in Vietnamese and English: Planned (todo),
+// In-Progress (doing), Completed (done), Pending (new kind 'pending'). The kind CHECK gains 'pending', so the
+// table is rebuilt (ids kept). Built-in statuses take the fixed names; a project missing one gets it at the end.
+if (schemaVersion() < 28) {
+  if (!sectionsSql().includes("'pending'")) {
+    db.exec('PRAGMA foreign_keys = OFF');
+    transaction(() =>
+      db.exec(`
+        ${sectionsTable('sections_v28')}
+        INSERT INTO sections_v28 (id, project_id, name, position, kind)
+          SELECT id, project_id, name, position, kind FROM sections;
+        DROP TABLE sections;
+        ALTER TABLE sections_v28 RENAME TO sections;
+      `)
+    );
+    db.exec('PRAGMA foreign_keys = ON');
+  }
+  transaction(() => {
+    const rename = db.prepare('UPDATE sections SET name = ? WHERE kind = ?');
+    const has = db.prepare('SELECT 1 FROM sections WHERE project_id = ? AND kind = ?');
+    const insert = db.prepare(
+      `INSERT INTO sections (project_id, name, position, kind)
+       SELECT ?, ?, COALESCE(MAX(position), 0) + 1, ? FROM sections WHERE project_id = ?`
+    );
+    const projects = db.prepare('SELECT id FROM projects').all();
+    for (const [kind, name] of [['todo', 'Planned'], ['doing', 'In-Progress'], ['done', 'Completed'], ['pending', 'Pending']]) {
+      rename.run(name, kind);
+      for (const { id } of projects) if (!has.get(id, kind)) insert.run(id, name, kind, id);
+    }
+    db.exec('PRAGMA user_version = 28');
+  });
 }
 
 db.exec(`

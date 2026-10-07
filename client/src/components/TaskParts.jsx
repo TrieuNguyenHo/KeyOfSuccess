@@ -186,17 +186,15 @@ export function SectionHeader({ section, count, onRename, onDelete, readOnly }) 
       <span className="section-name">{section.name}</span>
       <span className="muted">{count}</span>
       <span className="grow" />
-      {!readOnly && (
+      {/* The built-in statuses (kind set: Planned, In-Progress, Completed, Pending) can be neither renamed nor deleted. */}
+      {!readOnly && !section.kind && (
         <>
           <button type="button" className="icon-btn" onClick={() => onRename(section)} title={tr('Đổi tên trạng thái')}>
             ✎
           </button>
-          {/* The built-in statuses (kind set: Cần làm, Đang làm, Hoàn thành) can be renamed, not deleted. */}
-          {!section.kind && (
-            <button type="button" className="icon-btn danger" onClick={() => onDelete(section)} title={tr('Xoá trạng thái')}>
-              ✕
-            </button>
-          )}
+          <button type="button" className="icon-btn danger" onClick={() => onDelete(section)} title={tr('Xoá trạng thái')}>
+            ✕
+          </button>
         </>
       )}
     </div>

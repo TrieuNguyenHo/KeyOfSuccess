@@ -16,7 +16,7 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 - **Giao task** cho ai thì người đó nhận thông báo (tự giao cho mình thì không)
 - **Tag người (@)** trong bình luận của task và requirement: gõ @ để chọn người (chỉ những ai xem được task/requirement đó); người được tag nhận thông báo kèm trích đoạn, bấm vào mở đúng task hoặc requirement
 - **Quản lý người dùng** (Manager): duyệt / từ chối / khoá tài khoản, gán vai trò, xếp team, tạo / đổi tên / xoá team
-- Project: tạo, đổi tên, xoá; mỗi project mới có sẵn 3 **trạng thái** (cột Board, trong code là `sections`) Cần làm / Đang làm / Hoàn thành; ô lọc "Mọi trạng thái" liệt kê đúng các trạng thái này. **Trạng thái và dấu hoàn thành đi cùng nhau**: tick hoàn thành thì task sang cuối cột Hoàn thành, bỏ tick thì về Đang làm; kéo vào Hoàn thành thì tự tick (Leader và Manager được báo như khi tick), kéo sang cột khác thì tự bỏ tick; thêm task ngay trong cột Hoàn thành là đã xong. Cột Hoàn thành nhận ra theo `sections.kind = 'done'`, đổi tên vẫn giữ. 3 trạng thái mặc định không xoá được (đổi tên được); trạng thái tự thêm thì xoá được. Subtask chỉ có dấu tick
+- Project: tạo, đổi tên, xoá; mỗi project có sẵn 4 **trạng thái** mặc định (cột Board, trong code là `sections`) Planned / In-Progress / Completed / Pending, cùng tên ở cả tiếng Việt lẫn tiếng Anh; ô lọc "Mọi trạng thái" liệt kê đúng các trạng thái này. **Trạng thái và dấu hoàn thành đi cùng nhau**: tick hoàn thành thì task sang cuối cột Completed, bỏ tick thì về In-Progress; kéo vào Completed thì tự tick (Leader và Manager được báo như khi tick), kéo sang cột khác thì tự bỏ tick; thêm task ngay trong cột Completed là đã xong; Pending là trạng thái mở bình thường (chờ). Trạng thái mặc định nhận ra theo `sections.kind` (`todo` / `doing` / `done` / `pending`). 4 trạng thái mặc định không đổi tên, không xoá được; trạng thái tự thêm thì đổi tên và xoá được. Subtask chỉ có dấu tick
 - **Project theo team**: mỗi project thuộc một hoặc nhiều team cùng phụ trách (hoặc "Chung toàn phòng"), sidebar "Projects theo team" giống nhau cho mọi vai trò: mỗi team của người dùng là một nhóm (kể cả khi chưa có project; project chung nhiều team hiện ở từng team), project ngoài team của mình nằm trong "Project khác", project không thuộc team nào trong "Chung toàn phòng"; khi tạo có thể thêm cả team làm thành viên
 - Task: tiêu đề, mô tả, người làm, hạn chót, độ ưu tiên, hoàn thành; subtask; bình luận
 - **Project → Requirements → Task → Subtask**: mỗi project có nhiều requirement (tiêu đề, mô tả, tiến độ tự tính); mỗi task bắt buộc thuộc một requirement, đổi được sang requirement khác; subtask theo task như cũ
@@ -24,7 +24,7 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 - Board/List lọc được theo requirement, mỗi task có nhãn requirement; thêm task thì chọn requirement
 - **Nhãn team trên task theo người làm**: task trên Board / List hiện team của người được giao (những team của họ mà project có; project toàn phòng: mọi team của họ); ô lọc "Mọi team" trên thanh lọc project lọc theo đó, lưu trên URL `?team=3`
 - **Kênh** (Facebook, TikTok, SEO, Email…): danh sách kênh dùng chung cả phòng, Manager thêm / đổi tên / đổi màu / xoá trong Quản lý người dùng. Ai sửa được task thì gắn kênh (một task gắn được nhiều kênh; subtask không có kênh). Kênh hiện trên Board / List / Task của tôi / Theo dõi (trên Lịch: khi rê chuột vào task); ô lọc "Mọi kênh" có ở project và Task của tôi / Theo dõi, lưu trên URL `?channel=2`. Dashboard tổng và dashboard project có mục **"Theo kênh"**: số task xong / tổng và quá hạn của từng kênh (task gắn nhiều kênh tính ở mỗi kênh), thêm dòng "Chưa gắn kênh". Xoá kênh thì nhãn bị gỡ khỏi các task, mỗi task ghi vào lịch sử
-- **Task lặp lại** (báo cáo tuần, đăng bài định kỳ): ô "Lặp lại" trong panel task: hằng ngày (T2–T6), hằng tuần hoặc mỗi 2 tuần (chọn các thứ), hằng tháng (ngày 1–31; tháng ngắn hơn thì ngày cuối tháng). Ai sửa được task thì đặt được. Đánh dấu xong (tick hay kéo vào Hoàn thành) thì app tạo bản kế tiếp ở trạng thái Cần làm, chép tên, mô tả, người làm, requirement, kênh, ưu tiên và subtask (chưa tick); hạn tính từ hạn cũ, không bao giờ rơi vào quá khứ. Quy tắc chuyển sang bản mới; mỗi bản chỉ sinh bản kế tiếp một lần. Task lặp có ↻ cạnh hạn chót. Task hằng ngày xong không báo Leader / Manager; người làm được báo "được giao" nếu người khác tick
+- **Task lặp lại** (báo cáo tuần, đăng bài định kỳ): ô "Lặp lại" trong panel task: hằng ngày (T2–T6), hằng tuần hoặc mỗi 2 tuần (chọn các thứ), hằng tháng (ngày 1–31; tháng ngắn hơn thì ngày cuối tháng). Ai sửa được task thì đặt được. Đánh dấu xong (tick hay kéo vào Completed) thì app tạo bản kế tiếp ở trạng thái Planned, chép tên, mô tả, người làm, requirement, kênh, ưu tiên và subtask (chưa tick); hạn tính từ hạn cũ, không bao giờ rơi vào quá khứ. Quy tắc chuyển sang bản mới; mỗi bản chỉ sinh bản kế tiếp một lần. Task lặp có ↻ cạnh hạn chót. Task hằng ngày xong không báo Leader / Manager; người làm được báo "được giao" nếu người khác tick
 - **Chỉ giao task cho người thuộc team của project** (project toàn phòng: người của bất kỳ team nào). Thành viên project từ team khác vẫn xem và bình luận nhưng không được giao và không tự thêm task; task giao từ trước vẫn giữ người làm
 - **Board view** kéo-thả, **List view**, tìm kiếm và lọc trong project
 - **Lịch**: tab "Lịch" trong project (dùng chung bộ lọc) và chế độ Lịch ở Task của tôi / Theo dõi công việc: lịch tháng theo hạn chót, kéo task sang ngày khác để đổi hạn (task mình sửa được)
@@ -129,10 +129,13 @@ Copy `server/.env.example` thành `server/.env`:
 | `ROOT_EMAILS` | Tài khoản root (cấu hình hệ thống, không thuộc công ty), cách nhau bởi dấu phẩy. Dùng email riêng: email của tài khoản có sẵn sẽ thành root và rời mọi team |
 | `DIRECTOR_EMAILS` | Email Director đầu tiên, cách nhau bởi dấu phẩy |
 | `MANAGER_EMAILS` | Email Manager đầu tiên, cách nhau bởi dấu phẩy |
-| `JWT_SECRET` | Chuỗi ngẫu nhiên dài. **Bắt buộc khi deploy** |
-| `DEV_LOGIN=1` | Đăng nhập bằng email bất kỳ, không cần Google. **Chỉ dùng khi dev local**, tự tắt khi `NODE_ENV=production` |
-| `API_PORT` | Port API, mặc định `3001` |
+| `JWT_SECRET` | Chuỗi ngẫu nhiên ≥ 32 ký tự. **Bắt buộc khi deploy** |
+| `DEV_LOGIN=1` | Đăng nhập bằng email bất kỳ, không cần Google. **Chỉ dùng khi dev local**; production từ chối khởi động nếu bật |
+| `NODE_ENV=production` | Chế độ deploy: kiểm tra cấu hình khi khởi động, bật sao lưu hằng ngày |
+| `API_PORT` / `API_HOST` | Port API, mặc định `3001`; `API_HOST=127.0.0.1` khi chạy sau reverse proxy |
 | `DB_PATH` | File SQLite, mặc định `server/data/app.db` |
+| `BACKUP_DIR` / `BACKUP_KEEP_DAYS` | Thư mục sao lưu (mặc định `server/data/backups` khi production, tắt khi dev) và số bản giữ lại (14) |
+| `CLIENT_DIST` | Frontend đã build, mặc định `client/dist` |
 
 ### 3. Chạy
 
@@ -143,6 +146,30 @@ npm run dev
 
 - Frontend: http://localhost:5173
 - API: http://localhost:3001 (Vite proxy `/api` sang đây)
+
+## Deploy
+
+Một process Node phục vụ cả API lẫn frontend đã build; HTTPS do reverse proxy lo (mẫu Caddy trong `deploy/`).
+
+Cách nhanh trên VPS Ubuntu 24.04 mới (vd. DigitalOcean Droplet), bằng root:
+
+1. **DNS**: bản ghi `A` của domain (vd. `tasks.kingsport.vn`) trỏ về IP của VPS. Nếu DNS nằm ở Cloudflare thì để "DNS only" (mây xám).
+2. **Code**: repo private thì tạo deploy key trên VPS (`ssh-keygen -t ed25519`, dán `~/.ssh/id_ed25519.pub` vào GitHub › repo › Settings › Deploy keys, chỉ đọc), rồi `git clone git@github.com:TrieuNguyenHo/KeyOfSuccess.git /opt/keyofsuccess`.
+3. **Cài**: `bash /opt/keyofsuccess/deploy/setup.sh tasks.kingsport.vn`, nhập `GOOGLE_CLIENT_ID`, `DIRECTOR_EMAILS`, `MANAGER_EMAILS`, `ROOT_EMAILS` khi được hỏi. Script cài Node 22, Caddy (HTTPS), swap nếu ít RAM, user `keyofsuccess`, dịch vụ systemd, tường lửa (SSH / 80 / 443), tạo `server/.env` với `JWT_SECRET` ngẫu nhiên. Chạy lại được.
+4. **Google**: thêm `https://<domain>` vào *Authorized JavaScript origins* của OAuth Client.
+5. **Chuyển dữ liệu cũ** (nếu muốn): trên VPS `systemctl stop keyofsuccess`; trên máy cũ tắt dev server rồi `scp server/data/app.db` và `scp -r server/data/uploads` vào `/opt/keyofsuccess/server/data/`; trên VPS `chown -R keyofsuccess: /opt/keyofsuccess/server/data && systemctl start keyofsuccess`.
+6. Kiểm tra: `https://<domain>/api/health` trả `{"ok":true}`. Log: `journalctl -u keyofsuccess -f`.
+
+Cập nhật bản mới: `bash /opt/keyofsuccess/deploy/update.sh` (sao lưu, `git pull`, cài, build, khởi động lại; migration tự chạy).
+
+Cài tay trên máy khác: `server/.env` theo `server/.env.example` (`NODE_ENV=production`, `API_HOST=127.0.0.1`, `JWT_SECRET` thật, `GOOGLE_CLIENT_ID`, `DIRECTOR_EMAILS` / `MANAGER_EMAILS` / `ROOT_EMAILS`, không có `DEV_LOGIN`; thiếu hoặc sai thì server báo lỗi và không chạy), `npm ci && npm run build && npm start` sau reverse proxy HTTPS (`deploy/Caddyfile`, `deploy/keyofsuccess.service`).
+
+### Sao lưu
+
+- Tự động mỗi ngày (lúc khởi động và khi sang ngày mới): `server/data/backups/<YYYY-MM-DD>/` gồm `app.db` (chụp bằng `VACUUM INTO`, an toàn khi app đang chạy) và `uploads/` (đầy đủ file đính kèm, ảnh đại diện; file không đổi so với hôm trước là hard link nên không tốn thêm chỗ). Giữ 14 bản gần nhất.
+- Sao lưu tay: `npm run backup` (hoặc `npm run backup -- /đường/dẫn`).
+- **Bản sao lưu nằm cùng ổ đĩa thì không cứu được khi hỏng máy**: đặt `BACKUP_DIR` sang ổ khác, hoặc đồng bộ thư mục này lên nơi khác (rclone lên Google Drive, NAS…) hằng ngày.
+- Khôi phục: tắt dịch vụ, chép `app.db` của bản cần dùng thành `server/data/app.db` (xoá `app.db-wal`, `app.db-shm` cũ) và `uploads/` thành `server/data/uploads/`, rồi bật lại.
 
 ## Test
 
@@ -167,13 +194,14 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `live-changes.test.js` | Sự kiện `change` khi task, bình luận, section, requirement thay đổi; ai nhận được |
 | `dashboard.test.js` | Dashboard tổng và theo project, workload, biểu đồ hoàn thành |
 | `task-history.test.js` | Lịch sử task: các loại thay đổi, subtask / bình luận / file ghi vào task cha, ai xem được, ẩn quá 30 ngày, xoá theo task |
-| `statuses.test.js` | Trạng thái mặc định, tick ↔ cột Hoàn thành, kéo vào / ra, đổi tên cột, project không có cột Hoàn thành |
+| `statuses.test.js` | 4 trạng thái mặc định (không đổi tên / xoá), tick ↔ cột Completed, kéo vào / ra, Pending, project không có cột Hoàn thành |
 | `comments-attachments.test.js` | Sửa / xoá bình luận (task và requirement), đính kèm file: quyền, giới hạn 25 MB, cách trả file, xoá file khỏi ổ đĩa |
 | `channels.test.js` | Kênh: Manager quản lý danh sách, gắn kênh lên task, lịch sử, xoá kênh, dashboard theo kênh |
 | `recurring.test.js` | Task lặp lại: quy tắc, tạo bản kế tiếp, hạn kế tiếp (tháng ngắn, mỗi 2 tuần, trễ hạn), thông báo, lịch sử |
 | `language.test.js` | Ngôn ngữ theo tài khoản (`PATCH /api/me`) |
 | `avatar.test.js` | Ảnh đại diện: tải lên, thay ảnh xoá file cũ, chặn file không phải ảnh / quá 1 MB, dọn file không xoá ảnh, tài khoản khoá không hiện ảnh |
 | `profile.test.js` | Hồ sơ: sửa / xoá trường, kiểm tra dữ liệu, tên mới hiện ở mọi chỗ, chỉ chính mình và Manager thấy thông tin cá nhân |
+| `deploy.test.js` | Production: từ chối khởi động khi thiếu `JWT_SECRET` / `GOOGLE_CLIENT_ID` hoặc bật `DEV_LOGIN`, phục vụ frontend đã build (cache, header), `/api/health`, sao lưu hằng ngày và `npm run backup` |
 | `director.test.js` | Director: toàn quyền mọi project, quyền Manager, chỉ Director cấp vai trò Director / sửa tài khoản Director, hồ sơ, không nhận thông báo task xong, migration v22 |
 | `root.test.js` | Root: chỉ dùng API cấu hình, ẩn khỏi mọi danh sách, cấp Director, không ai sửa được root, thu hồi khi bỏ khỏi `ROOT_EMAILS`, migration v23 |
 | `custom-roles.test.js` | Vai trò tự tạo (v27): chỉ root, sao chép quyền, đổi tên vai trò có sẵn, không đổi cấp / xoá vai trò có sẵn, số team theo vai trò, không xoá vai trò còn người giữ |
@@ -201,6 +229,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v28** (là v26 trên bản `v1.0` đã deploy; database đi theo nhánh đó được chạy bù bước Manager theo team): 4 trạng thái mặc định tên cố định Planned / In-Progress / Completed / Pending (`sections.kind` thêm `pending`, dựng lại bảng `sections`, giữ id). Trạng thái mặc định cũ (Cần làm / Đang làm / Hoàn thành, kể cả đã đổi tên) lấy tên mới; project thiếu trạng thái nào thì được thêm vào cuối.
 - **v27**: root thêm / sửa / xoá vai trò: `roles` thêm `builtin`, `min_teams` (0/1), `max_teams` (1/NULL; Member 1, Leader tối thiểu 1); dựng lại `users` để bỏ CHECK trên `role`.
 - **v26**: Manager theo team: các quyền của Manager còn ở mặc định cũ "Toàn phòng" (xem project, đổi team project, requirement, theo dõi, hồ sơ, quản lý người dùng, thành viên team, team, thông báo task xong) chuyển sang "Team của mình"; ô root đã tự đổi được giữ.
 - **v25**: cột `users.joined_at`, ghi ở lần đăng nhập đầu (đăng nhập = chấp nhận lời mời). Tài khoản đã có trước v25 được coi là đã tham gia.
@@ -223,8 +252,10 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 
 ```
 server/src/db.js       schema SQLite + migration + helper transaction
-server/src/config.js   biến môi trường (cổng, JWT_SECRET, Google, ROOT_EMAILS, DIRECTOR_EMAILS, MANAGER_EMAILS, DEV_LOGIN)
-server/src/index.js    dựng app Express: đăng nhập bắt buộc, gắn các router, xử lý lỗi, dọn dẹp định kỳ
+server/src/config.js   biến môi trường (cổng, JWT_SECRET, Google, ROOT_EMAILS, DIRECTOR_EMAILS, MANAGER_EMAILS, DEV_LOGIN, sao lưu); kiểm tra khi production
+server/src/index.js    dựng app Express: đăng nhập bắt buộc, gắn các router, phục vụ client/dist, xử lý lỗi, dọn dẹp và sao lưu định kỳ
+server/scripts/backup.js  npm run backup (sao lưu tay)
+deploy/                setup.sh (cài lên VPS Ubuntu), update.sh (cập nhật), Caddyfile (HTTPS), keyofsuccess.service (systemd)
 server/src/routes/     REST API, mỗi tính năng một file (express.Router, gắn dưới /api)
   auth               đăng nhập Google / dev, middleware kiểm tra token (requireUser)
   me                 /me, hồ sơ, ảnh đại diện
@@ -235,6 +266,7 @@ server/src/routes/     REST API, mỗi tính năng một file (express.Router, g
   tasks              task, subtask, lịch sử, comments và file của task
   comments           sửa / xoá comment (task và requirement), file trong comment
   attachments        tải về / xoá file đính kèm
+  health             /health (không cần đăng nhập), cho reverse proxy / theo dõi uptime
   dashboard          Dashboard tổng và Dashboard project
   notifications      chuông thông báo, luồng sự kiện /events
   permissions        /roles (mọi người), thêm / sửa / xoá vai trò /admin/roles và bảng quyền /admin/permissions (root)
@@ -244,6 +276,7 @@ server/src/lib/        luật và helper dùng chung giữa các route
   roles              isRoot
   users, requirements, statuses, history, channels, recurrence, mentions, notifications
   live               Server-Sent Events (pushChange, pushNotifications)
+  backup             sao lưu hằng ngày database + uploads
   uploads            lưu file, sweepUploads; comments: COMMENT_KINDS dùng chung cho comment task / requirement
   http, util         lỗi 400/403/404, managerOnly; helper SQL và ngày
 client/src/api.js      fetch wrapper (gắn token, tự logout khi 401), luồng sự kiện live

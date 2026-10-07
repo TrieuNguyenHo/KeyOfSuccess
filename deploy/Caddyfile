@@ -1,0 +1,8 @@
+# Caddy: HTTPS tự động (Let's Encrypt) trước KeyOfSuccess. Thay domain rồi đặt file ở /etc/caddy/Caddyfile.
+# Domain phải trỏ (bản ghi A) về IP máy chủ, mở cổng 80 và 443.
+tasks.example.com {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000"
+	# Luồng thông báo /api/events (Server-Sent Events) được Caddy tự đẩy ngay, không cần cấu hình thêm.
+	reverse_proxy 127.0.0.1:3001
+}
