@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ROLES, myTeamsLabel } from '../../utils.js';
+import { ROLES, can, myTeamsLabel, watchesAll } from '../../utils.js';
 import NotificationBell from './NotificationBell.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { Brand } from '../../components/Brand.jsx';
@@ -54,6 +54,21 @@ function groupByTeam(projects, user) {
   return [...groups, ...[other, wide].filter((g) => g.projects.length)];
 }
 
+// A fly-out is as tall as its content and centred on its rail item, kept inside the sidebar (8px margin). It is
+// positioned against .sidebar (so the scrolling project list never clips it), hence the measuring here.
+const FLYOUT_MARGIN = 8;
+function placeFlyout(item) {
+  const flyout = item.querySelector(':scope > .flyout');
+  const sidebar = item.closest('.sidebar');
+  if (!flyout || !sidebar) return;
+  const bounds = sidebar.getBoundingClientRect();
+  const anchor = item.getBoundingClientRect();
+  const height = Math.min(flyout.scrollHeight, bounds.height - 2 * FLYOUT_MARGIN);
+  const centred = anchor.top - bounds.top + anchor.height / 2 - height / 2;
+  const top = Math.max(FLYOUT_MARGIN, Math.min(centred, bounds.height - height - FLYOUT_MARGIN));
+  flyout.style.top = `${top}px`;
+}
+
 export default function Sidebar({
   user,
   projects,
@@ -97,6 +112,9 @@ export default function Sidebar({
   const flyoutProps = (key) => ({
     className: `has-flyout ${openKey === key ? 'open' : ''} ${dismissedKey === key ? 'dismissed' : ''}`,
     onMouseLeave: () => dismissedKey === key && setDismissedKey(null),
+    // Placed before it shows: by pointer (hover, or a tap on iPad) or by keyboard focus.
+    onPointerEnter: (e) => placeFlyout(e.currentTarget),
+    onFocus: (e) => placeFlyout(e.currentTarget),
   });
   const toggle = (key) => {
     setDismissedKey(null);
@@ -116,7 +134,7 @@ export default function Sidebar({
         <NavItem active={view.type === 'my'} onClick={() => go({ type: 'my' })} icon="tasks">
           {tr('Task của tôi')}
         </NavItem>
-        {(user.role !== 'member' || projects.length > 0) && (
+        {(can(user, 'people.watch') || projects.length > 0) && (
           // Sub-menu: the department / team overview (not for Members), then one dashboard per project.
           <li {...flyoutProps('dashboard')}>
             <button
@@ -135,13 +153,13 @@ export default function Sidebar({
                 </button>
               </div>
               <ul>
-                {user.role !== 'member' && (
+                {can(user, 'people.watch') && (
                   <li>
                     <button
                       className={`flyout-link ${view.type === 'dashboard' && !view.projectId ? 'active' : ''}`}
                       onClick={() => go({ type: 'dashboard' }, 'dashboard')}
                     >
-                      <span className="ellipsis grow">{user.role === 'manager' ? tr('Tổng quan phòng') : tr('Tổng quan {p0}', { p0: myTeamsLabel(user) })}</span>
+                      <span className="ellipsis grow">{watchesAll(user) ? tr('Tổng quan phòng') : tr('Tổng quan {p0}', { p0: myTeamsLabel(user) })}</span>
                     </button>
                   </li>
                 )}
@@ -164,12 +182,12 @@ export default function Sidebar({
             </div>
           </li>
         )}
-        {user.role !== 'member' && (
+        {can(user, 'people.watch') && (
           <NavItem active={view.type === 'team'} onClick={() => go({ type: 'team' })} icon="team">
-            {user.role === 'manager' ? tr('Theo dõi công việc') : myTeamsLabel(user)}
+            {watchesAll(user) ? tr('Theo dõi công việc') : myTeamsLabel(user)}
           </NavItem>
         )}
-        {user.role === 'leader' && (
+        {can(user, 'teams.members') && !can(user, 'users.manage') && (
           <NavItem
             active={view.type === 'myteams'}
             onClick={() => go({ type: 'myteams' })}
@@ -179,7 +197,7 @@ export default function Sidebar({
             {tr('Quản lý team')}
           </NavItem>
         )}
-        {user.role === 'manager' && (
+        {can(user, 'users.manage') && (
           <NavItem
             active={view.type === 'admin'}
             onClick={() => go({ type: 'admin' })}
@@ -193,7 +211,7 @@ export default function Sidebar({
 
       <div className="sidebar-title">
         <span>{tr('Projects theo team')}</span>
-        {user.role === 'manager' && (
+        {can(user, 'projects.create') && (
           <button className="icon-btn light" onClick={onNewProject} title={tr('Tạo project')} aria-label={tr('Tạo project')}>
             +
           </button>
@@ -203,7 +221,7 @@ export default function Sidebar({
       <ul className="main-buttons project-groups">
         {projects.length === 0 && (
           <li className="sidebar-empty">
-            {user.role === 'manager' ? tr('Chưa có project nào. Bấm + để tạo.') : tr('Bạn chưa tham gia project nào.')}
+            {can(user, 'projects.create') ? tr('Chưa có project nào. Bấm + để tạo.') : tr('Bạn chưa tham gia project nào.')}
           </li>
         )}
         {projects.length > 0 &&

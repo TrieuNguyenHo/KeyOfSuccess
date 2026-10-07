@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DIRECTOR_EMAILS, ROOT_EMAILS } from './config.js';
 
 export const dbPath = process.env.DB_PATH || join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'app.db');
 mkdirSync(dirname(dbPath), { recursive: true });
@@ -13,8 +14,8 @@ mkdirSync(UPLOAD_DIR, { recursive: true });
 db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
 
 // A project's statuses ("trạng thái" in the UI): its board columns. kind marks the four built-in ones
-// (v22: Planned, In-Progress, Completed, Pending; fixed names, never renamed or deleted); 'done' keeps the
-// completed tick in step (lib/statuses.js). Shared by the schema below and the v22 migration, which rebuilds it.
+// (v26: Planned, In-Progress, Completed, Pending; fixed names, never renamed or deleted); 'done' keeps the
+// completed tick in step (lib/statuses.js). Shared by the schema below and the v26 migration, which rebuilds it.
 const sectionsTable = (name) => `
   CREATE TABLE IF NOT EXISTS ${name} (
     id INTEGER PRIMARY KEY,
@@ -47,7 +48,7 @@ const usersTable = (name) => `
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     google_sub TEXT UNIQUE,
-    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('manager', 'leader', 'member')),
+    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('root', 'director', 'manager', 'leader', 'member')),
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'disabled')),
     -- Legacy single team (v2). Unused since v9, where user_teams holds a user's teams;
     -- kept because SQLite cannot drop a column that has a foreign key.
@@ -65,7 +66,9 @@ const usersTable = (name) => `
     gender TEXT CHECK (gender IN ('male', 'female', 'other', 'undisclosed')),
     -- Profile picture (v21): its file in UPLOAD_DIR, "avatar-<random>.<png|jpg|webp>". A new name on every
     -- upload, so it also serves as the picture's version for caching.
-    avatar TEXT
+    avatar TEXT,
+    -- First sign-in (v25). NULL for an invited account nobody has signed in to yet ("Đã mời, chưa tham gia").
+    joined_at TEXT
   );`;
 
 db.exec(`
@@ -496,20 +499,96 @@ if (schemaVersion() < 21) {
   db.exec('PRAGMA user_version = 21');
 }
 
-// v22: four built-in statuses with fixed names, the same in Vietnamese and English: Planned (todo),
+// Adds a role to users.role's CHECK. SQLite cannot change a CHECK constraint in place, so the users table is rebuilt
+// with the current schema (ids and every column kept), unless the role is already allowed.
+function allowUserRole(role, tempName) {
+  const usersSql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'").get().sql;
+  if (usersSql.includes(`'${role}'`)) return;
+  const columns = db.prepare("SELECT name FROM pragma_table_info('users')").all().map((c) => c.name).join(', ');
+  db.exec('PRAGMA foreign_keys = OFF');
+  transaction(() =>
+    db.exec(`
+      ${usersTable(tempName)}
+      INSERT INTO ${tempName} (${columns}) SELECT ${columns} FROM users;
+      DROP TABLE users;
+      ALTER TABLE ${tempName} RENAME TO users;
+    `)
+  );
+  db.exec('PRAGMA foreign_keys = ON');
+}
+
+// A database that ran this branch's earlier v22 (the four fixed statuses, now v26) before the Director role took
+// that number: step back to v21 so v22-v25 run; v26 then finds its statuses already in place.
+{
+  const tableSql = (name) => db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?").get(name)?.sql ?? '';
+  if (schemaVersion() === 22 && tableSql('sections').includes("'pending'") && !tableSql('users').includes("'director'")) {
+    db.exec('PRAGMA user_version = 21');
+  }
+}
+
+// v22: the Director role; then DIRECTOR_EMAILS become Directors, so a Director already signed in has the role at once.
+if (schemaVersion() < 22) {
+  allowUserRole('director', 'users_v22');
+  const promote = db.prepare("UPDATE users SET role = 'director', status = 'active' WHERE email = ?");
+  DIRECTOR_EMAILS.forEach((email) => promote.run(email));
+  db.exec('PRAGMA user_version = 22');
+}
+
+// v23: the root role, for the accounts in ROOT_EMAILS, which configure the system and are not part of the company.
+// An existing account in ROOT_EMAILS becomes root and leaves its teams (sign-in does the same later on).
+if (schemaVersion() < 23) {
+  allowUserRole('root', 'users_v23');
+  transaction(() => ROOT_EMAILS.forEach(makeRoot));
+  db.exec('PRAGMA user_version = 23');
+}
+
+// v24: roles and what each may do, set by root. `level` ranks roles: nobody changes, gives or reads the profile of a
+// role above their own. Each role holds every permission of lib/permissions.js with a scope ('none' / 'team' /
+// 'all'); missing rows are filled in with the defaults at startup (seedPermissions()).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS roles (
+    key TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    level INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS role_permissions (
+    role TEXT NOT NULL REFERENCES roles(key) ON DELETE CASCADE,
+    permission TEXT NOT NULL,
+    scope TEXT NOT NULL CHECK (scope IN ('none', 'team', 'all')),
+    PRIMARY KEY (role, permission)
+  );
+`);
+const insertRole = db.prepare('INSERT OR IGNORE INTO roles (key, name, level) VALUES (?, ?, ?)');
+[
+  ['member', 'Member', 1],
+  ['leader', 'Leader', 2],
+  ['manager', 'Manager', 3],
+  ['director', 'Director', 4],
+].forEach((role) => insertRole.run(...role));
+if (schemaVersion() < 24) db.exec('PRAGMA user_version = 24');
+
+// v25: users.joined_at, set at the first sign-in, which is how an invited person accepts. Everyone already there
+// counts as joined.
+if (schemaVersion() < 25) {
+  if (!hasColumn('users', 'joined_at')) db.exec('ALTER TABLE users ADD COLUMN joined_at TEXT');
+  db.exec('UPDATE users SET joined_at = created_at WHERE joined_at IS NULL');
+  db.exec('PRAGMA user_version = 25');
+}
+
+// v26: four built-in statuses with fixed names, the same in Vietnamese and English: Planned (todo),
 // In-Progress (doing), Completed (done), Pending (new kind 'pending'). The kind CHECK gains 'pending', so the
 // table is rebuilt (ids kept). Built-in statuses take the fixed names; a project missing one gets it at the end.
-if (schemaVersion() < 22) {
+if (schemaVersion() < 26) {
   const sql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'sections'").get().sql;
   if (!sql.includes("'pending'")) {
     db.exec('PRAGMA foreign_keys = OFF');
     transaction(() =>
       db.exec(`
-        ${sectionsTable('sections_v22')}
-        INSERT INTO sections_v22 (id, project_id, name, position, kind)
+        ${sectionsTable('sections_v26')}
+        INSERT INTO sections_v26 (id, project_id, name, position, kind)
           SELECT id, project_id, name, position, kind FROM sections;
         DROP TABLE sections;
-        ALTER TABLE sections_v22 RENAME TO sections;
+        ALTER TABLE sections_v26 RENAME TO sections;
       `)
     );
     db.exec('PRAGMA foreign_keys = ON');
@@ -526,7 +605,7 @@ if (schemaVersion() < 22) {
       rename.run(name, kind);
       for (const { id } of projects) if (!has.get(id, kind)) insert.run(id, name, kind, id);
     }
-    db.exec('PRAGMA user_version = 22');
+    db.exec('PRAGMA user_version = 26');
   });
 }
 
@@ -535,6 +614,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_attachments_requirement_comment ON attachments(requirement_comment_id);
   CREATE INDEX IF NOT EXISTS idx_task_channels_channel ON task_channels(channel_id);
 `);
+
+// Turns the account with this email (if any) into an active root account outside every team.
+export function makeRoot(email) {
+  db.prepare("UPDATE users SET role = 'root', status = 'active' WHERE email = ?").run(email);
+  db.prepare('DELETE FROM user_teams WHERE user_id IN (SELECT id FROM users WHERE email = ?)').run(email);
+}
 
 export function transaction(fn) {
   db.exec('BEGIN');

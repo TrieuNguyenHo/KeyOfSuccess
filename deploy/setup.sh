@@ -53,7 +53,9 @@ npm run build
 if [ ! -f "$ENV_FILE" ]; then
   step "Cấu hình server/.env"
   read -rp "GOOGLE_CLIENT_ID: " GOOGLE_CLIENT_ID
-  read -rp "MANAGER_EMAILS (email Manager đầu tiên, cách nhau bởi dấu phẩy): " MANAGER_EMAILS
+  read -rp "DIRECTOR_EMAILS (email Director, cách nhau bởi dấu phẩy): " DIRECTOR_EMAILS
+  read -rp "MANAGER_EMAILS (có thể để trống): " MANAGER_EMAILS
+  read -rp "ROOT_EMAILS (tài khoản cấu hình hệ thống, không phải email nhân viên; có thể để trống): " ROOT_EMAILS
   umask 077
   cat > "$ENV_FILE" <<EOF
 NODE_ENV=production
@@ -61,7 +63,9 @@ API_HOST=127.0.0.1
 API_PORT=3001
 JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))")
 GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+DIRECTOR_EMAILS=$DIRECTOR_EMAILS
 MANAGER_EMAILS=$MANAGER_EMAILS
+ROOT_EMAILS=$ROOT_EMAILS
 EOF
   umask 022
 else

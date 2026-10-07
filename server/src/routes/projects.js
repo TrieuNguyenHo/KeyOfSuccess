@@ -13,12 +13,13 @@ import {
   withTeams,
 } from '../lib/access.js';
 import { channelsByTask } from '../lib/channels.js';
-import { badRequest, forbidden, managerOnly, notFound } from '../lib/http.js';
+import { badRequest, forbidden, notFound, requirePermission } from '../lib/http.js';
 import { requirementsOf } from '../lib/requirements.js';
 import { DEFAULT_STATUSES } from '../lib/statuses.js';
 import { sweepUploads } from '../lib/uploads.js';
 import { parseTeamIds } from '../lib/users.js';
 import { IN_TEAM, placeholders } from '../lib/util.js';
+import { can } from '../lib/permissions.js';
 
 const router = express.Router();
 
@@ -31,27 +32,20 @@ function setProjectTeams(projectId, teamIds) {
 // Every project the user can open, each with its access level and teams, for the grouped sidebar.
 router.get('/projects', (req, res) => {
   const me = req.user;
-  const rows = db
-    .prepare(
-      `SELECT p.* FROM projects p
-       WHERE ? = 'manager' OR p.owner_id = ?
-         OR EXISTS (SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id = ?)
-         OR (? = 'leader' AND EXISTS (SELECT 1 FROM project_teams pt WHERE pt.project_id = p.id
-               AND pt.team_id IN (SELECT team_id FROM user_teams WHERE user_id = ?)))
-       ORDER BY p.created_at, p.id`
-    )
-    .all(me.role, me.id, me.id, me.role, me.id);
+  const rows = db.prepare('SELECT p.* FROM projects p ORDER BY p.created_at, p.id').all();
   res.json(
-    rows.map((row) => {
-      const project = withTeams(row);
-      return { ...project, access: projectAccess(me, project) };
-    })
+    rows
+      .map((row) => {
+        const project = withTeams(row);
+        return { ...project, access: projectAccess(me, project) };
+      })
+      .filter((p) => p.access)
   );
 });
 
-// Only Managers create projects. Body { name, color, team_ids, add_team }: any teams (none = department-wide);
+// Only projects.create creates projects. Body { name, color, team_ids, add_team }: any teams (none = department-wide);
 // add_team makes everyone in those teams a member.
-router.post('/projects', managerOnly, (req, res) => {
+router.post('/projects', requirePermission('projects.create'), (req, res) => {
   const me = req.user;
   const body = req.body ?? {};
   const name = body.name?.trim();
@@ -68,7 +62,7 @@ router.post('/projects', managerOnly, (req, res) => {
     if (body.add_team) {
       const addTeam = db.prepare(
         `INSERT OR IGNORE INTO project_members (project_id, user_id)
-         SELECT ?, u.id FROM users u WHERE u.id ${IN_TEAM} AND u.status = 'active'`
+         SELECT ?, u.id FROM users u WHERE u.id ${IN_TEAM} AND u.status = 'active' AND u.joined_at IS NOT NULL`
       );
       teamIds.forEach((teamId) => addTeam.run(lastInsertRowid, teamId));
     }
@@ -118,14 +112,14 @@ router.get('/projects/:id', (req, res) => {
   });
 });
 
-// Name and color need 'manage' access; changing the owning teams (team_ids) is for Managers only.
+// Name and color need 'manage' access; changing the owning teams (team_ids) needs projects.change_teams.
 router.patch('/projects/:id', (req, res) => {
   const body = req.body ?? {};
   const changesTeams = body.team_ids !== undefined;
   const changesDetails = body.name !== undefined || body.color !== undefined;
   const project = loadProject(req, res, req.params.id, changesDetails ? 'manage' : 'view');
   if (!project) return;
-  if (changesTeams && req.user.role !== 'manager') return forbidden(res, 'Chỉ Manager mới đổi được team của project');
+  if (changesTeams && !can(req.user, 'projects.change_teams')) return forbidden(res, 'Chỉ Manager mới đổi được team của project');
 
   const name = body.name?.trim() ?? project.name;
   if (!name) return badRequest(res, 'Cần nhập tên project');
@@ -154,7 +148,7 @@ router.post('/projects/:id/members', (req, res) => {
   if (!project) return;
   const email = req.body?.email?.trim().toLowerCase();
   if (!email) return badRequest(res, 'Cần nhập email');
-  const user = db.prepare("SELECT id, name, email FROM users WHERE email = ? AND status = 'active'").get(email);
+  const user = db.prepare("SELECT id, name, email FROM users WHERE email = ? AND status = 'active' AND role != 'root' AND joined_at IS NOT NULL").get(email);
   if (!user) return res.status(404).json({ error: 'Chưa có tài khoản đang hoạt động nào dùng email này' });
   if (isMember(project.id, user.id)) return res.status(409).json({ error: 'Người này đã là thành viên' });
   db.prepare('INSERT INTO project_members (project_id, user_id) VALUES (?, ?)').run(project.id, user.id);

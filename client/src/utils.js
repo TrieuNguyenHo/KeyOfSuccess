@@ -31,7 +31,20 @@ export const PRIORITIES = {
     return tr('Cao');
   },
 };
-export const ROLES = { manager: 'Manager', leader: 'Leader', member: 'Member' };
+export const ROLES = { director: 'Director', manager: 'Manager', leader: 'Leader', member: 'Member' };
+// What the signed-in user's role may do (user.permissions from /api/me, set by root): the scope ('none' / 'team' /
+// 'all') or whether they hold it at all. The server checks every request; these only shape the screens.
+export const scopeOf = (user, key) => user.permissions?.[key] ?? 'none';
+export const can = (user, key) => scopeOf(user, key) !== 'none';
+// Whether a scoped permission covers something that concerns these teams.
+export function coversTeams(user, key, teamIds) {
+  const scope = scopeOf(user, key);
+  return scope === 'all' || (scope === 'team' && teamIds.some((id) => user.team_ids.includes(id)));
+}
+// Watching everyone's work (people.watch 'all'): the department-wide screens instead of the user's own teams.
+export const watchesAll = (user) => scopeOf(user, 'people.watch') === 'all';
+// Roles whose holders may belong to every team ("Tất cả team").
+export const takesAllTeams = (role) => role === 'manager' || role === 'director';
 export const STATUSES = {
   get pending() {
     return tr('Chờ duyệt');

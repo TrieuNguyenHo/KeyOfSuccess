@@ -10,6 +10,8 @@ import assert from 'node:assert/strict';
 
 const SERVER_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MANAGER_EMAIL = 'boss@t.test'; // bootstrapped as Manager through MANAGER_EMAILS
+const DIRECTOR_EMAIL = 'chief@t.test'; // bootstrapped as Director through DIRECTOR_EMAILS
+const ROOT_EMAIL = 'root@t.test'; // root through ROOT_EMAILS
 // Generous: when the dev server restarts (node --watch) at the same time, two dozen test servers start slowly.
 const START_TIMEOUT_MS = 30000;
 
@@ -24,10 +26,12 @@ const freePort = () =>
   });
 
 // Starts the API with DEV_LOGIN (sign in by email) and returns { api, url, stop, output, uploadDir, dbPath }.
-// server/.env is not loaded and the test settings override the shell's, e.g. GOOGLE_CLIENT_ID is empty;
-// `env` overrides them in turn (BACKUP_DIR, CLIENT_DIST…).
-export async function startServer(env = {}) {
+// server/.env is not loaded and the test settings override the shell's, e.g. GOOGLE_CLIENT_ID is empty.
+// prepareDb(dbPath) runs before the server starts, e.g. to build a database of an older schema version.
+// env overrides the test settings, e.g. to take an email out of ROOT_EMAILS.
+export async function startServer({ prepareDb, env = {} } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'taskflow-test-'));
+  prepareDb?.(join(dir, 'test.db'));
   const port = await freePort();
   const child = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'src/index.js'], {
     cwd: SERVER_DIR,
@@ -38,11 +42,13 @@ export async function startServer(env = {}) {
       DB_PATH: join(dir, 'test.db'),
       DEV_LOGIN: '1',
       MANAGER_EMAILS: MANAGER_EMAIL,
-      JWT_SECRET: 'test-secret',
-      NODE_ENV: 'test',
+      DIRECTOR_EMAILS: DIRECTOR_EMAIL,
+      ROOT_EMAILS: ROOT_EMAIL,
       BACKUP_DIR: '',
       CLIENT_DIST: join(dir, 'no-client'),
       ...env,
+      JWT_SECRET: 'test-secret',
+      NODE_ENV: 'test',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -124,6 +130,14 @@ function makeApi(url) {
 
     async manager() {
       return api.user('boss');
+    },
+
+    async director() {
+      return api.user('chief');
+    },
+
+    async root() {
+      return api.user('root');
     },
 
     async team(manager, name) {

@@ -21,7 +21,7 @@ before(async () => {
   writeFileSync(join(dist, 'assets', 'index-abc123.js'), 'console.log(1)');
   // A snapshot older than the kept ones and the leftover of an interrupted run, both cleaned up by the first backup.
   for (const old of ['2000-01-01', '2000-01-02.partial']) mkdirSync(join(backups, old), { recursive: true });
-  server = await startServer({ CLIENT_DIST: dist, BACKUP_DIR: backups, BACKUP_KEEP_DAYS: '1' });
+  server = await startServer({ env: { CLIENT_DIST: dist, BACKUP_DIR: backups, BACKUP_KEEP_DAYS: '1' } });
   api = server.api;
   boss = await api.manager();
 });

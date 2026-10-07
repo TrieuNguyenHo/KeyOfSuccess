@@ -1,17 +1,21 @@
 // In-app notifications (the bell). Each function returns who was notified, for pushNotifications(), which the
 // caller runs after its transaction.
 import { db } from '../db.js';
+import { scopeOf } from './permissions.js';
+import { findUser, shareTeam } from './users.js';
 
-// Tells the Managers and the Leaders of the assignee's team that a top-level task was completed.
+// Tells whoever holds notify.task_completed over the assignee ('all', or 'team' when they share a team) that a
+// top-level task was completed.
 export function notifyCompleted(task, actor) {
   const recipients = db
-    .prepare(
-      `SELECT id FROM users WHERE status = 'active' AND id != ?
-       AND (role = 'manager' OR (role = 'leader' AND id IN (
-         SELECT a.user_id FROM user_teams a JOIN user_teams b ON b.team_id = a.team_id WHERE b.user_id = ?)))`
-    )
-    .all(actor.id, task.assignee_id ?? null)
-    .map((r) => r.id);
+    .prepare("SELECT id FROM users WHERE status = 'active' AND id != ?")
+    .all(actor.id)
+    .map((r) => findUser(r.id))
+    .filter((u) => {
+      const scope = scopeOf(u, 'notify.task_completed');
+      return scope === 'all' || (scope === 'team' && task.assignee_id != null && shareTeam(u.id, task.assignee_id));
+    })
+    .map((u) => u.id);
   const insert = db.prepare("INSERT INTO notifications (user_id, actor_id, task_id, type) VALUES (?, ?, ?, 'task_completed')");
   recipients.forEach((id) => insert.run(id, actor.id, task.id));
   return recipients;

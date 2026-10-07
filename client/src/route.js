@@ -5,7 +5,7 @@
 // ?layout=calendar on #/my and #/team shows the calendar instead of the list; ?channel=2 keeps the tasks on channel 2.
 // Project filters go in the query, only when set: ?requirement=7&assignee=5&status=s8&due=week&q=banner
 // (assignee=none: unassigned; status=s8: status / board column 8; team=3: the assignee's team; channel=2: tasks on that channel), and ?task=12 when the task side panel is open.
-import { EMPTY_FILTERS } from './utils.js';
+import { EMPTY_FILTERS, can } from './utils.js';
 
 const id = (s) => (/^\d+$/.test(s ?? '') ? Number(s) : null);
 const TABS = ['board', 'list', 'requirements', 'calendar'];
@@ -56,15 +56,15 @@ export function parseRoute(hash, user) {
   const [type, a, b, c] = path.split('/');
   const query = new URLSearchParams(search);
   const panelTaskId = id(query.get('task'));
-  const watcher = user.role !== 'member';
+  const watcher = can(user, 'people.watch');
   let view = null;
   // Members have project dashboards only, not the team / department overview.
   if (type === 'dashboard' && id(a)) view = { type, projectId: id(a) };
   else if (type === 'dashboard' && !a && watcher) view = { type };
   else if (type === 'team' && watcher) view = { type, ...(a && { scope: decodeURIComponent(a) }) };
-  else if (type === 'admin' && user.role === 'manager') view = { type };
+  else if (type === 'admin' && can(user, 'users.manage')) view = { type };
   else if (type === 'profile') view = { type };
-  else if (type === 'myteams' && user.role === 'leader') view = { type };
+  else if (type === 'myteams' && can(user, 'teams.members') && !can(user, 'users.manage')) view = { type };
   else if (type === 'project' && id(a)) {
     const tab = TABS.includes(b) ? b : 'board';
     view = { type, id: id(a), tab, filters: parseFilters(query) };

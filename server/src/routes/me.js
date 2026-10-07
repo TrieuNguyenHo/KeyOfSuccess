@@ -6,20 +6,12 @@ import { join } from 'node:path';
 import { UPLOAD_DIR, db } from '../db.js';
 import { badRequest, notFound } from '../lib/http.js';
 import { rawUpload } from '../lib/uploads.js';
-import { findUser, shareTeam, withProfile } from '../lib/users.js';
+import { asMe, canReadProfile, findUser, withProfile } from '../lib/users.js';
 import { localDate } from '../lib/util.js';
 
 const router = express.Router();
 
-router.get('/me', (req, res) => res.json(withProfile(req.user)));
-
-// Someone's profile with their personal details, for the people allowed to read them (decided 2026-10-06): the user,
-// Managers, and the Leaders of any team the user belongs to, except that a Manager's profile is for Managers only.
-// Anyone else gets 404, so ids cannot be probed.
-const canReadProfile = (me, user) =>
-  me.id === user.id ||
-  me.role === 'manager' ||
-  (me.role === 'leader' && user.role !== 'manager' && shareTeam(me.id, user.id));
+router.get('/me', (req, res) => res.json(asMe(req.user)));
 
 router.get('/users/:id/profile', (req, res) => {
   const user = findUser(req.params.id);
@@ -84,7 +76,7 @@ router.patch('/me', (req, res) => {
     ...fields.map((f) => set[f]),
     req.user.id
   );
-  res.json(withProfile(findUser(req.user.id)));
+  res.json(asMe(findUser(req.user.id)));
 });
 
 // ---------- Profile pictures ----------
@@ -114,14 +106,14 @@ router.post('/me/avatar', rawUpload, (req, res) => {
   const old = db.prepare('SELECT avatar FROM users WHERE id = ?').get(req.user.id).avatar;
   db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(name, req.user.id);
   removeAvatarFile(old);
-  res.status(201).json(withProfile(findUser(req.user.id)));
+  res.status(201).json(asMe(findUser(req.user.id)));
 });
 
 router.delete('/me/avatar', (req, res) => {
   const old = db.prepare('SELECT avatar FROM users WHERE id = ?').get(req.user.id).avatar;
   db.prepare('UPDATE users SET avatar = NULL WHERE id = ?').run(req.user.id);
   removeAvatarFile(old);
-  res.json(withProfile(findUser(req.user.id)));
+  res.json(asMe(findUser(req.user.id)));
 });
 
 // Who has a picture: { userId: version }. The version changes with every upload, for the client's cache.

@@ -1,6 +1,10 @@
 import { db } from '../db.js';
+import { outranks, permissionsOf, scopeOf } from './permissions.js';
+import { isRoot } from './roles.js';
 
-export const USER_SELECT = `SELECT u.id, u.name, u.email, u.role, u.status, u.language, u.invited_by, inv.name AS invited_by_name
+// joined: 0 while an invited person has not signed in yet (v25).
+export const USER_SELECT = `SELECT u.id, u.name, u.email, u.role, u.status, u.language, u.invited_by, inv.name AS invited_by_name,
+  (u.joined_at IS NOT NULL) AS joined
   FROM users u LEFT JOIN users inv ON inv.id = u.invited_by`;
 // Users carry their teams (user_teams) as `teams`, their ids as `team_ids`, and the names joined as `team_name`.
 export function withUserTeams(user) {
@@ -17,6 +21,9 @@ const PROFILE_FIELDS = ['birthday', 'phone', 'job_title', 'bio', 'gender', 'crea
 export const withProfile = (user) =>
   user && { ...user, ...db.prepare(`SELECT ${PROFILE_FIELDS.join(', ')} FROM users WHERE id = ?`).get(user.id) };
 
+// The signed-in user's own account: profile plus what their role may do ({ key: scope }), which the client follows.
+export const asMe = (user) => user && { ...withProfile(user), permissions: permissionsOf(user) };
+
 export const nameOfUser = (id) => (id == null ? null : db.prepare('SELECT name FROM users WHERE id = ?').get(id)?.name ?? null);
 
 export const shareTeam = (userId, otherId) =>
@@ -26,8 +33,17 @@ export const shareTeam = (userId, otherId) =>
       .get(userId, otherId)
   );
 
-// Managers watch everyone; Leaders watch the people in any of their teams.
-export const canWatchUser = (me, userId) => me.role === 'manager' || (me.role === 'leader' && shareTeam(me.id, userId));
+// Teams scope over a person: 'all', or 'team' when they share one of the user's teams.
+const coversPerson = (me, scope, userId) => scope === 'all' || (scope === 'team' && shareTeam(me.id, userId));
+
+// Someone's profile with their personal details, for the user and for people.profiles covering them, never for
+// someone of a lower role level (a Manager's profile is not for Leaders, a Director's not for Managers). Root reads
+// nobody's. Anyone else gets 404 (GET /api/users/:id/profile).
+export const canReadProfile = (me, user) =>
+  me.id === user.id || (!isRoot(me) && !outranks(user, me) && coversPerson(me, scopeOf(me, 'people.profiles'), user.id));
+
+// Whose tasks a user watches (people.watch): everyone, or the people of their teams.
+export const canWatchUser = (me, userId) => coversPerson(me, scopeOf(me, 'people.watch'), userId);
 
 // Validates a team_ids array: returns the distinct ids sorted, or null if it is not an array of existing teams.
 export function parseTeamIds(value) {

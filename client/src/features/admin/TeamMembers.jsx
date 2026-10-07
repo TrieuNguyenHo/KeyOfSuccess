@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { ROLES, STATUSES } from '../../utils.js';
+import { ROLES, STATUSES, can } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { SearchBox } from '../../components/Controls.jsx';
 import { askConfirm } from '../../components/Dialog.jsx';
+import { levelIn, useRoles } from '../../components/hooks.js';
 import { ProfilePopover } from '../profile/ProfilePage.jsx';
 import { tr } from '../../i18n.js';
 
@@ -12,7 +13,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Members of one team with add / approve / invite / remove, for Managers (any team) and Leaders (own teams).
 // The server decides who may be added (candidates); a Leader's invitation waits for a Manager.
 export default function TeamMembers({ team, user, onChanged }) {
-  const isManager = user.role === 'manager';
+  // users.manage widens what may be done here (any person, invitations active at once).
+  const isManager = can(user, 'users.manage');
+  const roles = useRoles();
   const [data, setData] = useState(null);
   const [query, setQuery] = useState('');
   const [inviteName, setInviteName] = useState('');
@@ -88,8 +91,23 @@ export default function TeamMembers({ team, user, onChanged }) {
     if (ok) act(() => api(`/teams/${team.id}/members/${u.id}`, { method: 'DELETE' }), tr('Đã bỏ {name} khỏi team.', { name: u.name }));
   }
 
+  // An invitation nobody accepted yet is revoked (the account is deleted) by its inviter, or with users.manage.
+  const canRevoke = (u) => !u.joined && (u.invited_by === user.id || (isManager && levelIn(roles, u.role) <= levelIn(roles, user.role)));
+  async function revoke(u) {
+    const ok = await askConfirm({
+      title: tr('Huỷ lời mời {email}?', { email: u.email }),
+      message: tr('Tài khoản chưa dùng này sẽ bị xoá. Bạn mời lại được sau.'),
+      confirmLabel: tr('Huỷ lời mời'),
+      danger: true,
+    });
+    if (ok) act(() => api(`/admin/users/${u.id}`, { method: 'DELETE' }), tr('Đã huỷ lời mời {email}.', { email: u.email }));
+  }
+
   const canRemove = (u) =>
-    u.id !== user.id && (isManager ? !(u.role === 'leader' && u.team_ids.length === 1) : u.role === 'member');
+    u.joined &&
+    u.id !== user.id &&
+    levelIn(roles, u.role) <= levelIn(roles, user.role) &&
+    (isManager ? !(u.role === 'leader' && u.team_ids.length === 1) : u.role === 'member');
 
   return (
     <div className="team-members">
@@ -170,7 +188,13 @@ export default function TeamMembers({ team, user, onChanged }) {
                 {waitsForManager(u) ? tr('Chờ Manager duyệt') : STATUSES[u.status]}
               </span>
             )}
+            {!u.joined && <span className="muted small">{tr('Đã mời, chưa tham gia')}</span>}
             <span className="muted small">{ROLES[u.role]}</span>
+            {canRevoke(u) && (
+              <button className="link-btn danger" onClick={() => revoke(u)}>
+                {tr('Huỷ lời mời')}
+              </button>
+            )}
             {canRemove(u) && (
               <button className="link-btn danger" onClick={() => remove(u)}>
                 {tr('Bỏ khỏi team')}

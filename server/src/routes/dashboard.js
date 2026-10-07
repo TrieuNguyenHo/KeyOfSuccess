@@ -3,6 +3,7 @@ import express from 'express';
 import { db } from '../db.js';
 import { loadProject, taskScope } from '../lib/access.js';
 import { badRequest, forbidden } from '../lib/http.js';
+import { can } from '../lib/permissions.js';
 import { IN_TEAM, localDate } from '../lib/util.js';
 
 const router = express.Router();
@@ -65,7 +66,7 @@ function channelBreakdown(where, params) {
 // Dashboard for Leaders (own team) and Managers (?all=1 or ?team=<id>): totals, workload per person,
 // completions per day and progress per project. Uses the same scopes and permissions as /api/tasks.
 router.get('/dashboard', (req, res) => {
-  if (req.user.role === 'member') return forbidden(res);
+  if (!can(req.user, 'people.watch')) return forbidden(res);
   const scope = taskScope(req, res);
   if (!scope) return;
   const { where, params, userWhere, userParams } = scope;
@@ -86,7 +87,7 @@ router.get('/dashboard', (req, res) => {
          COALESCE(SUM(t.completed = 0 AND t.priority = 'high'), 0) AS high
        FROM users u
        LEFT JOIN tasks t ON t.assignee_id = u.id AND t.parent_id IS NULL
-       WHERE u.status = 'active' AND ${userWhere}
+       WHERE u.status = 'active' AND u.role != 'root' AND u.joined_at IS NOT NULL AND ${userWhere}
        GROUP BY u.id
        ORDER BY open DESC, overdue DESC, u.name`
     )

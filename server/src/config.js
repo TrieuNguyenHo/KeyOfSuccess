@@ -11,11 +11,18 @@ export const PORT = process.env.API_PORT || 3001;
 export const HOST = process.env.API_HOST || undefined;
 export const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-// These emails always sign in as an active Manager, so the first Manager can bootstrap everyone else.
-export const MANAGER_EMAILS = (process.env.MANAGER_EMAILS || '')
-  .split(',')
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+const emailList = (value) =>
+  (value || '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+// These emails are root: they only configure the system (who holds which role) and are not part of the company.
+// Taking an email out revokes its root access at the next request.
+export const ROOT_EMAILS = emailList(process.env.ROOT_EMAILS);
+// These emails always sign in as an active Director, so the first Director can bootstrap everyone else.
+export const DIRECTOR_EMAILS = emailList(process.env.DIRECTOR_EMAILS);
+// These emails always sign in as an active Manager (a Director among them stays Director).
+export const MANAGER_EMAILS = emailList(process.env.MANAGER_EMAILS);
 // Sign in with any email, no Google involved. Local development only.
 export const DEV_LOGIN = process.env.DEV_LOGIN === '1' && !IS_PRODUCTION;
 // The built frontend (npm run build). Served by the API when it exists, so production needs a single process.
@@ -41,7 +48,9 @@ if (IS_PRODUCTION) {
     console.error(`Không khởi động được (NODE_ENV=production):\n- ${problems.join('\n- ')}`);
     process.exit(1);
   }
-  if (!MANAGER_EMAILS.length) console.warn('MANAGER_EMAILS trống: chỉ Manager đã có trong database mới duyệt được người mới.');
+  if (!DIRECTOR_EMAILS.length && !MANAGER_EMAILS.length && !ROOT_EMAILS.length) {
+    console.warn('DIRECTOR_EMAILS, MANAGER_EMAILS và ROOT_EMAILS đều trống: chỉ người đã có vai trò trong database mới duyệt được người mới.');
+  }
 } else {
   if (!process.env.JWT_SECRET) console.warn('JWT_SECRET chưa được đặt, đang dùng secret mặc định cho dev.');
   if (!GOOGLE_CLIENT_ID && !DEV_LOGIN) console.warn('GOOGLE_CLIENT_ID chưa được đặt: chưa ai đăng nhập được.');
