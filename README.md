@@ -149,6 +149,8 @@ npm run dev
 
 ## Deploy
 
+**Hướng dẫn từng bước (lần đầu, cập nhật, quay lại bản cũ, xử lý lỗi): [DEPLOY.md](DEPLOY.md).** Phần dưới là chi tiết kỹ thuật.
+
 Một process Node phục vụ cả API lẫn frontend đã build; HTTPS do reverse proxy lo (mẫu Caddy trong `deploy/`).
 
 Cách nhanh trên VPS Ubuntu 24.04 mới (vd. DigitalOcean Droplet), bằng root:
