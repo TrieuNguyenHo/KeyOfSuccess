@@ -204,7 +204,7 @@ test('messages older than 6 months are deleted, and conversations left without a
   }
 });
 
-test('the v32 migration keeps every file of a v31 database', async () => {
+test('the v32 and v33 migrations keep every file of a v31 database', async () => {
   const task = await api.task(boss, await taskTarget());
   const file = (await upload(boss, `/tasks/${task}/attachments`)).body;
   const old = await startServer({
@@ -241,11 +241,14 @@ test('the v32 migration keeps every file of a v31 database', async () => {
   });
   try {
     const db = new DatabaseSync(old.dbPath);
-    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 32);
-    const row = db.prepare('SELECT * FROM attachments WHERE id = ?').get(file.id);
-    assert.equal(`${row.task_id}/${row.name}/${row.message_id}`, `${task}/shot.png/null`);
-    assert.equal(db.prepare('PRAGMA foreign_key_check').all().length, 0);
-    db.close();
+    try {
+      assert.equal(db.prepare('PRAGMA user_version').get().user_version, 33);
+      const row = db.prepare('SELECT * FROM attachments WHERE id = ?').get(file.id);
+      assert.equal(`${row.task_id}/${row.name}/${row.message_id}`, `${task}/shot.png/null`);
+      assert.equal(db.prepare('PRAGMA foreign_key_check').all().length, 0);
+    } finally {
+      db.close();
+    }
     const boss2 = await old.api.manager();
     const bob2 = await old.api.user('bob');
     const chat = (await old.api.post('/chats/direct', boss2, { user_id: bob2.id })).body;

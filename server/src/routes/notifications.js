@@ -1,6 +1,7 @@
 // The bell (notifications) and the live event stream.
 import express from 'express';
 import { db } from '../db.js';
+import { totalUnread } from '../lib/chat.js';
 import { openEventStream } from '../lib/live.js';
 import { can, scopeOf } from '../lib/permissions.js';
 import { placeholders } from '../lib/util.js';
@@ -31,16 +32,8 @@ router.get('/notifications', (req, res) => {
       .get(req.user.id).n;
   const unread = unreadOf(false);
   const unreadFeedback = unreadOf(true);
-  // Chat messages are no notifications: the others' messages after what the user last read (v32).
-  const unreadChat = can(req.user, 'chat.use')
-    ? db
-        .prepare(
-          `SELECT COUNT(*) AS n FROM messages m
-           JOIN conversation_members cm ON cm.conversation_id = m.conversation_id AND cm.user_id = ?
-           WHERE m.id > cm.last_read_id AND m.user_id IS NOT ? AND m.deleted_at IS NULL`
-        )
-        .get(req.user.id, req.user.id).n
-    : 0;
+  // Chat messages are no notifications: the others' messages after what the user last read (lib/chat.js).
+  const unreadChat = totalUnread(req.user);
   // Accounts waiting for this user's approval: all of them with users.manage 'all'; with 'team', those of the user's
   // teams and those with no team; with teams.members only, the self sign-ups without a team, which they may approve
   // into one of their teams (invitations wait for users.manage).

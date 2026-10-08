@@ -110,8 +110,8 @@ export default function CommentList({ comments, kind, mentionable, empty, act, c
 
 // The box for a new comment: text with @mentions, plus files (📎, drag and drop, or pasting a screenshot).
 // The comment is posted to createPath, then its files to /<kind>/<id>/attachments. act(fn) runs it and reloads.
-// enterSends as in MentionTextarea (chat messages).
-export function CommentComposer({ kind, createPath, mentionable, placeholder, act, onError, enterSends = false }) {
+// enterSends as in MentionTextarea (chat messages); extra goes into the posted body (a chat answer's reply_to_id).
+export function CommentComposer({ kind, createPath, mentionable, placeholder, act, onError, enterSends = false, extra }) {
   const [text, setText] = useState('');
   const [mentions, setMentions] = useState([]);
   const [files, setFiles] = useState([]);
@@ -132,7 +132,7 @@ export function CommentComposer({ kind, createPath, mentionable, placeholder, ac
     setMentions([]);
     setFiles([]);
     act(async () => {
-      const comment = await api(createPath, { method: 'POST', body: { body, with_files: sending.length > 0 } });
+      const comment = await api(createPath, { method: 'POST', body: { body, with_files: sending.length > 0, ...extra } });
       for (const file of sending) await uploadFile(`/${kind}/${comment.id}/attachments`, file);
     });
   }

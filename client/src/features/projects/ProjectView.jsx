@@ -28,6 +28,7 @@ export default function ProjectView({
   onOpenRequirementPage,
   onProjectChanged,
   onProjectDeleted,
+  onOpenChat,
 }) {
   const [data, setData] = useState(null);
   const [view, setView] = useState(initialTab);
@@ -187,6 +188,7 @@ export default function ProjectView({
         onDelete={deleteProject}
         onChangeTeams={changeTeams}
         onShowMembers={() => setShowMembers(true)}
+        onOpenChat={onOpenChat}
       />
 
       {view === 'requirements' ? (

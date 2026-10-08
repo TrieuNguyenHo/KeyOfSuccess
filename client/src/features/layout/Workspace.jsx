@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, onLiveChange, publishChatChange, publishFeedbackChange, publishLiveChange, subscribeEvents } from '../../api.js';
 import { loadAvatars } from '../../avatars.js';
 import { formatRoute, parseRoute } from '../../route.js';
-import { PROJECT_COLORS } from '../../utils.js';
+import { PROJECT_COLORS, can } from '../../utils.js';
 import AdminPage from '../admin/AdminPage.jsx';
 import ChatPage from '../chat/ChatPage.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
@@ -168,6 +168,11 @@ export default function Workspace({ user, onLogout, onUserChange }) {
   const openTaskPage = (id) => openPage({ type: 'task', id });
   const openRequirementPage = (projectId, id) => openPage({ type: 'requirement', projectId, id });
   const openProject = (id) => navigate({ type: 'project', id });
+  // The chat of a project or team (kind 'project' | 'team'), created on first use.
+  const openRoomChat = (kind, id) =>
+    api(`/chats/${kind}/${id}`, { method: 'POST' })
+      .then((chat) => navigate({ type: 'chat', id: chat.id }))
+      .catch(() => {});
   const showOnBoard = (projectId, requirementId) => navigate({ type: 'project', id: projectId, tab: 'board', requirementId });
 
   async function openNotification(n) {
@@ -237,6 +242,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
           await loadProjects();
           navigate({ type: 'my' });
         }}
+        onOpenChat={can(user, 'chat.use') ? () => openRoomChat('project', view.id) : undefined}
       />
     );
   } else if (view.type === 'profile') {
@@ -259,6 +265,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
         conversationId={view.id}
         onOpen={(id) => setView({ type: 'chat', ...(id && { id }) })}
         onRead={loadNotifications}
+        onOpenTask={setOpenTaskId}
       />
     );
   } else if (view.type === 'admin') {
