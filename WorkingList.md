@@ -5,7 +5,7 @@ File này được nạp tự động qua `.claude/CLAUDE.md`.
 
 **Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
 
-_Cập nhật lần cuối: 2026-10-08 · Schema database: v30 · Test: `npm test`, 282/282 pass (khoảng 5 giây)_
+_Cập nhật lần cuối: 2026-10-08 · Schema database: v30 · Test: `npm test`, 283/283 pass (khoảng 5 giây)_
 
 ---
 
@@ -91,6 +91,8 @@ _Cập nhật lần cuối: 2026-10-08 · Schema database: v30 · Test: `npm tes
 - Người dùng yêu cầu. Nút "Xuất Excel" trên header của Dashboard tổng quan và Dashboard project: tải về đúng số liệu đang xem (theo phạm vi / team đang chọn, nên không lộ thêm gì ngoài màn hình), mỗi thẻ một sheet. Tổng quan: Tổng quan (phạm vi, giờ xuất, các ô số liệu), Workload, Theo project, Hoàn thành mỗi ngày, Theo kênh. Project: Tổng quan (thêm % hoàn thành, tổng số task), Theo requirement, Theo kênh, Workload, Hoàn thành mỗi ngày, Theo trạng thái. Tên file `Dashboard - <phạm vi hoặc project> - <ngày>.xlsx`; chữ theo ngôn ngữ của người dùng.
 - Tạo file ngay trong trình duyệt, không thêm thư viện: `client/src/xlsx.js` (`buildXlsx()` / `downloadXlsx()`, zip không nén, dòng đầu in đậm và cố định, số là số, độ rộng cột theo nội dung, tên sheet ≤ 31 ký tự và không trùng). Bảng dữ liệu trong `features/dashboard/dashboardExport.js`. Thêm câu về nút này vào mục Dashboard của Hướng dẫn.
 - Test `xlsx.test.js` (2 test: đọc lại zip, kiểm tra CRC, ô số / chữ, escape, tên sheet). Đã mở file bằng openpyxl (đọc được, header in đậm, cố định dòng 1). Đã thử trên trình duyệt bằng Demo User ở Dashboard Website Redesign: file đủ 6 sheet, số khớp màn hình, không lỗi console. Chưa bấm thử ở Dashboard tổng quan (không có tài khoản test Manager; Trieu đăng nhập thành root ở dev).
+
+- Biểu đồ trong file Excel (2026-10-08, người dùng yêu cầu "gần giống giao diện nhất"): biểu đồ gốc của Excel (sửa / đổi kiểu được trong Excel), đặt bên phải bảng, cùng kiểu và màu với Dashboard ở giao diện Sáng: Workload = thanh ngang chồng Quá hạn (`--overdue-mark`) + Còn hạn (`--neutral-mark`), người nhiều task nhất ở trên; Theo project / requirement / kênh / trạng thái = thanh 100% Đã xong (`--brand`) + Còn lại (nền nhạt như thanh meter); Hoàn thành mỗi ngày = cột màu `--brand`, trục ngày dd/mm. Bảng thêm cột "Còn hạn" (Workload) và "Còn lại" (các bảng tiến độ) làm dữ liệu cho biểu đồ; ngày trong sheet là ngày thật của Excel. `xlsx.js` nhận `chart` cho mỗi sheet (drawing + chart XML, có giá trị cache để trình đọc khác cũng hiện). Đã mở file bằng Microsoft Excel qua COM (không báo lỗi / sửa chữa, đủ biểu đồ) và xuất từng biểu đồ ra ảnh để soát; thử lại trên trình duyệt: 5 biểu đồ. Thêm 1 test vào `xlsx.test.js`.
 
 ### Vai trò trong project (2026-10-07, schema v30)
 - Người dùng hỏi Jira phân quyền thế nào (theo project, không theo team), rồi chốt thêm quyền theo project cho cả 4 trường hợp: điều phối viên project, người team khác làm việc, người chỉ xem, giới hạn bớt quyền. Cách áp: **vai trò gán tay thắng luật theo team ở cả hai chiều, không gán thì theo team**; người quản lý project gán.

@@ -19,29 +19,62 @@ function infoSheet(title, scope, stats) {
   };
 }
 
+// Chart colors match the dashboard in the light theme (client/src/styles/tokens.css): --overdue-mark,
+// --neutral-mark, --brand, and --primary-tint over white for the meter track.
+const COLORS = { overdue: 'B42318', open: '8E8E93', brand: 'D85A30', track: 'FBEFEA' };
+
+// Stacked bars per person, overdue then the rest of the open tasks, like the Workload card.
 function workloadSheet(people, withTeam) {
+  const first = withTeam ? 2 : 1;
   return {
     name: 'Workload',
     rows: [
-      [tr('Người'), ...(withTeam ? ['Team'] : []), tr('Mở'), tr('Quá hạn'), tr('7 ngày tới'), tr('Ưu tiên cao'), tr('Xong 7 ngày')],
-      ...people.map((p) => [p.name, ...(withTeam ? [p.team_name ?? ''] : []), p.open, p.overdue, p.due_soon, p.high, p.done_7d]),
+      [tr('Người'), ...(withTeam ? ['Team'] : []), tr('Mở'), tr('Quá hạn'), tr('Còn hạn'), tr('7 ngày tới'), tr('Ưu tiên cao'), tr('Xong 7 ngày')],
+      ...people.map((p) => [p.name, ...(withTeam ? [p.team_name ?? ''] : []), p.open, p.overdue, p.open - p.overdue, p.due_soon, p.high, p.done_7d]),
     ],
+    chart: {
+      type: 'bar',
+      grouping: 'stacked',
+      title: tr('Task đang mở'),
+      cat: 0,
+      series: [
+        { col: first + 1, color: COLORS.overdue },
+        { col: first + 2, color: COLORS.open },
+      ],
+    },
   };
 }
 
-const progressRows = (label, items) => [
-  [label, tr('Đã xong'), tr('Tổng'), tr('Hoàn thành (%)'), tr('Quá hạn')],
-  ...items.map((i) => [i.name, i.done, i.total, percent(i.done, i.total), i.overdue ?? '']),
-];
+// done / total per item, drawn as full-width bars like the dashboard's meters.
+function progressSheet(name, label, items) {
+  return {
+    name,
+    rows: [
+      [label, tr('Đã xong'), tr('Còn lại'), tr('Tổng'), tr('Hoàn thành (%)'), tr('Quá hạn')],
+      ...items.map((i) => [i.name, i.done, i.total - i.done, i.total, percent(i.done, i.total), i.overdue ?? '']),
+    ],
+    chart: {
+      type: 'bar',
+      grouping: 'percentStacked',
+      title: name,
+      cat: 0,
+      series: [
+        { col: 1, color: COLORS.brand },
+        { col: 2, color: COLORS.track },
+      ],
+    },
+  };
+}
 
 function channelSheet(channels, noChannel) {
   const rows = [...channels, ...(noChannel.total ? [{ name: tr('Chưa gắn kênh'), ...noChannel }] : [])];
-  return { name: tr('Theo kênh'), rows: progressRows(tr('Kênh'), rows) };
+  return progressSheet(tr('Theo kênh'), tr('Kênh'), rows);
 }
 
 const trendSheet = (trend) => ({
   name: tr('Hoàn thành mỗi ngày'),
-  rows: [[tr('Ngày'), tr('Task hoàn thành')], ...trend.map((d) => [d.day, d.done])],
+  rows: [[tr('Ngày'), tr('Task hoàn thành')], ...trend.map((d) => [new Date(`${d.day}T00:00`), d.done])],
+  chart: { type: 'column', title: tr('Hoàn thành mỗi ngày'), cat: 0, series: [{ col: 1, color: COLORS.brand }] },
 });
 
 const fileName = (title) => `Dashboard - ${title.replace(/[\\/:*?"<>|]/g, ' ').trim()} - ${todayStr()}.xlsx`;
@@ -57,7 +90,7 @@ export function exportOverview(data, scopeLabel, withTeam) {
       ...(withTeam ? [[tr('Chưa giao'), s.unassigned]] : []),
     ]),
     workloadSheet(data.people, withTeam),
-    { name: tr('Theo project'), rows: progressRows('Project', data.projects.map((p) => ({ ...p, total: p.open + p.done }))) },
+    progressSheet(tr('Theo project'), 'Project', data.projects.map((p) => ({ ...p, total: p.open + p.done }))),
     trendSheet(data.trend),
     channelSheet(data.channels, data.no_channel),
   ]);
@@ -75,10 +108,10 @@ export function exportProject(data, teamLabel, withTeam) {
       [tr('Hoàn thành 7 ngày qua'), s.done_7d],
       ...(withTeam ? [[tr('Chưa giao'), s.unassigned]] : []),
     ]),
-    { name: tr('Theo requirement'), rows: progressRows('Requirement', data.requirements.map((r) => ({ ...r, name: r.title }))) },
+    progressSheet(tr('Theo requirement'), 'Requirement', data.requirements.map((r) => ({ ...r, name: r.title }))),
     channelSheet(data.channels, data.no_channel),
     workloadSheet(data.people, withTeam),
     trendSheet(data.trend),
-    { name: tr('Theo trạng thái'), rows: progressRows(tr('Trạng thái'), data.sections) },
+    progressSheet(tr('Theo trạng thái'), tr('Trạng thái'), data.sections),
   ]);
 }

@@ -147,6 +147,7 @@ export default {
   'Ngày': 'Day',
   'Task hoàn thành': 'Tasks completed',
   'Tổng số task': 'Total tasks',
+  'Còn lại': 'Remaining',
   'Số task đã xong trên tổng số task {scope} theo từng kênh. Task gắn nhiều kênh được tính ở mỗi kênh.': 'Tasks done out of all tasks {scope}, per channel. A task on several channels counts in each.',
   'Chưa có task nào.': 'No tasks yet.',
   '{done}/{total} task đã xong': '{done} of {total} tasks done',
@@ -681,10 +682,10 @@ export default {
   'Task của tôi và Dashboard': 'My tasks and Dashboard',
   'Mọi task được giao cho bạn ở mọi project, chia theo Quá hạn, Hôm nay, 7 ngày tới…; nút Danh sách / Lịch để đổi cách xem, ô "Mọi kênh" để lọc theo kênh.':
     'Every task assigned to you in every project, grouped by Overdue, Today, Next 7 days…; the List / Calendar switch changes the view, "All channels" filters by channel.',
-  '"Tổng quan" cho số liệu của các team bạn theo dõi: workload từng người, task hoàn thành 14 ngày, tiến độ project và kênh. Mỗi project cũng có dashboard riêng. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet.':
-    '"Overview" shows the figures of the teams you watch: each person\'s workload, tasks completed over 14 days, project and channel progress. Each project has its own dashboard too. "Export to Excel" downloads the figures on screen as an Excel file, one sheet per part.',
-  'Mỗi project bạn tham gia có dashboard riêng: phần trăm hoàn thành, tiến độ từng requirement, workload thành viên, tiến độ theo trạng thái và kênh. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet.':
-    'Each project you take part in has its own dashboard: percent complete, progress of each requirement, members\' workload, progress by status and by channel. "Export to Excel" downloads the figures on screen as an Excel file, one sheet per part.',
+  '"Tổng quan" cho số liệu của các team bạn theo dõi: workload từng người, task hoàn thành 14 ngày, tiến độ project và kênh. Mỗi project cũng có dashboard riêng. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet kèm biểu đồ như trên màn hình.':
+    '"Overview" shows the figures of the teams you watch: each person\'s workload, tasks completed over 14 days, project and channel progress. Each project has its own dashboard too. "Export to Excel" downloads the figures on screen as an Excel file, one sheet per part with the same charts as on screen.',
+  'Mỗi project bạn tham gia có dashboard riêng: phần trăm hoàn thành, tiến độ từng requirement, workload thành viên, tiến độ theo trạng thái và kênh. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet kèm biểu đồ như trên màn hình.':
+    'Each project you take part in has its own dashboard: percent complete, progress of each requirement, members\' workload, progress by status and by channel. "Export to Excel" downloads the figures on screen as an Excel file, one sheet per part with the same charts as on screen.',
   'Theo team hoặc theo người': 'By team or by person',
   'Màn theo dõi liệt kê task của các team bạn phụ trách; chọn một team hoặc một người để xem riêng, đổi sang Lịch để xem theo hạn chót.':
     'The watch screen lists the tasks of the teams you are in charge of; pick a team or a person to see theirs alone, or switch to Calendar to see them by due date.',

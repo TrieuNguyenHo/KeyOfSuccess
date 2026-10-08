@@ -53,6 +53,43 @@ test('builds a workbook with one sheet per entry', () => {
   assert.match(sheet, /<c r="B3"><v>0<\/v><\/c>/);
 });
 
+test('a sheet with a chart gets a drawing and a native chart over its own cells', () => {
+  const day = new Date(2026, 9, 8);
+  const files = unzip(
+    buildXlsx([
+      { name: 'Tổng quan', rows: [['Chỉ số', 'Giá trị'], ['Đang mở', 3]] },
+      {
+        name: "Lan's tasks",
+        rows: [['Người', 'Quá hạn', 'Còn hạn'], ['Lan Anh', 1, 2], ['Minh', 0, 4]],
+        chart: { type: 'bar', grouping: 'stacked', title: 'Task đang mở', cat: 0, series: [{ col: 1, color: 'B42318' }, { col: 2, color: '8E8E93' }] },
+      },
+      { name: 'Ngày', rows: [['Ngày', 'Xong'], [day, 2]], chart: { type: 'column', title: 'Xong', cat: 0, series: [{ col: 1, color: 'D85A30' }] } },
+      { name: 'Trống', rows: [['Kênh', 'Xong']], chart: { type: 'bar', title: 'x', cat: 0, series: [{ col: 1, color: 'D85A30' }] } },
+    ])
+  );
+  // Only sheets with data under the header get a chart, numbered in sheet order.
+  assert.ok(!files['xl/worksheets/_rels/sheet1.xml.rels'] && !files['xl/worksheets/_rels/sheet4.xml.rels']);
+  assert.match(files['xl/worksheets/sheet2.xml'], /<drawing r:id="rId1"\/><\/worksheet>$/);
+  assert.match(files['xl/worksheets/_rels/sheet2.xml.rels'], /Target="\.\.\/drawings\/drawing1\.xml"/);
+  assert.match(files['xl/drawings/_rels/drawing1.xml.rels'], /Target="\.\.\/charts\/chart1\.xml"/);
+  assert.match(files['[Content_Types].xml'], /\/xl\/charts\/chart2\.xml/);
+  assert.doesNotMatch(files['[Content_Types].xml'], /chart3/);
+
+  const bars = files['xl/charts/chart1.xml'];
+  assert.match(bars, /<c:barDir val="bar"\/><c:grouping val="stacked"\/>/);
+  assert.match(bars, /<c:f>'Lan''s tasks'!\$B\$1<\/c:f>.*<c:v>Quá hạn<\/c:v>/);
+  assert.match(bars, /<c:f>'Lan''s tasks'!\$A\$2:\$A\$3<\/c:f><c:strCache><c:ptCount val="2"\/><c:pt idx="0"><c:v>Lan Anh<\/c:v>/);
+  assert.match(bars, /<c:f>'Lan''s tasks'!\$C\$2:\$C\$3<\/c:f><c:numCache>.*<c:v>2<\/c:v>.*<c:v>4<\/c:v>/);
+  assert.match(bars, /<a:srgbClr val="B42318"\/>/);
+  assert.match(bars, /<c:legend>/);
+
+  // Dates are real dates in the cells and on the axis.
+  const serial = (Date.UTC(2026, 9, 8) - Date.UTC(1899, 11, 30)) / 86400000;
+  assert.match(files['xl/worksheets/sheet3.xml'], new RegExp(`<c r="A2" s="2"><v>${serial}</v></c>`));
+  assert.match(files['xl/charts/chart2.xml'], /<c:barDir val="col"\/>.*<c:formatCode>dd\/mm<\/c:formatCode>/);
+  assert.doesNotMatch(files['xl/charts/chart2.xml'], /<c:legend>/);
+});
+
 test('sheet names are cut to 31 characters, cleaned and made unique', () => {
   const files = unzip(
     buildXlsx([
