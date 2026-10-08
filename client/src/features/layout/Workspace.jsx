@@ -307,7 +307,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
       />
     );
   } else if (view.type === 'admin') {
-    content = <AdminPage user={user} onChanged={loadNotifications} />;
+    content = <AdminPage user={user} onChanged={loadNotifications} onUserChange={onUserChange} />;
   } else if (view.type === 'myteams') {
     content = <MyTeamsPage user={user} onChanged={loadNotifications} />;
   } else if (view.type === 'dashboard' && view.projectId) {

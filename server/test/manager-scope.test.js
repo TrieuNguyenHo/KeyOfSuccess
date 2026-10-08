@@ -153,3 +153,24 @@ test('a database deployed from v1.0 (v26 = fixed statuses) gets the Manager scop
     await old.stop();
   }
 });
+
+test('a Manager allowed to create teams joins the team they create and can place people in it; the Director does not join', async () => {
+  const root = await api.root();
+  const set = (scope) => api.patch('/admin/permissions', root, { role: 'manager', permission: 'teams.manage', scope });
+  assert.equal((await set('all')).status, 200);
+  try {
+    const created = await api.post('/teams', mgr, { name: 'Brand' });
+    assert.equal(created.status, 201, JSON.stringify(created.body));
+    const me = (await api.get('/me', mgr)).body;
+    assert.ok(me.team_ids.includes(created.body.id), 'the Manager is in the new team');
+    assert.ok(me.team_ids.includes(content), 'and keeps their other teams');
+    const placed = await api.patch(`/admin/users/${memC.id}`, mgr, { team_ids: [created.body.id] });
+    assert.equal(placed.status, 200, JSON.stringify(placed.body));
+    assert.deepEqual(placed.body.team_ids, [created.body.id]);
+
+    const byChief = (await api.post('/teams', chief, { name: 'Events' })).body;
+    assert.ok(!(await api.get('/me', chief)).body.team_ids.includes(byChief.id), 'the Director manages everyone already');
+  } finally {
+    await set('team');
+  }
+});

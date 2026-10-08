@@ -8,7 +8,8 @@ import UsersCard from './UsersCard.jsx';
 import { ErrorBanner } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
 
-export default function AdminPage({ user, onChanged }) {
+// onUserChange(user): the signed-in user's own teams changed (they join a team they create).
+export default function AdminPage({ user, onChanged, onUserChange }) {
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [newTeam, setNewTeam] = useState('');
@@ -125,7 +126,11 @@ export default function AdminPage({ user, onChanged }) {
                     const name = newTeam.trim();
                     if (!name) return;
                     setNewTeam('');
-                    act(() => api('/teams', { method: 'POST', body: { name } }));
+                    // Someone managing their own teams only joins the new team: reload them so it shows at once.
+                    act(async () => {
+                      await api('/teams', { method: 'POST', body: { name } });
+                      onUserChange(await api('/me'));
+                    });
                   }}
                 >
                   <input placeholder={tr('Tên team mới')} value={newTeam} onChange={(e) => setNewTeam(e.target.value)} />

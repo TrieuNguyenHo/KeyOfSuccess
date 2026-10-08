@@ -5,7 +5,7 @@ File này được nạp tự động qua `.claude/CLAUDE.md`.
 
 **Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
 
-_Cập nhật lần cuối: 2026-10-08 · Schema database: v35 · Test: `npm test`, 314/314 pass (khoảng 8 giây)_
+_Cập nhật lần cuối: 2026-10-08 · Schema database: v35 · Test: `npm test`, 315/315 pass (khoảng 8 giây)_
 
 ---
 
@@ -94,6 +94,11 @@ _Cập nhật lần cuối: 2026-10-08 · Schema database: v35 · Test: `npm tes
 - Migration thử trên bản sao database dev trước (2 file, 20 thông báo giữ nguyên từng cột, không lỗi khoá ngoại, `integrity_check` ok, chạy lại không lỗi); sao lưu `app.backup-before-feedback.db` (v30). Database dev đã ở v31. Test `feedback.test.js` (9 test), tổng 292/292, `vite build` chạy được.
 - Đã thử trên trình duyệt bằng một server riêng (cổng 3002, bản sao database, email root test `root.test@t.test`, không đụng tài khoản thật): Demo User gửi feedback (màn hình ghi đúng `#/project/1/board`), root thấy số 1 ở tab Feedback, chuyển "Đã tiếp nhận" kèm ghi chú → Demo User nhận thông báo, bấm vào mở đúng feedback, nút Sửa / Xoá và thêm file đã ẩn. Ở 375px không cuộn ngang (danh sách, form, chi tiết, màn root). Sửa kèm: màn root chưa đổi tab khi dán link vào thanh địa chỉ (thêm listener `hashchange`).
 - Tách thông báo feedback khỏi chuông (cùng ngày, người dùng yêu cầu: thông báo của root nhiều quá đè lên thông báo công việc). Ban đầu định làm 2 tab Công việc / Feedback trong chuông; người dùng chốt đưa hẳn vào mục Feedback. Chuông chỉ còn thông báo công việc (`GET /api/notifications` lọc `feedback_id IS NULL`, "Đánh dấu đã đọc hết" không đụng feedback); `unreadFeedback` hiện thành số trên mục "Feedback" ở sidebar (và chấm ☰ trên iPad); mỗi feedback trong danh sách có `unread`, dòng có nhãn "Mới" và nền nhạt; mở feedback (`GET /api/feedback/:id`) là đã xem, các tab khác cập nhật số ngay. Root bỏ chuông, số trên tab Feedback là số cập nhật chưa xem (thay số feedback chưa tiếp nhận; lọc "Đã gửi" để xem cái đó). Câu Hướng dẫn sửa theo. Test `feedback.test.js` viết lại phần thông báo. Đã thử trên server riêng: Demo User thấy số 2 ở mục Feedback, chuông không có feedback, mở feedback thì số mất; root không có chuông, tab Feedback hiện 1 khi người gửi nhắn.
+
+### Manager tạo team xong không thấy team (2026-10-08, không đổi schema)
+- Người dùng báo. Nguyên nhân: Manager quản lý người dùng ở phạm vi "Team của mình", nên màn Quản trị chỉ hiện team họ thuộc; tạo team không thêm người tạo vào, nên team mới bị ẩn và Manager cũng không xếp được ai vào đó. (Theo quyền mặc định Manager không tạo được team; lỗi xảy ra khi root cho Manager quyền Tạo / đổi tên / xoá team ở mức Toàn phòng.)
+- Người dùng chốt: người tạo team được tự thêm vào team mới khi Quản lý người dùng của họ không phải Toàn phòng (Director thì không), nếu luật số team của vai trò cho phép. `POST /api/teams` trong `routes/teams.js`; màn Quản trị tải lại người dùng hiện tại sau khi tạo team để team hiện ngay (cả trong sidebar).
+- Test thêm vào `manager-scope.test.js`. Đã thử trên trình duyệt bằng server riêng (bản sao database, tài khoản Manager tạm `manager.test@t.test` chỉ có trong bản sao): tạo "Test Event" thì hiện ngay ở thẻ Teams và nhóm "Team Test Event" ở sidebar.
 
 ### Tin nhắn, đợt 3: theo Messenger / Zalo (2026-10-08, schema v35)
 - Người dùng nhờ so với Facebook Messenger và Zalo; mình đề xuất 3 nhóm, người dùng chọn làm cả 7 mục của nhóm 1.

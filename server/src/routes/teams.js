@@ -21,12 +21,22 @@ router.get('/teams', (req, res) => {
 });
 
 // Creating and deleting teams needs teams.manage 'all'; 'team' renames one's own teams.
+// Someone who manages people of their own teams only (users.manage not 'all') joins the team they create (decided
+// 2026-10-08), else they could neither see it on the Administration screen nor place anyone in it; their role's team
+// rule still applies (a one-team role does not join).
 router.post('/teams', requireAllScope('teams.manage'), (req, res) => {
+  const me = req.user;
   const name = req.body?.name?.trim();
   if (!name) return badRequest(res, 'Cần nhập tên team');
   if (db.prepare('SELECT 1 FROM teams WHERE name = ?').get(name)) return conflict(res, 'Tên team đã tồn tại');
-  const { lastInsertRowid } = db.prepare('INSERT INTO teams (name) VALUES (?)').run(name);
-  res.status(201).json(db.prepare('SELECT * FROM teams WHERE id = ?').get(lastInsertRowid));
+  const team = transaction(() => {
+    const { lastInsertRowid } = db.prepare('INSERT INTO teams (name) VALUES (?)').run(name);
+    if (scopeOf(me, 'users.manage') !== 'all' && !teamLimitsError(me.role, [...me.team_ids, lastInsertRowid])) {
+      db.prepare('INSERT INTO user_teams (user_id, team_id) VALUES (?, ?)').run(me.id, lastInsertRowid);
+    }
+    return db.prepare('SELECT * FROM teams WHERE id = ?').get(lastInsertRowid);
+  });
+  res.status(201).json(team);
 });
 
 router.patch('/teams/:id', (req, res) => {
