@@ -36,6 +36,16 @@ export function pushNotifications(userIds) {
   }
 }
 
+// Tells the given users' open tabs (a feedback's sender and root) that the feedback changed, so the open list or
+// thread reloads. Carries the id only; `source` as in pushChange().
+export function pushFeedbackChange(req, userIds, feedbackId) {
+  const source = String(req.get('X-Client-Id') ?? '').slice(0, 64);
+  const message = `event: feedback\ndata: ${JSON.stringify({ feedback_id: feedbackId, source })}\n\n`;
+  for (const userId of new Set(userIds)) {
+    for (const res of streams.get(userId) ?? []) res.write(message);
+  }
+}
+
 // Tells the open tabs of everyone who can open the project (or, given `task`, see that task) that its tasks,
 // sections, requirements or comments changed. Carries ids only, so nothing leaks; `source` echoes the
 // X-Client-Id of the tab that made the change, which already has it and skips the event.

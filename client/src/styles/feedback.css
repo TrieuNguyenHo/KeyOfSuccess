@@ -1,0 +1,59 @@
+/* Feedback on the app (v31): the user's Feedback screen and root's inbox, both built from the same parts. */
+
+/* Statuses: sent is a hollow tag (nobody has looked yet), then brand tint, warning, ok; rejected is quiet grey.
+   Rejected is not a danger: no crimson, so the ⚠ rule does not apply. */
+.fb-status.fb-sent { background: var(--canvas); color: var(--muted); border: 1px solid var(--hairline); padding: 1px 9px; }
+.fb-status.fb-received { background: var(--primary-tint); color: var(--primary-text); }
+.fb-status.fb-in_progress { background: var(--warn-bg); color: var(--warn-text); }
+.fb-status.fb-done { background: var(--ok-bg); color: var(--ok-text); }
+.fb-status.fb-rejected { background: var(--parchment); color: var(--muted); }
+.fb-type { background: var(--parchment); color: var(--ink-muted-80); }
+
+.feedback-list { list-style: none; margin: 0; padding: 0; }
+.feedback-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 8px; text-align: left; cursor: pointer;
+  background: none; border: none; border-bottom: 1px solid var(--divider-soft); border-radius: 0;
+}
+.feedback-row:hover { background: var(--pearl); }
+.feedback-row:active { transform: none; }
+.feedback-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.feedback-row-title { font-weight: 600; }
+/* Updates not seen yet (the bell leaves feedback out): tinted like an unread notification, with a "new" label. */
+.feedback-row.unread { background: var(--primary-tint); }
+.feedback-new {
+  display: inline-block; margin-right: 8px; padding: 0 8px; border-radius: var(--rounded-pill);
+  background: var(--primary); color: var(--on-primary); font-size: 11px; line-height: 18px; vertical-align: 1px;
+}
+.feedback-filters { flex-wrap: wrap; }
+.feedback-filters .tabs { max-width: 100%; overflow-x: auto; }
+
+.feedback-form { display: flex; flex-direction: column; gap: 14px; }
+.feedback-form > label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); }
+.feedback-form > label > input, .feedback-form > label > textarea { color: var(--ink); }
+.feedback-form .tabs { align-self: flex-start; }
+.feedback-form.drag-over { outline: 2px dashed var(--primary); outline-offset: 6px; border-radius: var(--rounded-sm); }
+.feedback-files { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.feedback-files .pending-files { flex-basis: 100%; }
+.feedback-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.feedback-detail { display: flex; flex-direction: column; gap: 20px; align-items: stretch; }
+.feedback-detail > .link-btn { align-self: flex-start; }
+.feedback-detail h3 { margin: 0 0 12px; }
+.feedback-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.feedback-head h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.feedback-body { white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 16px; }
+.feedback-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.feedback-tech { margin-top: 16px; }
+.feedback-tech summary { cursor: pointer; }
+.feedback-tech dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 8px 0 0; font-size: 13px; }
+.feedback-tech dt { color: var(--muted); }
+.feedback-tech dd { margin: 0; overflow-wrap: anywhere; }
+.feedback-status-form { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+.feedback-status-form > label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); }
+.feedback-status-form > label.grow { flex: 1 1 260px; }
+.feedback-status-form textarea, .feedback-status-form select { color: var(--ink); }
+.feedback-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+/* Root's screen: Configuration / Feedback tabs under the header. */
+.root-tabs { align-self: flex-start; margin: 0 32px 16px; }
+.root-tabs .badge { margin-left: 6px; }

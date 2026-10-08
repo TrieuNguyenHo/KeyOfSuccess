@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { api, onLiveChange, publishLiveChange, subscribeEvents } from '../../api.js';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { api, onLiveChange, publishFeedbackChange, publishLiveChange, subscribeEvents } from '../../api.js';
 import { loadAvatars } from '../../avatars.js';
 import { formatRoute, parseRoute } from '../../route.js';
 import { PROJECT_COLORS } from '../../utils.js';
@@ -12,6 +12,7 @@ import { DialogHost } from '../../components/Dialog.jsx';
 import { Brand } from '../../components/Brand.jsx';
 import MyTeamsPage from '../admin/MyTeamsPage.jsx';
 import ProjectDashboardPage from '../dashboard/ProjectDashboardPage.jsx';
+import FeedbackPage from '../feedback/FeedbackPage.jsx';
 import GuidePage from '../guide/GuidePage.jsx';
 import ProfilePage from '../profile/ProfilePage.jsx';
 import ProjectView from '../projects/ProjectView.jsx';
@@ -42,7 +43,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
   const [openTaskId, setOpenTaskId] = useState(initialRoute.panelTaskId);
   // Bumped whenever the task panel changes something, so the page behind it reloads.
   const [refreshKey, setRefreshKey] = useState(0);
-  const [notifications, setNotifications] = useState({ items: [], unread: 0, pendingUsers: 0 });
+  const [notifications, setNotifications] = useState({ items: [], unread: 0, unreadFeedback: 0, pendingUsers: 0 });
   const [creatingProject, setCreatingProject] = useState(false);
   // On narrow screens the sidebar is a drawer behind the ☰ button; any navigation closes it.
   const [navOpen, setNavOpen] = useState(false);
@@ -73,6 +74,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
     const unsubscribe = subscribeEvents((name, data) => {
       if (name === 'notification') loadNotifications();
       if (name === 'change') publishLiveChange(data);
+      if (name === 'feedback') publishFeedbackChange(data);
     });
     const timer = setInterval(loadNotifications, NOTIFICATION_POLL_MS);
     return () => {
@@ -95,9 +97,12 @@ export default function Workspace({ user, onLogout, onUserChange }) {
     };
   }, []);
 
+  // The last screen shown outside Feedback, recorded with a new feedback (where the user was when something went wrong).
+  const lastPage = useRef(null);
   // Mirrors the screen into the URL (replacing, not adding, browser history entries).
   useEffect(() => {
     const hash = formatRoute(view, shown, openTaskId);
+    if (view.type !== 'feedback') lastPage.current = hash;
     if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
   }, [view, shown, openTaskId]);
 
@@ -233,6 +238,15 @@ export default function Workspace({ user, onLogout, onUserChange }) {
     content = <ProfilePage user={user} onUserChange={onUserChange} />;
   } else if (view.type === 'guide') {
     content = <GuidePage user={user} />;
+  } else if (view.type === 'feedback') {
+    content = (
+      <FeedbackPage
+        key={navCount}
+        feedbackId={view.id}
+        fromPage={lastPage.current}
+        onOpen={(id) => setView({ type: 'feedback', ...(id && { id }) })}
+      />
+    );
   } else if (view.type === 'admin') {
     content = <AdminPage user={user} onChanged={loadNotifications} />;
   } else if (view.type === 'myteams') {
@@ -285,7 +299,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
       <main className="main">
         <div className="mobile-bar">
           <button className="icon-btn menu-btn" onClick={() => setNavOpen(true)} aria-label={tr('Mở menu')} aria-expanded={navOpen}>
-            ☰{notifications.unread + notifications.pendingUsers > 0 && <span className="menu-dot" aria-label={tr('Có thông báo mới')} />}
+            ☰{notifications.unread + notifications.unreadFeedback + notifications.pendingUsers > 0 && <span className="menu-dot" aria-label={tr('Có thông báo mới')} />}
           </button>
           <Brand />
         </div>

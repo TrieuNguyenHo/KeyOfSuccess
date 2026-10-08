@@ -15,6 +15,7 @@ function sections(user) {
         ['profile', tr('Hồ sơ của bạn'), tr('Bấm tên mình ở cuối thanh bên để sửa tên hiển thị, ảnh đại diện, ngày sinh, số điện thoại, chức danh. Thông tin cá nhân chỉ bạn, Manager và Leader của team bạn xem được.')],
         ['theme', tr('Giao diện và ngôn ngữ'), tr('Nút Sáng / Tối và VI | EN ở cuối thanh bên (và trong Hồ sơ). Ngôn ngữ được lưu theo tài khoản; tên project, task… giữ nguyên như người viết gõ.')],
         ['link', tr('Gửi link cho đồng nghiệp'), tr('Màn đang xem (kể cả bộ lọc và task đang mở) nằm trên địa chỉ trang. Tải lại trang vẫn đúng chỗ; sao chép địa chỉ để gửi cho người khác.')],
+        ['feedback', 'Feedback', tr('Gặp lỗi hay muốn app có thêm gì, bấm "Feedback" ở cuối thanh bên: chọn Lỗi / Đề xuất / Khác, ghi tiêu đề, nội dung, dán ảnh chụp màn hình nếu có. Chỉ bạn và quản trị hệ thống thấy feedback của bạn. Bạn sửa / xoá được khi feedback còn "Đã gửi"; quản trị hệ thống chuyển nó qua Đã tiếp nhận, Đang xử lý, Đã xử lý (hoặc Không xử lý, kèm lý do) và hai bên trao đổi ngay dưới feedback. Cập nhật về feedback không vào chuông: mục "Feedback" hiện số cập nhật chưa xem và feedback đó có nhãn "Mới".')],
       ],
     },
     {

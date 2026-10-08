@@ -117,3 +117,15 @@ export function onLiveChange(handler) {
   liveChanges.addEventListener('change', listener);
   return () => liveChanges.removeEventListener('change', listener);
 }
+
+// Changes to a feedback (its sender's and root's tabs only): { feedback_id }. Fed in from the event stream like
+// the changes above; the feedback screens subscribe with onFeedbackChange(handler).
+export function publishFeedbackChange(change) {
+  if (change.source !== CLIENT_ID) liveChanges.dispatchEvent(new CustomEvent('feedback', { detail: change }));
+}
+
+export function onFeedbackChange(handler) {
+  const listener = (e) => handler(e.detail);
+  liveChanges.addEventListener('feedback', listener);
+  return () => liveChanges.removeEventListener('feedback', listener);
+}

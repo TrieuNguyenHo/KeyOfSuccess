@@ -86,7 +86,8 @@ if (DEV_LOGIN) {
 }
 
 // Root accounts only configure the system: their own account, the list of people with their roles and the teams to
-// place them in, roles and what each may do. The company's work (projects, tasks, dashboards, notifications…) stays closed to them.
+// place them in, roles and what each may do; and they handle the feedback on the app (v31), with its notifications,
+// live events and files. The company's work (projects, tasks, dashboards…) stays closed to them.
 const ROOT_ROUTES = [
   ['GET', /^\/me$/],
   ['PATCH', /^\/me$/],
@@ -103,6 +104,18 @@ const ROOT_ROUTES = [
   ['PATCH', /^\/admin\/permissions$/],
   ['POST', /^\/admin\/permissions\/reset$/],
   ['GET', /^\/avatars(\/\d+)?$/],
+  ['GET', /^\/notifications$/],
+  ['POST', /^\/notifications\/read$/],
+  ['GET', /^\/events$/],
+  ['GET', /^\/feedback(\/\d+)?$/],
+  ['DELETE', /^\/feedback\/\d+$/],
+  ['PATCH', /^\/feedback\/\d+\/status$/],
+  ['POST', /^\/feedback\/\d+\/messages$/],
+  ['PATCH', /^\/feedback-messages\/\d+$/],
+  ['DELETE', /^\/feedback-messages\/\d+$/],
+  ['POST', /^\/feedback-messages\/\d+\/attachments$/],
+  ['GET', /^\/attachments\/\d+$/], // feedback files only (routes/attachments.js)
+  ['DELETE', /^\/attachments\/\d+$/],
 ];
 
 // Every route mounted after this requires a valid token. Pending users may only read /me.

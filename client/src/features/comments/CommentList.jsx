@@ -8,11 +8,13 @@ import { CommentBody, MentionTextarea, fromMentionMarkup, toMentionMarkup } from
 import { CurrentUser } from '../../components/CurrentUser.js';
 import { tr } from '../../i18n.js';
 
-// A thread of task comments (kind 'comments') or requirement feedback (kind 'requirement-comments').
-// The author edits and deletes their own; a Manager deletes any. Files sent with a comment show under it;
-// canDeleteFiles (task admins / requirement editors) may delete anyone's. act(fn) runs a request, then reloads.
-export default function CommentList({ comments, kind, mentionable, empty, act, canDeleteFiles, onError }) {
+// A thread of task comments (kind 'comments'), requirement feedback (kind 'requirement-comments') or feedback
+// messages (kind 'feedback-messages'). The author edits and deletes their own; a Manager deletes any (canDeleteAny
+// overrides that). Files sent with a comment show under it; canDeleteFiles (task admins / requirement editors) may
+// delete anyone's. tagOf(comment) may label the author. act(fn) runs a request, then reloads.
+export default function CommentList({ comments, kind, mentionable, empty, act, canDeleteFiles, onError, canDeleteAny, tagOf }) {
   const me = useContext(CurrentUser);
+  const deleteAny = canDeleteAny ?? can(me, 'comments.delete_any');
   const [editing, setEditing] = useState(null); // { id, text, mentions, hasFiles }
 
   async function save() {
@@ -46,12 +48,12 @@ export default function CommentList({ comments, kind, mentionable, empty, act, c
             <Avatar name={c.user_name ?? '?'} userId={c.user_id} small />
             <div className="grow">
               <div className="comment-meta">
-                <b>{c.user_name ?? tr('Người dùng đã xoá')}</b>{' '}
+                <b>{c.user_name ?? tr('Người dùng đã xoá')}</b> {tagOf?.(c) && <span className="tag owner">{tagOf(c)}</span>}{' '}
                 <span className="muted">
                   {formatDateTime(c.created_at)}
                   {c.edited_at && <span title={tr('Sửa lúc {p0}', { p0: formatDateTime(c.edited_at) })}> {tr('· đã sửa')}</span>}
                 </span>
-                {editing?.id !== c.id && (own || can(me, 'comments.delete_any')) && (
+                {editing?.id !== c.id && (own || deleteAny) && (
                   <span className="comment-actions">
                     {own && (
                       <button

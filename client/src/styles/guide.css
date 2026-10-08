@@ -157,6 +157,11 @@
 @keyframes ga-approve { 0%, 40% { fill: var(--warn-bg); } 52%, 90% { fill: var(--ok-bg); } 100% { fill: var(--warn-bg); } }
 .ga-a-approve-text { fill: var(--ok-text); animation-name: ga-approve-text; }
 @keyframes ga-approve-text { 0%, 40% { fill: var(--warn-text); } 52%, 90% { fill: var(--ok-text); } 100% { fill: var(--warn-text); } }
+.ga-fb-status { stroke: var(--hairline); }
+.ga-a-fbstatus { fill: var(--ok-bg); animation-name: ga-fbstatus; }
+@keyframes ga-fbstatus {
+  0%, 20% { fill: var(--canvas); } 28%, 42% { fill: var(--primary-tint); } 50%, 64% { fill: var(--warn-bg); } 72%, 100% { fill: var(--ok-bg); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .guide-art [class*='ga-a-'] { animation: none; }
