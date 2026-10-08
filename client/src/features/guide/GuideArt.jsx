@@ -335,6 +335,22 @@ const ARTS = {
       <path className="ga-docfold ga-a-drop" d="M112 84 h16 l8 8 v26 h-24 z" />
     </>
   ),
+  // Feedback: the user's feedback moves from sent to done, and root's answer arrives in the thread.
+  feedback: () => (
+    <>
+      <Win />
+      <rect className="ga-card" x="20" y="20" width="200" height="58" rx="8" />
+      <Line x={32} y={32} w={96} c="ga-head" />
+      <Line x={32} y={48} w={140} h={4} />
+      <Line x={32} y={58} w={104} h={4} />
+      <rect className="ga-fb-status ga-a-fbstatus" x="166" y="27" width="42" height="14" rx="7" />
+      <g className="ga-a-later">
+        <circle className="ga-brand" cx="38" cy="108" r="9" />
+        <rect className="ga-col" x="54" y="95" width="150" height="26" rx="8" />
+        <Line x={62} y={105} w={104} />
+      </g>
+    </>
+  ),
   // Notifications: the bell rings and a notice arrives.
   notify: () => (
     <>

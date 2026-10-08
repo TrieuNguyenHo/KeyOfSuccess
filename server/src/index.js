@@ -14,6 +14,7 @@ import auth, { requireUser } from './routes/auth.js';
 import channels from './routes/channels.js';
 import comments from './routes/comments.js';
 import dashboard from './routes/dashboard.js';
+import feedback from './routes/feedback.js';
 import health from './routes/health.js';
 import me from './routes/me.js';
 import notifications from './routes/notifications.js';
@@ -35,7 +36,7 @@ app.use(express.json());
 app.use('/api', health, auth);
 // Every route mounted below requires a valid token.
 app.use('/api', requireUser);
-for (const router of [me, teams, channels, admin, permissions, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications]) {
+for (const router of [me, teams, channels, admin, permissions, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications, feedback]) {
   app.use('/api', router);
 }
 

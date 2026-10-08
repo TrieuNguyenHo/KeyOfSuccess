@@ -45,7 +45,7 @@ test("root reads the user list, teams and its own account, but not people's pers
 });
 
 test("root never reaches the company's work", async () => {
-  for (const path of ['/projects', '/tasks?assignee=me', '/notifications', '/dashboard?all=1', '/people', '/channels']) {
+  for (const path of ['/projects', '/tasks?assignee=me', '/dashboard?all=1', '/people', '/channels']) {
     assert.equal((await api.get(path, root)).status, 403, path);
   }
   assert.equal((await api.post('/projects', root, { name: 'X' })).status, 403);

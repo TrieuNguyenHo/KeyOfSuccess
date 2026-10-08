@@ -26,8 +26,8 @@ const sectionsTable = (name) => `
   );`;
 
 // Shared by the schema below and the v2 migration, which rebuilds the table.
-// Shared by the schema below and the v8 migration, which rebuilds the table.
-// A notification points at a task or, for mentions in requirement feedback, a requirement.
+// Shared by the schema below and the v8 and v31 migrations, which rebuild the table.
+// A notification points at a task, a requirement (mentions in requirement feedback) or, since v31, a feedback.
 const notificationsTable = (name) => `
   CREATE TABLE IF NOT EXISTS ${name} (
     id INTEGER PRIMARY KEY,
@@ -35,11 +35,33 @@ const notificationsTable = (name) => `
     actor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
     requirement_id INTEGER REFERENCES requirements(id) ON DELETE CASCADE,
-    type TEXT NOT NULL, -- 'task_completed' | 'mention'
-    excerpt TEXT, -- start of the comment, for mentions
+    feedback_id INTEGER REFERENCES feedback(id) ON DELETE CASCADE,
+    type TEXT NOT NULL, -- task_completed | mention | assigned | feedback_new | feedback_status | feedback_message
+    excerpt TEXT, -- start of the comment or message; the new status for feedback_status
     read_at TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    CHECK (task_id IS NOT NULL OR requirement_id IS NOT NULL)
+    CHECK (task_id IS NOT NULL OR requirement_id IS NOT NULL OR feedback_id IS NOT NULL)
+  );`;
+
+// Files attached to a task, a requirement or (v31) a feedback; the bytes are UPLOAD_DIR/<stored_name>. A file sent
+// with a comment (v13) or a feedback message (v31) also points at it and goes with it. Cascades leave the files
+// behind; sweepUploads() removes them. Shared by the schema below and the v31 migration, which rebuilds the table.
+const attachmentsTable = (name) => `
+  CREATE TABLE IF NOT EXISTS ${name} (
+    id INTEGER PRIMARY KEY,
+    task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+    requirement_id INTEGER REFERENCES requirements(id) ON DELETE CASCADE,
+    feedback_id INTEGER REFERENCES feedback(id) ON DELETE CASCADE,
+    comment_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+    requirement_comment_id INTEGER REFERENCES requirement_comments(id) ON DELETE CASCADE,
+    feedback_message_id INTEGER REFERENCES feedback_messages(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    mime TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    stored_name TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK ((task_id IS NOT NULL) + (requirement_id IS NOT NULL) + (feedback_id IS NOT NULL) = 1)
   );`;
 
 const usersTable = (name) => `
@@ -172,23 +194,44 @@ db.exec(`
     edited_at TEXT -- set when the author edits it (v11)
   );
 
-  -- Files attached to a task or a requirement (v11); the bytes are UPLOAD_DIR/<stored_name>.
-  -- A file sent with a comment (v13) also points at that comment and goes with it.
-  -- Cascades leave the files behind; sweepUploads() in index.js removes them.
-  CREATE TABLE IF NOT EXISTS attachments (
+  -- Feedback on the app (v31, decided 2026-10-08): any company user sends it and sees only their own; root
+  -- handles it (status, messages). The sender edits or deletes it only while it is 'sent'. page, app_version and
+  -- user_agent are recorded when it is sent, to help reproduce a bug.
+  CREATE TABLE IF NOT EXISTS feedback (
     id INTEGER PRIMARY KEY,
-    task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
-    requirement_id INTEGER REFERENCES requirements(id) ON DELETE CASCADE,
-    comment_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
-    requirement_comment_id INTEGER REFERENCES requirement_comments(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    name TEXT NOT NULL,
-    mime TEXT NOT NULL,
-    size INTEGER NOT NULL,
-    stored_name TEXT NOT NULL UNIQUE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type TEXT NOT NULL CHECK (type IN ('bug', 'idea', 'other')),
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'received', 'in_progress', 'done', 'rejected')),
+    page TEXT,
+    app_version TEXT,
+    user_agent TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    CHECK ((task_id IS NULL) != (requirement_id IS NULL))
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- The thread between the sender and root on one feedback.
+  CREATE TABLE IF NOT EXISTS feedback_messages (
+    id INTEGER PRIMARY KEY,
+    feedback_id INTEGER NOT NULL REFERENCES feedback(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    body TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    edited_at TEXT
+  );
+
+  -- Status changes of a feedback: who, when, from which status to which.
+  CREATE TABLE IF NOT EXISTS feedback_events (
+    id INTEGER PRIMARY KEY,
+    feedback_id INTEGER NOT NULL REFERENCES feedback(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    from_status TEXT NOT NULL,
+    to_status TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  ${attachmentsTable('attachments')}
 
   ${notificationsTable('notifications')}
 
@@ -687,7 +730,42 @@ if (schemaVersion() < 30) {
   db.exec('PRAGMA user_version = 30');
 }
 
+// v31: feedback on the app (tables created above). Files and notifications may now point at a feedback instead of a
+// task or requirement, so both tables are rebuilt with the wider CHECK (ids kept); no table references them.
+if (schemaVersion() < 31) {
+  const sqlOf = (table) => db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?").get(table).sql;
+  transaction(() => {
+    if (!sqlOf('attachments').includes('feedback_id')) {
+      const columns = 'id, task_id, requirement_id, comment_id, requirement_comment_id, user_id, name, mime, size, stored_name, created_at';
+      db.exec(`
+        ${attachmentsTable('attachments_v31')}
+        INSERT INTO attachments_v31 (${columns}) SELECT ${columns} FROM attachments;
+        DROP TABLE attachments;
+        ALTER TABLE attachments_v31 RENAME TO attachments;
+        CREATE INDEX IF NOT EXISTS idx_attachments_task ON attachments(task_id);
+        CREATE INDEX IF NOT EXISTS idx_attachments_requirement ON attachments(requirement_id);
+      `);
+    }
+    if (!sqlOf('notifications').includes('feedback_id')) {
+      const columns = 'id, user_id, actor_id, task_id, requirement_id, type, excerpt, read_at, created_at';
+      db.exec(`
+        ${notificationsTable('notifications_v31')}
+        INSERT INTO notifications_v31 (${columns}) SELECT ${columns} FROM notifications;
+        DROP TABLE notifications;
+        ALTER TABLE notifications_v31 RENAME TO notifications;
+        CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read_at);
+      `);
+    }
+    db.exec('PRAGMA user_version = 31');
+  });
+}
+
 db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id);
+  CREATE INDEX IF NOT EXISTS idx_feedback_messages ON feedback_messages(feedback_id);
+  CREATE INDEX IF NOT EXISTS idx_feedback_events ON feedback_events(feedback_id);
+  CREATE INDEX IF NOT EXISTS idx_attachments_feedback ON attachments(feedback_id);
+  CREATE INDEX IF NOT EXISTS idx_attachments_feedback_message ON attachments(feedback_message_id);
   CREATE INDEX IF NOT EXISTS idx_attachments_comment ON attachments(comment_id);
   CREATE INDEX IF NOT EXISTS idx_attachments_requirement_comment ON attachments(requirement_comment_id);
   CREATE INDEX IF NOT EXISTS idx_task_channels_channel ON task_channels(channel_id);

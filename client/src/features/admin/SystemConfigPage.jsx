@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../../api.js';
+import { api, publishFeedbackChange, subscribeEvents } from '../../api.js';
 import { loadAvatars } from '../../avatars.js';
 import { Brand } from '../../components/Brand.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
@@ -10,13 +10,25 @@ import InviteUserCard from './InviteUserCard.jsx';
 import PermissionsCard from './PermissionsCard.jsx';
 import RolesCard from './RolesCard.jsx';
 import UsersCard from './UsersCard.jsx';
+import FeedbackInbox from '../feedback/FeedbackInbox.jsx';
+import NotificationBell from '../layout/NotificationBell.jsx';
 import { ErrorBanner } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
 
+const NOTIFICATION_POLL_MS = 30000;
+
+// #/feedback or #/feedback/12 opens the Feedback tab (on that feedback); anything else, the configuration.
+function parseHash(hash) {
+  const [, tab, id] = /^#\/(feedback)(?:\/(\d+))?/.exec(hash) ?? [];
+  return { tab: tab ? 'feedback' : 'config', feedbackId: id ? Number(id) : null };
+}
+
 // The whole app for root accounts (ROOT_EMAILS): they are not part of the company and only configure the system:
-// what each role may do, who holds which role (the Director role included), account status and teams. No projects,
-// tasks or dashboards.
+// what each role may do, who holds which role (the Director role included), account status and teams. They also
+// handle the feedback people send about the app (Feedback tab, v31). No projects, tasks or dashboards.
 export default function SystemConfigPage({ user, onLogout }) {
+  const [{ tab, feedbackId }, setRoute] = useState(() => parseHash(window.location.hash));
+  const [notifications, setNotifications] = useState({ items: [], unread: 0, pendingFeedback: 0 });
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState('');
@@ -34,6 +46,53 @@ export default function SystemConfigPage({ user, onLogout }) {
     loadAvatars();
     load().catch((e) => setError(e.message));
   }, [load]);
+
+  // The screen lives in the URL like in the Workspace, so a reload stays on it.
+  useEffect(() => {
+    const hash = tab === 'feedback' ? `#/feedback${feedbackId ? `/${feedbackId}` : ''}` : '#/';
+    if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
+  }, [tab, feedbackId]);
+  // A link pasted into the address bar of an open tab.
+  useEffect(() => {
+    const onHashChange = () => setRoute(parseHash(window.location.hash));
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  // Notifications about feedback, pushed live like in the Workspace (polling only as a fallback).
+  const loadNotifications = useCallback(
+    () =>
+      api('/notifications')
+        .then(setNotifications)
+        .catch(() => {}),
+    []
+  );
+  useEffect(() => {
+    loadNotifications();
+    const unsubscribe = subscribeEvents((name, data) => {
+      if (name === 'notification') loadNotifications();
+      if (name === 'feedback') {
+        publishFeedbackChange(data);
+        loadNotifications(); // the count of feedback waiting to be taken up
+      }
+    });
+    const timer = setInterval(loadNotifications, NOTIFICATION_POLL_MS);
+    return () => {
+      unsubscribe();
+      clearInterval(timer);
+    };
+  }, [loadNotifications]);
+
+  async function openNotification(n) {
+    if (!n.read_at) await api('/notifications/read', { method: 'POST', body: { id: n.id } }).catch(() => {});
+    loadNotifications();
+    if (n.feedback_id) setRoute({ tab: 'feedback', feedbackId: n.feedback_id });
+  }
+
+  async function readAllNotifications() {
+    await api('/notifications/read', { method: 'POST', body: {} }).catch(() => {});
+    loadNotifications();
+  }
 
   const updateUser = (u, patch) => change(() => api(`/admin/users/${u.id}`, { method: 'PATCH', body: patch }));
   const revokeInvite = (u) => change(() => api(`/admin/users/${u.id}`, { method: 'DELETE' }));
@@ -57,6 +116,7 @@ export default function SystemConfigPage({ user, onLogout }) {
                 <Brand />
                 <h1>{tr('Cấu hình hệ thống')}</h1>
                 <div className="project-header-actions">
+                  <NotificationBell data={notifications} onOpen={openNotification} onReadAll={readAllNotifications} alignRight />
                   <ThemeSwitch className="tabs" />
                   <LanguageSwitch className="tabs" />
                   <span className="muted small">{user.email} · Root</span>
@@ -66,8 +126,37 @@ export default function SystemConfigPage({ user, onLogout }) {
                 </div>
               </header>
 
+              <div className="tabs root-tabs" role="tablist">
+                <button
+                  role="tab"
+                  aria-selected={tab === 'config'}
+                  className={tab === 'config' ? 'active' : ''}
+                  onClick={() => setRoute({ tab: 'config', feedbackId: null })}
+                >
+                  {tr('Cấu hình')}
+                </button>
+                <button
+                  role="tab"
+                  aria-selected={tab === 'feedback'}
+                  className={tab === 'feedback' ? 'active' : ''}
+                  onClick={() => setRoute({ tab: 'feedback', feedbackId: null })}
+                >
+                  Feedback
+                  {notifications.pendingFeedback > 0 && (
+                    <span className="badge inline" title={tr('{count} feedback chưa tiếp nhận', { count: notifications.pendingFeedback })}>
+                      {notifications.pendingFeedback}
+                    </span>
+                  )}
+                </button>
+              </div>
+
               <ErrorBanner error={error} onClose={() => setError('')} />
 
+              {tab === 'feedback' ? (
+                <div className="list admin">
+                  <FeedbackInbox openId={feedbackId} onOpen={(id) => setRoute({ tab: 'feedback', feedbackId: id })} />
+                </div>
+              ) : (
               <div className="list admin">
                 <section className="admin-card">
                   <p className="muted card-sub">
@@ -94,6 +183,7 @@ export default function SystemConfigPage({ user, onLogout }) {
                   onReload={() => load().catch((e) => setError(e.message))}
                 />
               </div>
+              )}
             </div>
           </div>
         </main>

@@ -42,9 +42,9 @@ export function uploadable(list, onError) {
   return chosen.filter((f) => f.size > 0 && f.size <= MAX_MB * 1024 * 1024);
 }
 
-// A list of attached files: image previews, a click downloads, ✕ for those who may delete (the uploader,
-// or everyone with canDeleteAll: task admins / requirement editors). act(fn) runs a request, then reloads.
-export function FileList({ files, canDeleteAll, act, onError, compact = false }) {
+// A list of attached files: image previews, a click downloads, ✕ for those who may delete (the uploader unless
+// `locked`, or everyone with canDeleteAll: task admins / requirement editors). act(fn) runs a request, then reloads.
+export function FileList({ files, canDeleteAll, act, onError, compact = false, locked = false }) {
   const me = useContext(CurrentUser);
 
   async function open(file) {
@@ -76,7 +76,7 @@ export function FileList({ files, canDeleteAll, act, onError, compact = false })
               </span>
             </span>
           </button>
-          {(canDeleteAll || f.user_id === me.id) && (
+          {(canDeleteAll || (!locked && f.user_id === me.id)) && (
             <button className="icon-btn danger" onClick={() => remove(f)} title={tr('Xoá file')} aria-label={tr('Xoá {name}', { name: f.name })}>
               ✕
             </button>

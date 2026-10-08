@@ -49,6 +49,20 @@ export const STATUSES = labels({
   disabled: () => tr('Đã khoá'),
 });
 
+// Feedback on the app (v31): its statuses, in their order, and types.
+export const FEEDBACK_STATUSES = labels({
+  sent: () => tr('Đã gửi'),
+  received: () => tr('Đã tiếp nhận'),
+  in_progress: () => tr('Đang xử lý'),
+  done: () => tr('Đã xử lý'),
+  rejected: () => tr('Không xử lý'),
+});
+export const FEEDBACK_TYPES = labels({
+  bug: () => tr('Lỗi'),
+  idea: () => tr('Đề xuất'),
+  other: () => tr('Khác'),
+});
+
 export const GENDERS = labels({
   male: () => tr('Nam'),
   female: () => tr('Nữ'),
