@@ -347,7 +347,7 @@ export default {
   'Bản kế tiếp': 'Next occurrence',
   'Mở bản kế tiếp của task lặp lại': 'Open the next occurrence of this recurring task',
   '↻ Hạn': '↻ Due',
-  'Thành viên project': 'Project members',
+  'Thành viên của project': 'Project members',
   'Trong team phụ trách (sẽ được thêm vào project)': 'In the owning teams (will be added to the project)',
   'Mô tả': 'Description',
   'Không có mô tả.': 'No description.',
@@ -635,7 +635,6 @@ export default {
   'Hồ sơ của bạn': 'Your profile',
   'Bấm tên mình ở cuối thanh bên để sửa tên hiển thị, ảnh đại diện, ngày sinh, số điện thoại, chức danh. Thông tin cá nhân chỉ bạn, Manager và Leader của team bạn xem được.':
     'Click your name at the bottom of the sidebar to edit your display name, profile picture, birthday, phone and job title. Only you, Managers and the Leaders of your teams can read your personal details.',
-  'Giao diện và ngôn ngữ': 'Appearance and language',
   'Nút Sáng / Tối và VI | EN ở cuối thanh bên (và trong Hồ sơ). Ngôn ngữ được lưu theo tài khoản; tên project, task… giữ nguyên như người viết gõ.':
     'The Light / Dark and VI | EN switches are at the bottom of the sidebar (and in your Profile). The language is saved with your account; project and task names stay as their authors typed them.',
   'Gửi link cho đồng nghiệp': 'Sending a link to a colleague',
