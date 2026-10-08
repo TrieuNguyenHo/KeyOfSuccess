@@ -18,6 +18,8 @@ import { placeholders } from './util.js';
 
 export const RETENTION_MONTHS = 6;
 export const MESSAGE_MAX = 4000;
+export const PINNED_CHATS_MAX = 5; // conversations one person pins to the top of their list (v37)
+export const MUTE_HOURS = [1, 8]; // a mute for a while; without hours, until turned back on
 export const TITLE_MAX = 80;
 // Reactions (v35): one per person per message, among these.
 export const REACTIONS = ['👍', '❤️', '😆', '😮', '😢', '🙏'];
@@ -89,13 +91,16 @@ export function conversationsOf(user) {
     .filter((c) => !c.project_id || isMember(user, c));
 }
 
-// A member's read position and mute; `missing` when nothing is stored yet.
+// A member's read position, mute and pin; `missing` when nothing is stored yet. A mute for a while (v37) is over once
+// muted_until has passed.
 export const stateOf = (conversationId, userId) =>
-  db.prepare('SELECT last_read_id, muted FROM conversation_members WHERE conversation_id = ? AND user_id = ?').get(conversationId, userId) ?? {
-    last_read_id: 0,
-    muted: 0,
-    missing: true,
-  };
+  db
+    .prepare(
+      `SELECT last_read_id, (muted = 1 AND (muted_until IS NULL OR muted_until > datetime('now'))) AS muted,
+         CASE WHEN muted = 1 AND muted_until > datetime('now') THEN muted_until END AS muted_until, pinned_at
+       FROM conversation_members WHERE conversation_id = ? AND user_id = ?`
+    )
+    .get(conversationId, userId) ?? { last_read_id: 0, muted: 0, muted_until: null, pinned_at: null, missing: true };
 const lastMessageId = (conversationId) =>
   db.prepare('SELECT COALESCE(MAX(id), 0) AS id FROM messages WHERE conversation_id = ?').get(conversationId).id;
 // Project and team members get their row when they first read, mute or write there, as having read what was there.

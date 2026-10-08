@@ -794,8 +794,8 @@ export default {
   '· Đã xem': '· Seen',
   'Nhập tin nhắn… Enter để gửi, Shift+Enter để xuống dòng': 'Type a message… Enter sends, Shift+Enter for a new line',
   'Người này hiện không nhận được tin nhắn. Các tin cũ vẫn ở đây.': 'This person cannot receive messages now. The earlier ones stay here.',
-  'Mục "Tin nhắn" trên thanh bên, bấm "+ Tin nhắn mới": nhắn riêng một người, tạo nhóm (bạn quản lý nhóm: đổi tên, bỏ người; ai trong nhóm cũng thêm được người hoặc rời nhóm), hoặc mở chat của project (ai mở được project đều ở trong; có cả nút "Chat" trên đầu project) và của team bạn. Ai được thêm vào nhóm sẽ thấy dòng "… đã thêm bạn vào nhóm" như một tin chưa đọc; mọi thay đổi của nhóm (thêm, bỏ người, rời nhóm, đổi tên) hiện thành dòng nhỏ giữa cuộc trò chuyện. Chỉ người trong cuộc đọc được, kể cả Manager hay Director. Enter để gửi, Shift+Enter để xuống dòng; gõ @ để nhắc ai đó trong nhóm; dán ảnh hoặc bấm 📎 để gửi file; dán link task thì người xem được task thấy tên task, bấm để mở. "Trả lời" để trích dẫn một tin; bạn sửa / xoá được tin của mình. 🔔 / 🔕 tắt thông báo từng cuộc (vẫn đếm khi có người nhắc tới bạn). Bấm 😊 để thả cảm xúc; ảnh hiện ngay trong khung chat, bấm để xem to. Nút ⋯ cạnh mỗi tin để ghim tin lên đầu cuộc trò chuyện, chuyển tiếp sang cuộc khác, hoặc tạo task từ tin đó (ảnh, file đi theo, task có link quay về tin). Gõ @tất cả để nhắc mọi người trong nhóm. Ô "Tìm tin nhắn" tìm cả khi không gõ dấu; "Thông tin" ở đầu cuộc trò chuyện gom ảnh, file và link đã gửi. Số tin chưa đọc hiện trên mục "Tin nhắn" và trên tên tab, không vào chuông; bấm "🔔 Bật thông báo trên máy tính" ở đầu màn Tin nhắn để có thông báo khi đang ở tab khác. Tin nhắn tự xoá sau 6 tháng.':
-    '"Messages" in the sidebar, then "+ New message": write to one person, make a group (you run it: rename it, take people out; anyone in it can add people or leave), or open the chat of a project (everyone who can open the project is in it; there is also a "Chat" button at the top of the project) or of your team. Someone added to a group gets "… added you to the group" as an unread message; every change to a group (people added or taken out, someone leaving, a new name) shows as a small line in the conversation. Only the people in a conversation can read it, not even a Manager or the Director. Enter sends, Shift+Enter starts a new line; type @ to mention someone in a group; paste an image or click 📎 to send a file; paste a task link and those who can see the task get its name, a click opens it. "Reply" quotes a message; you can edit or delete your own. 🔔 / 🔕 mutes a conversation (mentions of you still count). Click 😊 to react; images show right in the conversation, click one to see it large. The ⋯ button next to a message pins it to the top of the conversation, forwards it to another one, or makes a task from it (its images and files go along, and the task links back to it). Type @everyone to mention everyone in a group. "Search messages" works without accents too; "Info" at the top of a conversation gathers the images, files and links sent in it. Unread messages are counted on "Messages" and in the tab title, not in the bell; click "🔔 Turn on desktop notifications" at the top of Messages to be told while you are in another tab. Messages are deleted after 6 months.',
+  'Mục "Tin nhắn" trên thanh bên, bấm "+ Tin nhắn mới": nhắn riêng một người, tạo nhóm (bạn quản lý nhóm: đổi tên, bỏ người; ai trong nhóm cũng thêm được người hoặc rời nhóm), hoặc mở chat của project (ai mở được project đều ở trong; có cả nút "Chat" trên đầu project) và của team bạn. Ai được thêm vào nhóm sẽ thấy dòng "… đã thêm bạn vào nhóm" như một tin chưa đọc; mọi thay đổi của nhóm (thêm, bỏ người, rời nhóm, đổi tên) hiện thành dòng nhỏ giữa cuộc trò chuyện. Chỉ người trong cuộc đọc được, kể cả Manager hay Director. Enter để gửi, Shift+Enter để xuống dòng; gõ @ để nhắc ai đó trong nhóm; dán ảnh hoặc bấm 📎 để gửi file; dán link task thì người xem được task thấy tên task, bấm để mở. "Trả lời" để trích dẫn một tin; bạn sửa / xoá được tin của mình. 🔔 / 🔕 tắt thông báo từng cuộc (vẫn đếm khi có người nhắc tới bạn). Bấm 😊 để thả cảm xúc; ảnh hiện ngay trong khung chat, bấm để xem to. Nút ⋯ cạnh mỗi tin để ghim tin lên đầu cuộc trò chuyện, chuyển tiếp sang cuộc khác, hoặc tạo task từ tin đó (ảnh, file đi theo, task có link quay về tin). Gõ @tất cả để nhắc mọi người trong nhóm; bấm "📊 Bình chọn" trên ô nhập để hỏi ý kiến cả nhóm (cho chọn nhiều, cho người khác thêm phương án, hạn chót: tuỳ bạn; ai chọn gì đều hiện tên). 🔔 ở đầu cuộc trò chuyện để tắt thông báo 1 giờ, 8 giờ hoặc cho tới khi bật lại; 📍 để ghim cuộc trò chuyện lên đầu danh sách (tối đa 5, chỉ bạn thấy). Ô "Tìm tin nhắn" tìm cả khi không gõ dấu; "Thông tin" ở đầu cuộc trò chuyện gom ảnh, file và link đã gửi. Số tin chưa đọc hiện trên mục "Tin nhắn" và trên tên tab, không vào chuông; bấm "🔔 Bật thông báo trên máy tính" ở đầu màn Tin nhắn để có thông báo khi đang ở tab khác. Tin nhắn tự xoá sau 6 tháng.':
+    '"Messages" in the sidebar, then "+ New message": write to one person, make a group (you run it: rename it, take people out; anyone in it can add people or leave), or open the chat of a project (everyone who can open the project is in it; there is also a "Chat" button at the top of the project) or of your team. Someone added to a group gets "… added you to the group" as an unread message; every change to a group (people added or taken out, someone leaving, a new name) shows as a small line in the conversation. Only the people in a conversation can read it, not even a Manager or the Director. Enter sends, Shift+Enter starts a new line; type @ to mention someone in a group; paste an image or click 📎 to send a file; paste a task link and those who can see the task get its name, a click opens it. "Reply" quotes a message; you can edit or delete your own. 🔔 / 🔕 mutes a conversation (mentions of you still count). Click 😊 to react; images show right in the conversation, click one to see it large. The ⋯ button next to a message pins it to the top of the conversation, forwards it to another one, or makes a task from it (its images and files go along, and the task links back to it). Type @everyone to mention everyone in a group; click "📊 Poll" above the message box to ask the whole group (several choices, others adding options, a deadline: up to you; everyone sees who picked what). 🔔 at the top of a conversation mutes it for 1 hour, 8 hours or until you turn it back on; 📍 pins it to the top of your list (up to 5, only you see it). "Search messages" works without accents too; "Info" at the top of a conversation gathers the images, files and links sent in it. Unread messages are counted on "Messages" and in the tab title, not in the bell; click "🔔 Turn on desktop notifications" at the top of Messages to be told while you are in another tab. Messages are deleted after 6 months.',
 
   // Chat (v33): groups, project and team chats, muting, answers
   'Chọn một cuộc trò chuyện, hoặc bấm "+ Tin nhắn mới" để nhắn cho đồng nghiệp, tạo nhóm hay mở chat của project / team.':
@@ -907,6 +907,47 @@ export default {
   'Task sẽ được giao cho bạn.': 'The task will be assigned to you.',
   'Từ tin nhắn: {link}': 'From a message: {link}',
   'Bạn không sửa được task này': 'You cannot edit this task',
+
+  // Chat (v37): polls, muting for a while, pinned conversations
+  '📊 Bình chọn': '📊 Poll',
+  'Tạo bình chọn': 'Create poll',
+  'Câu hỏi': 'Question',
+  'Phương án': 'Options',
+  'Phương án {n}': 'Option {n}',
+  'Bỏ phương án {n}': 'Remove option {n}',
+  '+ Thêm phương án': '+ Add option',
+  'Phương án mới': 'New option',
+  'Cho chọn nhiều phương án': 'Allow several choices',
+  'Cho người khác thêm phương án': 'Let others add options',
+  'Hạn chót (không bắt buộc)': 'Deadline (optional)',
+  '{count} người đã bình chọn': '{count} people voted',
+  'Chọn được nhiều phương án': 'Several choices',
+  'Khoá lúc {time}': 'Closes {time}',
+  'Khoá bình chọn': 'Close poll',
+  'Tắt trong 1 giờ': 'Mute for 1 hour',
+  'Tắt trong 8 giờ': 'Mute for 8 hours',
+  'Tắt cho tới khi bật lại': 'Mute until I turn it back on',
+  'Đã tắt thông báo tới {time}': 'Muted until {time}',
+  'Ghim cuộc trò chuyện lên đầu danh sách': 'Pin to the top of the list',
+  'Bỏ ghim cuộc trò chuyện': 'Unpin conversation',
+  'Cần nhập câu hỏi': 'Enter a question',
+  'Câu hỏi quá dài': 'The question is too long',
+  'Cần nhập phương án': 'Enter an option',
+  'Phương án quá dài': 'An option is too long',
+  'Cần từ 2 đến 10 phương án': 'A poll needs 2 to 10 options',
+  'Hạn chót phải ở tương lai': 'The deadline must be in the future',
+  'Bình chọn đã khoá': 'This poll is closed',
+  'Bình chọn này chỉ chọn một phương án': 'This poll takes one choice only',
+  'Phương án không hợp lệ': 'Invalid option',
+  'Phương án này đã có': 'This option is already there',
+  'Bình chọn đã đủ 20 phương án': 'This poll already has 20 options',
+  'Người tạo bình chọn không cho thêm phương án': 'The poll creator does not allow adding options',
+  'Chỉ người tạo mới khoá được bình chọn': 'Only the creator can close the poll',
+  'Không sửa được bình chọn': 'A poll cannot be edited',
+  'Không chuyển tiếp được bình chọn': 'A poll cannot be forwarded',
+  'Chỉ tạo bình chọn được trong nhóm, chat project hoặc chat team': 'Polls are for group, project and team chats',
+  'Thời gian tắt thông báo không hợp lệ': 'Invalid mute duration',
+  'Chỉ ghim được tối đa 5 cuộc trò chuyện': 'You can pin up to 5 conversations',
 
   // Chat (v32): server messages
   'Không nhắn tin được cho người này': 'You cannot message this person',

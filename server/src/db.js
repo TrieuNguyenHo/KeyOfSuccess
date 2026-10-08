@@ -13,6 +13,8 @@ export const db = new DatabaseSync(dbPath);
 export const UPLOAD_DIR = join(dirname(dbPath), 'uploads');
 mkdirSync(UPLOAD_DIR, { recursive: true });
 db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
+// How many transaction() calls are open (see transaction() at the end); declared here, before the migrations use it.
+let transactionDepth = 0;
 
 // A project's statuses ("trạng thái" in the UI): its board columns. kind marks the four built-in ones
 // (v26: Planned, In-Progress, Completed, Pending; fixed names, never renamed or deleted); 'done' keeps the
@@ -258,6 +260,9 @@ db.exec(`
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     last_read_id INTEGER NOT NULL DEFAULT 0,
     muted INTEGER NOT NULL DEFAULT 0,
+    -- v37: muted only until then (NULL with muted = 1: until turned back on); pinned to the top of the person's list.
+    muted_until TEXT,
+    pinned_at TEXT,
     PRIMARY KEY (conversation_id, user_id)
   );
 
@@ -292,6 +297,31 @@ db.exec(`
     emoji TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (message_id, user_id)
+  );
+
+  -- Polls (v37) in group, project and team chats: the message (its body is the question) carries a poll. multiple: more
+  -- than one option may be picked; allow_add: others add options; closes_at: it closes by itself then; closed_at: its
+  -- creator closed it. Votes are public (names shown), changeable while it is open.
+  CREATE TABLE IF NOT EXISTS polls (
+    message_id INTEGER PRIMARY KEY REFERENCES messages(id) ON DELETE CASCADE,
+    multiple INTEGER NOT NULL DEFAULT 0,
+    allow_add INTEGER NOT NULL DEFAULT 0,
+    closes_at TEXT,
+    closed_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS poll_options (
+    id INTEGER PRIMARY KEY,
+    message_id INTEGER NOT NULL REFERENCES polls(message_id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    added_by INTEGER REFERENCES users(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS poll_votes (
+    option_id INTEGER NOT NULL REFERENCES poll_options(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (option_id, user_id)
   );
 
   ${attachmentsTable('attachments')}
@@ -892,7 +922,18 @@ if (schemaVersion() < 36) {
   });
 }
 
+// v37: polls (tables created above), muting for a while and pinning a conversation (columns created above for new
+// databases).
+if (schemaVersion() < 37) {
+  transaction(() => {
+    if (!hasColumn('conversation_members', 'muted_until')) db.exec('ALTER TABLE conversation_members ADD COLUMN muted_until TEXT');
+    if (!hasColumn('conversation_members', 'pinned_at')) db.exec('ALTER TABLE conversation_members ADD COLUMN pinned_at TEXT');
+    db.exec('PRAGMA user_version = 37');
+  });
+}
+
 db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_poll_options_message ON poll_options(message_id);
   CREATE INDEX IF NOT EXISTS idx_messages_pinned ON messages(conversation_id, pinned_at) WHERE pinned_at IS NOT NULL;
   CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id) WHERE project_id IS NOT NULL;
   CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_team ON conversations(team_id) WHERE team_id IS NOT NULL;
@@ -916,8 +957,11 @@ export function makeRoot(email) {
   db.prepare('DELETE FROM user_teams WHERE user_id IN (SELECT id FROM users WHERE email = ?)').run(email);
 }
 
+// Runs fn in a transaction. Called inside another one, fn simply becomes part of it (SQLite does not nest BEGIN).
 export function transaction(fn) {
+  if (transactionDepth) return fn();
   db.exec('BEGIN');
+  transactionDepth++;
   try {
     const result = fn();
     db.exec('COMMIT');
@@ -925,5 +969,7 @@ export function transaction(fn) {
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;
+  } finally {
+    transactionDepth--;
   }
 }

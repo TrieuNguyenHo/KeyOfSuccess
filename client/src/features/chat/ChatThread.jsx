@@ -9,6 +9,7 @@ import { CommentComposer } from '../comments/CommentList.jsx';
 import { FileList, PREVIEW_TYPES } from '../comments/Attachments.jsx';
 import ChatImages from './ChatMedia.jsx';
 import ChatInfo from './ChatInfo.jsx';
+import { PollCard, PollDialog } from './ChatPoll.jsx';
 import { ChatAvatar, EVERYONE_ID, REACTIONS, chatTitle, personLine, systemText } from './ChatParts.jsx';
 import ForwardDialog from './ForwardDialog.jsx';
 import TaskFromMessage from './TaskFromMessage.jsx';
@@ -96,6 +97,8 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
   const [menuFor, setMenuFor] = useState(null); // the message whose "⋯" menu is open
   const [forwarding, setForwarding] = useState(null);
   const [tasking, setTasking] = useState(null); // the message a task is being made from
+  const [polling, setPolling] = useState(false); // the "Tạo bình chọn" dialog
+  const [muteMenu, setMuteMenu] = useState(false);
   const [flash, setFlash] = useState(null);
   const [visible, setVisible] = useState(document.visibilityState === 'visible');
   const [picking, setPicking] = useState(null); // the message whose reaction picker is open
@@ -202,8 +205,7 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
   async function react(m, emoji) {
     setPicking(null);
     try {
-      const updated = await api(`/chat-messages/${m.id}/reaction`, { method: 'POST', body: { emoji } });
-      setMessages((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+      replaceMessage(await api(`/chat-messages/${m.id}/reaction`, { method: 'POST', body: { emoji } }));
     } catch (e) {
       onError(e.message);
     }
@@ -255,7 +257,15 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
     if (ok) act(() => api(`/chat-messages/${m.id}`, { method: 'DELETE' }));
   }
 
-  const toggleMute = () => act(() => api(`/chats/${conversationId}/mute`, { method: 'POST', body: { muted: !chat.muted } }));
+  // hours: 1 or 8 (v37), null until turned back on, false to turn it back on.
+  function mute(hours) {
+    setMuteMenu(false);
+    const body = hours === false ? { muted: false } : { muted: true, hours };
+    act(() => api(`/chats/${conversationId}/mute`, { method: 'POST', body }), { keepScroll: true });
+  }
+  const togglePinned = () => act(() => api(`/chats/${conversationId}/pin`, { method: 'POST', body: { pinned: !chat.pinned_chat } }), { keepScroll: true });
+  // A message changed by an action that returns it (a reaction, a vote): updated in place, so the view does not jump.
+  const replaceMessage = (updated) => setMessages((list) => list.map((x) => (x.id === updated.id ? updated : x)));
 
   // Scrolls to a message and flashes it; one not loaded yet comes with the page around it.
   async function jumpTo(id) {
@@ -326,13 +336,51 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
         </div>
         <button
           className="icon-btn"
-          onClick={toggleMute}
-          aria-pressed={chat.muted}
-          title={chat.muted ? tr('Bật lại thông báo') : tr('Tắt thông báo (vẫn báo khi có người nhắc tới bạn)')}
-          aria-label={chat.muted ? tr('Bật lại thông báo') : tr('Tắt thông báo')}
+          onClick={togglePinned}
+          aria-pressed={chat.pinned_chat}
+          title={chat.pinned_chat ? tr('Bỏ ghim cuộc trò chuyện') : tr('Ghim cuộc trò chuyện lên đầu danh sách')}
+          aria-label={chat.pinned_chat ? tr('Bỏ ghim cuộc trò chuyện') : tr('Ghim cuộc trò chuyện lên đầu danh sách')}
         >
-          {chat.muted ? '🔕' : '🔔'}
+          {chat.pinned_chat ? '📌' : '📍'}
         </button>
+        <span className="chat-mute">
+          <button
+            className="icon-btn"
+            onClick={() => setMuteMenu((v) => !v)}
+            aria-expanded={muteMenu}
+            title={
+              chat.muted
+                ? chat.muted_until
+                  ? tr('Đã tắt thông báo tới {time}', { time: parseTime(chat.muted_until).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) })
+                  : tr('Đã tắt thông báo')
+                : tr('Tắt thông báo (vẫn báo khi có người nhắc tới bạn)')
+            }
+            aria-label={chat.muted ? tr('Đã tắt thông báo') : tr('Tắt thông báo')}
+          >
+            {chat.muted ? '🔕' : '🔔'}
+          </button>
+          {muteMenu && (
+            <div className="chat-menu chat-mute-menu" role="menu">
+              {chat.muted ? (
+                <button role="menuitem" onClick={() => mute(false)}>
+                  {tr('Bật lại thông báo')}
+                </button>
+              ) : (
+                <>
+                  <button role="menuitem" onClick={() => mute(1)}>
+                    {tr('Tắt trong 1 giờ')}
+                  </button>
+                  <button role="menuitem" onClick={() => mute(8)}>
+                    {tr('Tắt trong 8 giờ')}
+                  </button>
+                  <button role="menuitem" onClick={() => mute(null)}>
+                    {tr('Tắt cho tới khi bật lại')}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </span>
         <button className={`btn small ${showInfo ? 'primary' : ''}`} onClick={() => setShowInfo((s) => !s)} aria-expanded={showInfo}>
           {tr('Thông tin')}
         </button>
@@ -435,7 +483,7 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
                     )}
                     <div className="chat-msg-main">
                       {showName && <span className="chat-sender">{m.user_name ?? tr('Người dùng đã xoá')}</span>}
-                      <div className={`chat-bubble ${m.deleted_at ? 'deleted' : ''} ${mediaOnly ? 'media-only' : ''}`}>
+                      <div className={`chat-bubble ${m.deleted_at ? 'deleted' : ''} ${mediaOnly ? 'media-only' : ''} ${m.poll ? 'poll-bubble' : ''}`}>
                         {m.forwarded ? <span className="chat-forwarded">{tr('↪ Đã chuyển tiếp')}</span> : null}
                         {m.reply && (
                           <button type="button" className="chat-quote" onClick={() => jumpTo(m.reply.id)}>
@@ -469,6 +517,8 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
                               <button className="btn small primary">{tr('Lưu')}</button>
                             </span>
                           </form>
+                        ) : m.poll ? (
+                          <PollCard message={m} onChange={replaceMessage} onError={onError} />
                         ) : (
                           m.body && <MessageText body={m.body} tasks={m.tasks} onOpenTask={onOpenTask} meId={me.id} />
                         )}
@@ -544,15 +594,17 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
                           >
                             {m.pinned_at ? tr('Bỏ ghim') : tr('Ghim')}
                           </button>
-                          <button
-                            role="menuitem"
-                            onClick={() => {
-                              setMenuFor(null);
-                              setForwarding(m);
-                            }}
-                          >
-                            {tr('Chuyển tiếp')}
-                          </button>
+                          {!m.poll && (
+                            <button
+                              role="menuitem"
+                              onClick={() => {
+                                setMenuFor(null);
+                                setForwarding(m);
+                              }}
+                            >
+                              {tr('Chuyển tiếp')}
+                            </button>
+                          )}
                           <button
                             role="menuitem"
                             onClick={() => {
@@ -564,15 +616,17 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
                           </button>
                           {own && (
                             <>
-                              <button
-                                role="menuitem"
-                                onClick={() => {
-                                  setMenuFor(null);
-                                  setEditing({ id: m.id, hasFiles: m.attachments.length > 0, ...fromMentionMarkup(m.body) });
-                                }}
-                              >
-                                {tr('Sửa')}
-                              </button>
+                              {!m.poll && (
+                                <button
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setMenuFor(null);
+                                    setEditing({ id: m.id, hasFiles: m.attachments.length > 0, ...fromMentionMarkup(m.body) });
+                                  }}
+                                >
+                                  {tr('Sửa')}
+                                </button>
+                              )}
                               <button
                                 role="menuitem"
                                 className="danger"
@@ -611,6 +665,13 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
 
       {showInfo ? null : chat.can_send ? (
         <div className="chat-composer">
+          {!direct && (
+            <div className="chat-composer-tools">
+              <button type="button" className="link-btn" onClick={() => setPolling(true)}>
+                {tr('📊 Bình chọn')}
+              </button>
+            </div>
+          )}
           {replyTo && (
             <div className="chat-replying">
               <span className="grow ellipsis">
@@ -649,6 +710,17 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
             onChanged();
           }}
           onError={onError}
+        />
+      )}
+      {polling && (
+        <PollDialog
+          conversationId={conversationId}
+          onCreated={() => {
+            stick.current = true;
+            load();
+            onChanged();
+          }}
+          onClose={() => setPolling(false)}
         />
       )}
       {tasking && <TaskFromMessage message={tasking} conversationId={conversationId} onCreated={onOpenTask} onClose={() => setTasking(null)} />}
