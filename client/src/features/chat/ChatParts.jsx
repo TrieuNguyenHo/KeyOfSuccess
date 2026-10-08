@@ -14,6 +14,18 @@ export const fold = (s) =>
 // @tất cả (v36): a mention of everyone in a group, project or team chat, as on the server.
 export const EVERYONE_ID = 0;
 
+// A message of 1 to 3 emoji and nothing else, shown large without a bubble, as in Messenger.
+const PICTOGRAPHIC = /\p{Extended_Pictographic}/u;
+const EMOJI_ONLY_MAX = 3;
+export function emojiOnly(text) {
+  const trimmed = (text ?? '').trim();
+  if (!trimmed || trimmed.length > 40) return false;
+  const parts = [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(trimmed)]
+    .map((s) => s.segment)
+    .filter((s) => s.trim());
+  return parts.length <= EMOJI_ONLY_MAX && parts.every((s) => PICTOGRAPHIC.test(s));
+}
+
 // Reactions to a message (as on the server, lib/chat.js REACTIONS).
 export const REACTIONS = ['👍', '❤️', '😆', '😮', '😢', '🙏'];
 

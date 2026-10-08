@@ -112,7 +112,8 @@ export default function CommentList({ comments, kind, mentionable, empty, act, c
 // The comment is posted to createPath, then its files to /<kind>/<id>/attachments. act(fn) runs it and reloads.
 // enterSends as in MentionTextarea (chat messages); extra goes into the posted body (a chat answer's reply_to_id).
 // draft { text, mentions } starts the box with what was typed before; onDraftChange(draft) follows every change.
-export function CommentComposer({ kind, createPath, mentionable, placeholder, act, onError, enterSends = false, extra, draft, onDraftChange }) {
+// tools(insert) adds buttons before 📎 (the chat's emoji picker); insert(text) puts text at the caret.
+export function CommentComposer({ kind, createPath, mentionable, placeholder, act, onError, enterSends = false, extra, draft, onDraftChange, tools }) {
   const [text, setText] = useState(draft?.text ?? '');
   const [mentions, setMentions] = useState(draft?.mentions ?? []);
   useEffect(() => {
@@ -121,6 +122,19 @@ export function CommentComposer({ kind, createPath, mentionable, placeholder, ac
   const [files, setFiles] = useState([]);
   const [dragOver, setDragOver] = useState(false);
   const input = useRef(null);
+  const form = useRef(null);
+
+  // Puts text where the caret is (replacing a selection), then puts the caret after it.
+  function insert(piece) {
+    const area = form.current.querySelector('textarea');
+    const start = area.selectionStart ?? area.value.length;
+    const end = area.selectionEnd ?? start;
+    setText((current) => current.slice(0, start) + piece + current.slice(end));
+    requestAnimationFrame(() => {
+      area.focus();
+      area.setSelectionRange(start + piece.length, start + piece.length);
+    });
+  }
 
   const add = (list) => {
     const ok = uploadable(list, onError);
@@ -143,6 +157,7 @@ export function CommentComposer({ kind, createPath, mentionable, placeholder, ac
 
   return (
     <form
+      ref={form}
       className={`comment-form ${dragOver ? 'drag-over' : ''}`}
       onSubmit={send}
       // A pasted screenshot becomes a file; pasted text stays text.
@@ -193,6 +208,7 @@ export function CommentComposer({ kind, createPath, mentionable, placeholder, ac
         </ul>
       )}
       <span className="comment-form-actions">
+        {tools?.(insert)}
         <button
           type="button"
           className="icon-btn"

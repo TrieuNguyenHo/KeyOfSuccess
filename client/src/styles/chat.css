@@ -220,6 +220,26 @@
 .chat-mute { position: relative; }
 .chat-mute-menu { position: absolute; right: 0; top: 100%; z-index: 5; white-space: nowrap; }
 
+/* Emoji: the picker of the message box, and a message of only 1-3 emoji shown large. */
+/* The panel lines up with the message box's right edge (the 😀 button sits further left), so it stays on a phone screen. */
+.emoji-wrap { position: static; }
+.chat-composer .comment-form { position: relative; }
+.emoji-panel {
+  position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 6; width: min(320px, calc(100vw - 32px));
+  display: flex; flex-direction: column; border: 1px solid var(--hairline); border-radius: var(--rounded-md); background: var(--canvas);
+}
+.emoji-tabs { display: flex; gap: 2px; padding: 4px; border-bottom: 1px solid var(--divider-soft); }
+.emoji-tabs button { flex: 1; padding: 4px 0; border: none; border-radius: var(--rounded-sm); background: none; font-size: 18px; cursor: pointer; }
+.emoji-tabs button.active, .emoji-tabs button:hover { background: var(--primary-tint); }
+.emoji-label { padding: 6px 10px 0; }
+.emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 6px; max-height: 220px; overflow-y: auto; }
+.emoji-grid button { aspect-ratio: 1; border: none; border-radius: var(--rounded-sm); background: none; font-size: 22px; line-height: 1; cursor: pointer; }
+.emoji-grid button:hover { background: var(--hover); }
+.emoji-grid button:active, .emoji-tabs button:active { transform: none; }
+.emoji-empty { padding: 12px 10px; margin: 0; }
+.chat-bubble.emoji-only, .chat-msg.own .chat-bubble.emoji-only { padding: 0; background: none; color: var(--ink); }
+.chat-bubble.emoji-only .chat-text { font-size: 40px; line-height: 1.2; }
+
 @media (max-width: 1023px) { .chat { margin: 0 20px 20px; } }
 /* Phones: the list, or the open conversation with a way back. */
 @media (max-width: 700px) {
