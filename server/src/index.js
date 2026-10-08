@@ -27,6 +27,7 @@ import requirements from './routes/requirements.js';
 import sections from './routes/sections.js';
 import tasks from './routes/tasks.js';
 import teams from './routes/teams.js';
+import templates from './routes/templates.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -39,7 +40,7 @@ app.use(express.json());
 app.use('/api', health, auth);
 // Every route mounted below requires a valid token.
 app.use('/api', requireUser);
-for (const router of [me, teams, channels, admin, permissions, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications, feedback, chat]) {
+for (const router of [me, teams, channels, admin, permissions, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications, feedback, chat, templates]) {
   app.use('/api', router);
 }
 

@@ -460,6 +460,23 @@ const ARTS = {
       </g>
     </>
   ),
+  // A project template: the board on the left is copied into a new project, which gets its start date.
+  template: () => (
+    <>
+      <Win />
+      {[16, 128].map((x) => (
+        <rect key={x} className="ga-field" x={x} y="40" width="96" height="94" rx="8" />
+      ))}
+      <Line x={22} y={28} w={50} c="ga-head" h={7} />
+      {[0, 1, 2].map((col) => [0, 1].map((row) => <Card key={`s${col}${row}`} x={20 + col * 31} y={50 + row * 24} w={27} h={18} />))}
+      <g className="ga-a-copy">
+        {[0, 1, 2].map((col) => [0, 1].map((row) => <Card key={`c${col}${row}`} x={132 + col * 31} y={50 + row * 24} w={27} h={18} />))}
+      </g>
+      <g className="ga-a-date">
+        <rect className="ga-brand" x="134" y="22" width="44" height="12" rx="6" />
+      </g>
+    </>
+  ),
   // A person joins a team.
   members: () => (
     <>

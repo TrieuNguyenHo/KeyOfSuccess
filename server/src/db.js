@@ -339,6 +339,19 @@ db.exec(`
     PRIMARY KEY (task_id, user_id)
   );
 
+  -- Project templates (v39): a snapshot (JSON, see lib/templates.js) of a project's statuses, requirements, tasks and
+  -- subtasks, saved from a project and used to create new ones. Shared by everyone who may create projects.
+  CREATE TABLE IF NOT EXISTS project_templates (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    data TEXT NOT NULL,
+    source_project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   -- Small facts the server keeps between restarts (v38), e.g. the day the due date reminders last went out.
   CREATE TABLE IF NOT EXISTS app_state (
     key TEXT PRIMARY KEY,
@@ -978,6 +991,9 @@ if (schemaVersion() < 38) {
     `);
   });
 }
+
+// v39: project templates (table created above).
+if (schemaVersion() < 39) db.exec('PRAGMA user_version = 39');
 
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_poll_options_message ON poll_options(message_id);

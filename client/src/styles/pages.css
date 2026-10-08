@@ -256,6 +256,11 @@ img.avatar { object-fit: cover; }
 .form-field input, .form-field select { border-radius: var(--rounded-pill); padding: 8px 16px; }
 .static-value { padding: 8px 0; }
 .modal-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 4px; }
+/* Creating a project from a template (v39): the template picker with its rename / delete, then the date anchor. */
+.template-pick { display: flex; align-items: center; gap: 4px; }
+.template-pick select { flex: 1; min-width: 0; }
+.template-anchor { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.template-anchor input { flex: 1; min-width: 150px; }
 
 /* askText / askConfirm dialogs */
 .dialog { width: min(420px, calc(100% - 32px)); }

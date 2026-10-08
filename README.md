@@ -10,6 +10,7 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 - **Theo dõi team** (Leader) và **Theo dõi công việc** (Manager): xem task theo cả team, từng người, hoặc tất cả
 - **Dashboard** (Member: chỉ dashboard của các project mình tham gia; Leader: gộp các team của mình hoặc từng team; Manager: cả phòng hoặc từng team): số task đang mở / quá hạn / đến hạn 7 ngày / hoàn thành 7 ngày qua / chưa giao, **Workload** theo từng người (kể cả người đang trống việc; bấm vào để xem task của họ), biểu đồ hoàn thành mỗi ngày trong 14 ngày, tiến độ theo project
 - **Thông báo** (chuông trong app): khi một task được đánh dấu xong, báo cho Leader của team người làm và các Manager
+- **Mẫu project / chiến dịch** (v39): nút ⧉ ở đầu project "Lưu làm mẫu" (mẫu mới hoặc lưu đè lên mẫu cũ) chụp lại trạng thái tự thêm, requirement, task, subtask (mô tả, ưu tiên, kênh, người làm, luật lặp lại) và khoảng cách giữa các hạn chót; không giữ comment, file, lịch sử, thành viên, dấu đã xong (task đã xong vào lại Planned). Sửa project sau đó không đổi mẫu. Hộp "Tạo project" có ô "Bắt đầu từ: Project trống / Mẫu: …" (✎ đổi tên, 🗑 xoá mẫu); mẫu có hạn chót thì chọn **ngày bắt đầu** (hạn sớm nhất rơi vào ngày đó) hoặc **ngày ra mắt** (hạn muộn nhất rơi vào ngày đó, các task tính ngược lại), có xem trước ngày đầu / cuối. Người làm được giữ nếu còn được giao task của project mới (đúng team, đang làm việc, không phải root; tự thành thành viên, nhận thông báo "được giao"), không thì để trống. Mẫu dùng chung cho mọi người có quyền tạo project (`projects.create`)
 - **Theo dõi task và nhắc hạn** (v38): người làm, người tạo và người comment tự theo dõi task; nút "🔔 Theo dõi" trên panel task để bật / tắt (tắt rồi thì comment cũng không tự bật lại). Người theo dõi nhận thông báo khi task có comment, đổi hạn chót, đổi người làm, đổi trạng thái (subtask: tick / bỏ tick); không báo người gây ra thay đổi, không báo trùng (người được nhắc tên chỉ nhận "nhắc tên", người được giao chỉ nhận "được giao", Leader / Manager nhận "đã hoàn thành" thì không nhận thêm "đổi trạng thái"); người không còn xem được task (hoặc là root) không nhận. 8:00 sáng thứ Hai – thứ Sáu (giờ Việt Nam), mỗi người nhận một thông báo gộp: số task của mình đã quá hạn, đến hạn hôm nay và ngày làm việc kế tiếp (thứ Sáu: tới thứ Hai); không có task nào thì không gửi; bấm vào mở Task của tôi. Server tắt lúc 8:00 thì gửi khi chạy lại trong ngày, mỗi ngày một lần (`app_state`)
 - **Thông báo real-time**: server đẩy thông báo xuống trình duyệt ngay khi có (Server-Sent Events), chuông cập nhật không cần tải lại trang; vẫn hỏi lại 30 giây/lần làm dự phòng
 - **Giữ màn hình khi tải lại**: màn đang xem và bộ lọc nằm trên URL (`#/project/3/list?status=open&assignee=5`, `#/task/12`…), F5 không mất chỗ và gửi link cho đồng nghiệp được
@@ -237,6 +238,7 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `mentions.test.js` | Tag @, chỉ tag được người xem được nội dung |
 | `live.test.js` | Thông báo giao task và luồng sự kiện `/api/events` |
 | `task-followers.test.js` | Theo dõi task v38: ai tự theo dõi, bật / tắt tay (tắt thì không tự bật lại), thông báo comment / hạn / người làm / trạng thái / subtask, không báo trùng (nhắc tên, được giao, đã hoàn thành), người mất quyền hoặc root không nhận, task lặp giữ người theo dõi, migration v37 → v38 |
+| `templates.test.js` | Mẫu project v39: chỉ người có quyền tạo project, lưu / lưu đè / đổi tên / xoá, project từ mẫu (trạng thái, requirement, task, subtask, kênh đã xoá bị bỏ, lặp lại, task đã xong vào lại Planned, không chép comment), ngày bắt đầu / ngày ra mắt, người làm giữ / bỏ theo team, mẫu không có hạn, mẫu là ảnh chụp |
 | `due-reminders.test.js` | Nhắc hạn 8:00: chỉ thứ Hai – thứ Sáu từ 8:00, một lần mỗi ngày, đếm quá hạn / hôm nay / ngày làm việc kế tiếp (thứ Sáu tới thứ Hai), bỏ task xong / không hạn / subtask, không gửi cho người không có task |
 | `live-changes.test.js` | Sự kiện `change` khi task, bình luận, section, requirement thay đổi; ai nhận được |
 | `dashboard.test.js` | Dashboard tổng và theo project, workload, biểu đồ hoàn thành |
@@ -284,6 +286,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v39**: bảng `project_templates` (tên, `data` = ảnh chụp JSON của project, xem `lib/templates.js`, project gốc, người tạo / sửa). Chỉ thêm bảng.
 - **v38**: bảng `task_followers` (task, người, `following` 1 / 0; 0 = đã tắt, không tự bật lại) và `app_state` (key / value, vd. ngày đã gửi nhắc hạn); `notifications` được dựng lại (giữ id) để thông báo nhắc hạn `due_digest` không cần trỏ vào task. Task có sẵn: người làm, người tạo và người đã comment thành người theo dõi.
 - **v37**: bảng `polls` (tin nhắn mang bình chọn: `multiple`, `allow_add`, `closes_at`, `closed_at`), `poll_options`, `poll_votes`; `conversation_members.muted_until` (tắt thông báo có hạn) và `pinned_at` (ghim cuộc lên đầu danh sách). Chỉ thêm bảng và cột.
 - **v36**: `messages.pinned_at` / `pinned_by` (ghim), `forwarded`, `search` (nội dung bỏ dấu để tìm, `lib/fold.js`; tin cũ được điền lúc chuyển). Chỉ thêm cột.
@@ -345,6 +348,7 @@ server/src/lib/        luật và helper dùng chung giữa các route
   users, requirements, statuses, history, channels, recurrence, mentions, notifications
   feedback           loadFeedback (chỉ người gửi và root), rootIds, touchFeedback; version: phiên bản đã deploy
   chat               ai ở trong cuộc nào (memberUsers, isMember, loadConversation), số chưa đọc (totalUnread), link task (taskLinks), purgeMessages (6 tháng)
+  templates          mẫu project: snapshotProject (lưu), fillFromTemplate (tạo project từ mẫu)
   reminders          nhắc hạn 8:00 thứ Hai – thứ Sáu (runDueDigests, scheduleDueDigests); theo dõi task ở notifications (follow, followersOf, notifyTaskChanges)
   live               Server-Sent Events (pushChange, pushNotifications, pushFeedbackChange, pushChat)
   backup             sao lưu hằng ngày database + uploads
@@ -410,7 +414,7 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | GET | `/api/dashboard?team=<id>`, `?mine=1` hoặc `?all=1` | Leader (các team của mình) / Manager: `{ summary, people, trend, projects, channels, no_channel }`; `people[].team_name` là tên các team nối bằng dấu phẩy |
 | GET | `/api/projects/:id/dashboard[?team=<id>]` | Ai mở được project: `{ project, teams, summary, requirements, sections, people, trend, channels, no_channel }` (`channels`: kênh có task trong phạm vi, mỗi dòng có `total`, `done`, `open`, `overdue`…; `no_channel`: task chưa gắn kênh). `team` chỉ tính task giao cho người của team đó |
 | GET | `/api/projects` | project mình mở được, kèm `team_name` và `access` (`manage` / `edit` / `view`) |
-| POST | `/api/projects` | Chỉ Manager: `{ name, color, team_ids?, add_team? }` (mảng rỗng = Chung toàn phòng) |
+| POST | `/api/projects` | Chỉ Manager: `{ name, color, team_ids?, add_team?, template_id?, anchor?, anchor_date? }` (mảng rỗng = Chung toàn phòng). Với `template_id` (v39): project được điền từ mẫu; mẫu có hạn chót cần `anchor_date` (YYYY-MM-DD), `anchor` = `start` (mặc định, hạn sớm nhất) hoặc `end` (ngày ra mắt, hạn muộn nhất) |
 | GET, PATCH, DELETE | `/api/projects/:id` | trả về project (kèm `teams`, `can_add_tasks`: được thêm task không), members, sections, tasks (kèm `assignee_teams`: team của người làm trong project) và `requirements` (kèm `task_count`, `done_count`, `comment_count`); PATCH tên/màu và DELETE cần `manage`; PATCH `team_ids` chỉ Manager |
 | POST | `/api/projects/:id/requirements` | `{ title, description }`; owner, Leader của team phụ trách hoặc Manager |
 | PATCH, DELETE | `/api/requirements/:id` | cùng quyền như trên; DELETE trả 400 nếu requirement còn task |
@@ -425,6 +429,9 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | POST, PATCH, DELETE | `/api/projects/:id/sections`, `/api/sections/:id` | thành viên project |
 | POST | `/api/tasks` | quyền sửa project; task cần `section_id` + `requirement_id` cùng project, subtask chỉ cần `parent_id` |
 | GET | `/api/tasks/:id` | có quyền xem; trả về `task.access` = `edit` hoặc `view`, `task.channels`, `assignees` (người giao được, kèm `is_member`) và `channels` (kênh chọn được, cho người sửa được task cha), `next_task` (`{ id, title, due_date }` của bản kế tiếp nếu là task lặp đã xong), `followers` (`[{ id, name }]`, người đang theo dõi còn xem được task) và `following` (mình có theo dõi không) |
+| GET | `/api/project-templates` | `projects.create`; danh sách mẫu `{ id, name, source_project_id, source_project_name, updated_by_name, updated_at, requirements, tasks, subtasks, span }` (`span`: số ngày từ hạn sớm nhất tới muộn nhất, `null` = không có hạn) |
+| POST | `/api/projects/:id/template` | `projects.create` và mở được project; `{ name, template_id? }` lưu project thành mẫu mới (201) hoặc lưu đè lên `template_id` (200) |
+| PATCH, DELETE | `/api/project-templates/:id` | `projects.create`; PATCH `{ name }` đổi tên |
 | POST | `/api/tasks/:id/follow` | có quyền xem task; `{ following: true \| false }` bật / tắt theo dõi; trả `{ following, followers }` |
 | PATCH, DELETE | `/api/tasks/:id` | thành viên project. PATCH nhận thêm `channel_ids: [id…]` (thay toàn bộ kênh của task; `[]` = bỏ hết; subtask: 400) và `recurrence`: `{ freq: "daily" }`, `{ freq: "weekly" | "biweekly", days: [1..7] }` (1 = thứ Hai), `{ freq: "monthly", day: 1..31 }` hoặc `null` để tắt; task chưa có hạn thì được đặt hạn là ngày đầu tiên của quy tắc từ hôm nay |
 | POST | `/api/tasks/:id/comments` | có quyền xem |

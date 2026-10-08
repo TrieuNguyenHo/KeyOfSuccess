@@ -151,6 +151,10 @@
 @keyframes ga-press { 0%, 18%, 30%, 100% { transform: none; } 24% { transform: scale(0.8); } }
 .ga-a-modal { animation-name: ga-modal; transform-origin: center; }
 @keyframes ga-modal { 0%, 26% { opacity: 0; transform: scale(0.88); } 38%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.ga-a-copy { animation-name: ga-copy; }
+@keyframes ga-copy { 0%, 14% { opacity: 0; transform: translate(-112px, 0); } 24% { opacity: 1; } 50%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
+.ga-a-date { animation-name: ga-date; }
+@keyframes ga-date { 0%, 55% { opacity: 0; } 66%, 90% { opacity: 1; } 100% { opacity: 0; } }
 .ga-a-join { animation-name: ga-join; }
 @keyframes ga-join { 0%, 18% { transform: translate(-148px, 8px); } 55%, 90% { transform: none; } 100% { transform: translate(-148px, 8px); } }
 .ga-a-approve { fill: var(--ok-bg); animation-name: ga-approve; }

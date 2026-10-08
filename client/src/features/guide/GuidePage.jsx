@@ -79,6 +79,7 @@ function sections(user) {
       items: [
         ['create', tr('Tạo project'), tr('Bấm "+" cạnh "Projects theo team" ở thanh bên: đặt tên, chọn team phụ trách (không chọn = chung toàn phòng), có thể thêm cả team vào project.')],
         ['model', tr('Sau khi tạo'), tr('Tạo requirement đầu tiên trong tab Requirements, rồi thêm task. Đổi tên, đổi team, thêm / bỏ thành viên ở đầu trang project.')],
+        ['template', tr('Mẫu project'), tr('Bấm ⧉ ở đầu một project để lưu nó làm mẫu (trạng thái, requirement, task, subtask, người làm, kênh, lặp lại và khoảng cách giữa các hạn chót; không có comment, file). Khi tạo project, chọn mẫu ở ô "Bắt đầu từ" rồi chọn ngày bắt đầu hoặc ngày ra mắt: hạn chót của các task tự tính theo ngày đó. Mẫu dùng chung cho mọi người tạo được project; đổi tên / xoá mẫu ngay ở ô chọn.')],
       ],
     },
     can(user, 'teams.members') && !can(user, 'users.manage') && {
