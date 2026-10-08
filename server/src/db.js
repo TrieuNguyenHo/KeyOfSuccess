@@ -268,6 +268,11 @@ db.exec(`
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     body TEXT NOT NULL,
     reply_to_id INTEGER REFERENCES messages(id) ON DELETE SET NULL, -- the message it answers (v33)
+    -- v34: 'system' for a line about a group (created, people added or taken out, left, renamed), written by its actor
+    -- (user_id); data is JSON with the names as they were then; body holds the @[Name](id) of the people it is about,
+    -- for whom it counts as unread. NULL: an ordinary message.
+    kind TEXT,
+    data TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     edited_at TEXT,
     deleted_at TEXT
@@ -838,6 +843,15 @@ if (schemaVersion() < 33) {
       if (!hasColumn(table, column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
     }
     db.exec('PRAGMA user_version = 33');
+  });
+}
+
+// v34: system lines in group chats (columns created above for new databases).
+if (schemaVersion() < 34) {
+  transaction(() => {
+    if (!hasColumn('messages', 'kind')) db.exec('ALTER TABLE messages ADD COLUMN kind TEXT');
+    if (!hasColumn('messages', 'data')) db.exec('ALTER TABLE messages ADD COLUMN data TEXT');
+    db.exec('PRAGMA user_version = 34');
   });
 }
 

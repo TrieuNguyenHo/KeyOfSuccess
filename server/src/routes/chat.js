@@ -1,7 +1,8 @@
 // Chat (v32, decided 2026-10-08; groups, project and team chats, muting, answers and task links since v33). Who is in
 // which conversation: lib/chat.js. Only the author edits or deletes a message (a deleted one stays as "Tin nhắn đã bị
 // xoá"); files go with a message, sent by its author right after posting it. @mentions reach members only. Unread
-// messages are counted on the Messages menu, never in the bell. Messages are kept 6 months (purgeMessages()).
+// messages are counted on the Messages menu, never in the bell. Messages are kept 6 months (purgeMessages()). Changes to
+// a group (created, people added or taken out, someone leaving, a new name) show in it as system lines (v34).
 import express from 'express';
 import { db, transaction } from '../db.js';
 import { findProject, projectAccess } from '../lib/access.js';
@@ -41,7 +42,9 @@ const MESSAGE_SELECT = `SELECT m.*, u.name AS user_name, r.user_id AS reply_user
 // A message as this reader sees it: the message it answers (a short excerpt), the tasks it links to that the reader
 // may see; a deleted message keeps its place, nothing of what it said.
 function shown(row, reader) {
-  const { reply_user_id, reply_user_name, reply_body, reply_deleted_at, ...m } = row;
+  const { reply_user_id, reply_user_name, reply_body, reply_deleted_at, ...rest } = row;
+  const m = { ...rest, data: rest.data ? JSON.parse(rest.data) : null };
+  if (m.kind === 'system') return { ...m, body: '', attachments: [], reply: null, tasks: [] };
   const reply = m.reply_to_id
     ? { id: m.reply_to_id, user_id: reply_user_id, user_name: reply_user_name, body: reply_deleted_at ? '' : plainExcerpt(reply_body), deleted: Boolean(reply_deleted_at) }
     : null;
@@ -60,7 +63,7 @@ function summaryOf(c, me, { withMembers = false } = {}) {
   const { unread, mentions } = unreadOf(c.id, me.id, state.last_read_id);
   const last = db
     .prepare(
-      `SELECT m.id, m.user_id, u.name AS user_name, m.body, m.created_at, m.deleted_at,
+      `SELECT m.id, m.user_id, u.name AS user_name, m.body, m.kind, m.data, m.created_at, m.deleted_at,
          EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id) AS has_files
        FROM messages m LEFT JOIN users u ON u.id = m.user_id WHERE m.conversation_id = ? ORDER BY m.id DESC LIMIT 1`
     )
@@ -71,7 +74,14 @@ function summaryOf(c, me, { withMembers = false } = {}) {
     title: c.title,
     created_at: c.created_at,
     last_message_at: c.last_message_at,
-    last_message: last ? { ...last, body: last.deleted_at ? '' : plainExcerpt(last.body).slice(0, EXCERPT_LENGTH), has_files: Boolean(last.has_files) } : null,
+    last_message: last
+      ? {
+          ...last,
+          body: last.deleted_at || last.kind ? '' : plainExcerpt(last.body).slice(0, EXCERPT_LENGTH),
+          data: last.data ? JSON.parse(last.data) : null,
+          has_files: Boolean(last.has_files),
+        }
+      : null,
     unread,
     mentioned: mentions > 0,
     muted: Boolean(state.muted),
@@ -108,6 +118,20 @@ function chattableIds(value, me) {
   if (ids.some((id) => !Number.isInteger(id) || id === me.id || !canChatWith(id))) return null;
   return ids;
 }
+
+// A system line in a group (v34): what happened (event), done by `actor`, about `people`, whose @[Name](id) go in the
+// body so it counts as unread for them; data keeps the names as they are now (and `extra`, e.g. the new title).
+function systemLine(conversation, actor, event, { people = [], ...extra } = {}) {
+  const named = people.map(({ id, name }) => ({ id, name: name.replace(/[\]\n]/g, '').slice(0, 80) }));
+  db.prepare("INSERT INTO messages (conversation_id, user_id, body, kind, data) VALUES (?, ?, ?, 'system', ?)").run(
+    conversation.id,
+    actor.id,
+    named.map((p) => `@[${p.name}](${p.id})`).join(' '),
+    JSON.stringify({ event, people: named, ...extra })
+  );
+  db.prepare("UPDATE conversations SET last_message_at = datetime('now') WHERE id = ?").run(conversation.id);
+}
+const usersById = (ids) => ids.map((id) => findUser(id));
 
 // The people this user can start a conversation with.
 router.get('/chats/people', (req, res) => {
@@ -169,6 +193,8 @@ router.post('/chats/group', (req, res) => {
     const { lastInsertRowid } = db.prepare("INSERT INTO conversations (kind, title, owner_id) VALUES ('group', ?, ?)").run(title, req.user.id);
     const insert = db.prepare('INSERT INTO conversation_members (conversation_id, user_id) VALUES (?, ?)');
     for (const id of [req.user.id, ...ids]) insert.run(lastInsertRowid, id);
+    const created = findConversation(lastInsertRowid);
+    systemLine(created, req.user, 'created', { people: usersById(ids), title });
     return findConversation(lastInsertRowid);
   });
   pushChat(req, memberIds(conversation), conversation.id);
@@ -208,7 +234,12 @@ router.patch('/chats/:id', (req, res) => {
   const title = String(req.body?.title ?? '').trim();
   if (!title) return badRequest(res, 'Cần đặt tên nhóm');
   if (title.length > TITLE_MAX) return badRequest(res, 'Tên nhóm quá dài');
-  db.prepare('UPDATE conversations SET title = ? WHERE id = ?').run(title, conversation.id);
+  if (title !== conversation.title) {
+    transaction(() => {
+      db.prepare('UPDATE conversations SET title = ? WHERE id = ?').run(title, conversation.id);
+      systemLine(conversation, req.user, 'renamed', { title });
+    });
+  }
   pushChat(req, memberIds(conversation), conversation.id);
   res.json(summaryOf({ ...conversation, title }, req.user, { withMembers: true }));
 });
@@ -234,8 +265,17 @@ router.post('/chats/:id/members', (req, res) => {
   if (conversation.kind !== 'group') return badRequest(res, 'Chỉ thêm người được vào nhóm tự tạo');
   const ids = chattableIds(req.body?.user_ids, req.user);
   if (!ids?.length) return badRequest(res, 'Chọn ít nhất một người nhắn tin được');
-  const insert = db.prepare('INSERT OR IGNORE INTO conversation_members (conversation_id, user_id) VALUES (?, ?)');
-  transaction(() => ids.forEach((id) => insert.run(conversation.id, id)));
+  const already = new Set(memberIds(conversation));
+  const added = ids.filter((id) => !already.has(id));
+  if (added.length) {
+    transaction(() => {
+      // The messages from before they joined count as read: only the line about them is new.
+      const { last } = db.prepare('SELECT COALESCE(MAX(id), 0) AS last FROM messages WHERE conversation_id = ?').get(conversation.id);
+      const insert = db.prepare('INSERT INTO conversation_members (conversation_id, user_id, last_read_id) VALUES (?, ?, ?)');
+      added.forEach((id) => insert.run(conversation.id, id, last));
+      systemLine(conversation, req.user, 'added', { people: usersById(added) });
+    });
+  }
   pushChat(req, memberIds(conversation), conversation.id);
   res.json(summaryOf(conversation, req.user, { withMembers: true }));
 });
@@ -250,11 +290,21 @@ router.delete('/chats/:id/members/:userId', (req, res) => {
   if (userId !== req.user.id && conversation.owner_id !== req.user.id) return forbidden(res, 'Chỉ người quản lý nhóm mới bỏ được người khác');
   const before = memberIds(conversation);
   if (!before.includes(userId)) return notFound(res);
+  const target = findUser(userId);
   transaction(() => {
     db.prepare('DELETE FROM conversation_members WHERE conversation_id = ? AND user_id = ?').run(conversation.id, userId);
     const next = db.prepare('SELECT user_id FROM conversation_members WHERE conversation_id = ? ORDER BY rowid LIMIT 1').get(conversation.id);
-    if (!next) db.prepare('DELETE FROM conversations WHERE id = ?').run(conversation.id);
-    else if (userId === conversation.owner_id) db.prepare('UPDATE conversations SET owner_id = ? WHERE id = ?').run(next.user_id, conversation.id);
+    if (!next) {
+      db.prepare('DELETE FROM conversations WHERE id = ?').run(conversation.id);
+    } else if (userId !== req.user.id) {
+      systemLine(conversation, req.user, 'removed', { people: [target] });
+    } else if (userId === conversation.owner_id) {
+      // The new owner is told: the line names them.
+      db.prepare('UPDATE conversations SET owner_id = ? WHERE id = ?').run(next.user_id, conversation.id);
+      systemLine(conversation, req.user, 'left', { people: [findUser(next.user_id)], owner: true });
+    } else {
+      systemLine(conversation, req.user, 'left');
+    }
   });
   sweepUploads(); // a deleted group took its files
   pushChat(req, before, conversation.id);
@@ -297,7 +347,7 @@ router.post('/chats/:id/messages', (req, res) => {
   const replyTo = req.body?.reply_to_id ?? null;
   if (
     replyTo !== null &&
-    !db.prepare('SELECT 1 FROM messages WHERE id = ? AND conversation_id = ? AND deleted_at IS NULL').get(replyTo, conversation.id)
+    !db.prepare('SELECT 1 FROM messages WHERE id = ? AND conversation_id = ? AND deleted_at IS NULL AND kind IS NULL').get(replyTo, conversation.id)
   ) {
     return badRequest(res, 'Không tìm thấy tin nhắn được trả lời');
   }
@@ -331,9 +381,9 @@ router.post('/chats/:id/read', (req, res) => {
   res.status(204).end();
 });
 
-// Loads the message :id with its conversation (members only, else 404), not yet deleted.
+// Loads the message :id with its conversation (members only, else 404), not yet deleted and not a system line.
 function loadMessage(req, res) {
-  const message = db.prepare('SELECT * FROM messages WHERE id = ? AND deleted_at IS NULL').get(req.params.id);
+  const message = db.prepare('SELECT * FROM messages WHERE id = ? AND deleted_at IS NULL AND kind IS NULL').get(req.params.id);
   if (!message) {
     notFound(res);
     return null;

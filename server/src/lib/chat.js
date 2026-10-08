@@ -97,14 +97,16 @@ export const stateOf = (conversationId, userId) =>
 export const ensureState = (conversationId, userId) =>
   db.prepare('INSERT OR IGNORE INTO conversation_members (conversation_id, user_id) VALUES (?, ?)').run(conversationId, userId);
 
-// The others' messages after the user's read position, and how many of them mention the user.
+// The others' messages after the user's read position, and how many of them mention the user. A system line (v34)
+// counts only for the people it is about (added to the group, made its owner), never as a mention.
 export function unreadOf(conversationId, userId, lastReadId) {
+  const about = `%](${userId})%`;
   return db
     .prepare(
-      `SELECT COUNT(*) AS unread, COALESCE(SUM(body LIKE ?), 0) AS mentions FROM messages
-       WHERE conversation_id = ? AND id > ? AND user_id IS NOT ? AND deleted_at IS NULL`
+      `SELECT COUNT(*) AS unread, COALESCE(SUM(kind IS NULL AND body LIKE ?), 0) AS mentions FROM messages
+       WHERE conversation_id = ? AND id > ? AND user_id IS NOT ? AND deleted_at IS NULL AND (kind IS NULL OR body LIKE ?)`
     )
-    .get(`%](${userId})%`, conversationId, lastReadId, userId);
+    .get(about, conversationId, lastReadId, userId, about);
 }
 
 // The count on the Messages menu: unread messages, of muted conversations only those that mention the user.

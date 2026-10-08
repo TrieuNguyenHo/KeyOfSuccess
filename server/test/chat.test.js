@@ -204,7 +204,7 @@ test('messages older than 6 months are deleted, and conversations left without a
   }
 });
 
-test('the v32 and v33 migrations keep every file of a v31 database', async () => {
+test('the migrations from v32 on keep every file of a v31 database', async () => {
   const task = await api.task(boss, await taskTarget());
   const file = (await upload(boss, `/tasks/${task}/attachments`)).body;
   const old = await startServer({
@@ -242,7 +242,7 @@ test('the v32 and v33 migrations keep every file of a v31 database', async () =>
   try {
     const db = new DatabaseSync(old.dbPath);
     try {
-      assert.equal(db.prepare('PRAGMA user_version').get().user_version, 33);
+      assert.equal(db.prepare('PRAGMA user_version').get().user_version, 34);
       const row = db.prepare('SELECT * FROM attachments WHERE id = ?').get(file.id);
       assert.equal(`${row.task_id}/${row.name}/${row.message_id}`, `${task}/shot.png/null`);
       assert.equal(db.prepare('PRAGMA foreign_key_check').all().length, 0);

@@ -3,7 +3,7 @@ import { api, onChatChange } from '../../api.js';
 import { ErrorBanner } from '../../components/Controls.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
 import { locale, tr } from '../../i18n.js';
-import { ChatAvatar, chatTitle } from './ChatParts.jsx';
+import { ChatAvatar, chatTitle, systemText } from './ChatParts.jsx';
 import ChatThread, { parseTime } from './ChatThread.jsx';
 import NewChat from './NewChat.jsx';
 
@@ -19,6 +19,7 @@ function shortTime(s) {
 function preview(chat, me) {
   const last = chat.last_message;
   if (!last) return '';
+  if (last.kind === 'system') return systemText(last, me);
   if (last.deleted_at) return tr('Tin nhắn đã bị xoá');
   const text = last.body || (last.has_files ? tr('📎 File') : '');
   if (last.user_id === me.id) return tr('Bạn: {text}', { text });

@@ -147,3 +147,57 @@ test('a task link shows the task only to those who can see it', async () => {
   await send(ann, chat.id, `http://localhost:5173/#/project/${project}/board?task=${task} và #/my?layout=calendar&task=${task}`);
   assert.deepEqual((await lastOf(ann, chat.id)).tasks.map((t) => t.id), [task]);
 });
+
+// System lines (v34): what happens to a group shows in it; it counts as unread only for the people it is about.
+const lines = async (as, id) =>
+  (await api.get(`/chats/${id}/messages`, as)).body.messages
+    .filter((m) => m.kind === 'system')
+    .map((m) => `${m.user_name}:${m.data.event}:${m.data.people.map((p) => p.name).join(',')}${m.data.title ? `:${m.data.title}` : ''}${m.data.owner ? ':owner' : ''}`);
+
+test('a new group tells the people added to it: one unread line each, none for its creator', async () => {
+  const before = { ann: await unreadChat(ann), bob: await unreadChat(bob) };
+  const chat = await group(ann, 'Báo tin', [bob, carl]);
+  assert.deepEqual(await lines(bob, chat.id), ['ann:created:bob,carl:Báo tin']);
+  assert.equal(await unreadChat(bob), before.bob + 1);
+  assert.equal(await unreadChat(ann), before.ann);
+  const row = await listed(bob, chat.id);
+  assert.equal(`${row.unread}/${row.mentioned}/${row.last_message.kind}/${row.last_message.body}`, '1/false/system/', 'a line is no mention');
+});
+
+test('someone added later sees only the line about them as unread, not the messages from before', async () => {
+  const chat = await group(ann, 'Đến sau', [bob]);
+  await api.post(`/chats/${chat.id}/read`, bob);
+  for (const body of ['Một', 'Hai', 'Ba']) await send(ann, chat.id, body);
+  await api.post(`/chats/${chat.id}/read`, bob);
+  const bobBefore = await unreadChat(bob);
+  const danBefore = await unreadChat(dan);
+  assert.equal((await api.post(`/chats/${chat.id}/members`, bob, { user_ids: [dan.id, ann.id] })).status, 200);
+  assert.equal(await unreadChat(dan), danBefore + 1, 'the line, not the three earlier messages');
+  assert.equal((await listed(dan, chat.id)).unread, 1);
+  assert.equal(await unreadChat(bob), bobBefore, 'the others are not told');
+  assert.deepEqual((await lines(dan, chat.id)).at(-1), 'bob:added:dan', 'only the newcomers are named');
+});
+
+test('taking out, leaving, the owner leaving and renaming show as lines; lines cannot be edited, deleted or answered', async () => {
+  const chat = await group(ann, 'Đổi', [bob, carl, dan]);
+  await api.patch(`/chats/${chat.id}`, ann, { title: 'Đổi tên' });
+  await api.patch(`/chats/${chat.id}`, ann, { title: 'Đổi tên' }); // unchanged: no line
+  await api.delete(`/chats/${chat.id}/members/${dan.id}`, ann);
+  await api.delete(`/chats/${chat.id}/members/${carl.id}`, carl);
+  await api.post(`/chats/${chat.id}/read`, bob);
+  const before = await unreadChat(bob);
+  await api.delete(`/chats/${chat.id}/members/${ann.id}`, ann);
+  assert.deepEqual(await lines(bob, chat.id), [
+    'ann:created:bob,carl,dan:Đổi',
+    'ann:renamed::Đổi tên',
+    'ann:removed:dan',
+    'carl:left:',
+    'ann:left:bob:owner',
+  ]);
+  assert.equal(await unreadChat(bob), before + 1, 'the new owner is told');
+
+  const line = (await api.get(`/chats/${chat.id}/messages`, bob)).body.messages.at(-1);
+  assert.equal((await api.patch(`/chat-messages/${line.id}`, ann, { body: 'x' })).status, 404);
+  assert.equal((await api.delete(`/chat-messages/${line.id}`, ann)).status, 404);
+  assert.equal((await api.post(`/chats/${chat.id}/messages`, bob, { body: 'x', reply_to_id: line.id })).status, 400);
+});
