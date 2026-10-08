@@ -67,28 +67,32 @@ test('assigning yourself does not notify', async () => {
   assert.equal(await api.unread(boss), 0);
 });
 
-test('reassigning notifies the new assignee; unassigning notifies nobody', async () => {
+test('reassigning notifies the new assignee; unassigning tells the former one, who follows the task', async () => {
   await assign(boss, leadC.id);
   const { unread, items } = (await api.get('/notifications', leadC)).body;
   assert.equal(`${items[0].type}|${unread}`, 'assigned|1');
   await assign(boss, null);
-  assert.equal(await api.unread(leadC), 1);
+  const after = (await api.get('/notifications', leadC)).body;
+  assert.equal(`${after.items[0].type}|${after.unread}`, 'task_assignee|2');
 });
 
-test('mentions are pushed to the mentioned user', async () => {
+test('mentions are pushed to the mentioned user, once even when they follow the task', async () => {
+  const before = memDStream.events.length;
   await api.post(`/tasks/${task}/comments`, memC, { body: `@[memD](${memD.id}) xem` });
   await wait(SETTLE_MS);
-  assert.equal(memDStream.events.length, 2);
+  assert.equal(memDStream.events.length, before + 1);
   await api.post(`/requirements/${requirement}/comments`, memC, { body: `@[memD](${memD.id}) ok` });
   await wait(SETTLE_MS);
-  assert.equal(memDStream.events.length, 3);
+  assert.equal(memDStream.events.length, before + 2);
 });
 
 test('completions are pushed to Managers', async () => {
   await assign(boss, memD.id);
+  const before = bossStream.events.length;
   await api.patch(`/tasks/${task}`, memD, { completed: true });
   await wait(SETTLE_MS);
-  assert.equal(bossStream.events.length, 1);
+  // boss also follows the task (they created it) but is told once.
+  assert.equal(bossStream.events.length, before + 1);
   assert.equal((await api.get('/notifications', boss)).body.items[0].type, 'task_completed');
   assert.ok(memDStream.isOpen());
 });

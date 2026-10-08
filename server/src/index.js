@@ -8,6 +8,7 @@ import { scheduleBackups } from './lib/backup.js';
 import { purgeMessages } from './lib/chat.js';
 import { purgeTaskEvents } from './lib/history.js';
 import { seedPermissions } from './lib/permissions.js';
+import { scheduleDueDigests } from './lib/reminders.js';
 import { MAX_UPLOAD_MB, sweepUploads } from './lib/uploads.js';
 import admin from './routes/admin.js';
 import attachments from './routes/attachments.js';
@@ -74,5 +75,6 @@ function housekeeping() {
 housekeeping();
 setInterval(housekeeping, 24 * 60 * 60 * 1000).unref();
 scheduleBackups();
+scheduleDueDigests();
 
 app.listen(PORT, HOST, () => console.log(`API đang chạy tại http://${HOST ?? 'localhost'}:${PORT}`));

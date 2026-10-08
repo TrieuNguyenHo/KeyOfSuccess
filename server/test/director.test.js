@@ -92,9 +92,9 @@ test("a Director's profile is for Directors; a Director reads everyone's", async
 });
 
 test('Directors are not told when tasks are completed', async () => {
-  const before = await api.unread(chief);
   await api.patch(`/tasks/${task}`, memC, { completed: true });
-  assert.equal(await api.unread(chief), before);
+  // A Director who follows the task still hears of its new status, as a follower.
+  assert.ok(!(await api.get('/notifications', chief)).body.items.some((n) => n.type === 'task_completed'));
   assert.ok((await api.get('/notifications', boss)).body.items.some((n) => n.type === 'task_completed'));
 });
 

@@ -213,6 +213,27 @@ export default {
   'đã giao cho bạn task': 'assigned you the task',
   'đã nhắc bạn trong': 'mentioned you in',
   'đã hoàn thành': 'completed',
+  'Nhắc hạn chót': 'Due dates',
+  '{n} task quá hạn': '{n} overdue',
+  '{n} task đến hạn hôm nay': '{n} due today',
+  '{n} task đến hạn ngày mai': '{n} due tomorrow',
+  '{n} task đến hạn thứ Hai': '{n} due Monday',
+  'đã comment trong task': 'commented on the task',
+  'đã đổi hạn chót của': 'changed the due date of',
+  'thành': 'to',
+  'đã bỏ hạn chót của': 'removed the due date of',
+  'đã giao': 'assigned',
+  'cho': 'to',
+  'đã bỏ người làm của': 'unassigned',
+  'đã chuyển': 'moved',
+  'sang': 'to',
+  'đã mở lại': 'reopened',
+  'Theo dõi': 'Follow',
+  'Đang theo dõi': 'Following',
+  'Bấm để bỏ theo dõi.': 'Click to stop following.',
+  'Theo dõi để nhận thông báo khi task có comment, đổi hạn, người làm hoặc trạng thái.':
+    'Follow to be notified when the task gets a comment or a new due date, assignee or status.',
+  'Đang theo dõi: {names}': 'Following: {names}',
   'Ngày tham gia': 'Joined',
   'Chưa có': 'Not set',
   'Số điện thoại': 'Phone',
@@ -674,10 +695,10 @@ export default {
     'Tasks and requirements both have comments. Type @ and pick a name to mention someone: they get a notification (you can only mention people who can see it). You edit and delete your own comments.',
   'Dán ảnh (Ctrl+V), kéo thả hoặc bấm 📎 để gửi file kèm comment; mục "Đính kèm" của task / requirement nhận file tối đa 25 MB.':
     'Paste an image (Ctrl+V), drag and drop, or click 📎 to send files with a comment; the "Attachments" section of a task / requirement takes files up to 25 MB.',
-  'Chuông thông báo trên thanh bên báo khi bạn được giao task, được nhắc tên, hoặc task của người trong team bạn phụ trách đã xong. Thông báo đến ngay, không cần tải lại trang.':
-    'The bell in the sidebar tells you when a task is assigned to you, when you are mentioned, or when a task of someone in the teams you lead is done. Notifications arrive at once, no reload needed.',
-  'Chuông thông báo trên thanh bên báo khi bạn được giao task hoặc được nhắc tên. Thông báo đến ngay, không cần tải lại trang.':
-    'The bell in the sidebar tells you when a task is assigned to you or when you are mentioned. Notifications arrive at once, no reload needed.',
+  'Chuông thông báo trên thanh bên báo khi bạn được giao task, được nhắc tên, task của người trong team bạn phụ trách đã xong, hoặc task bạn theo dõi có comment, đổi hạn chót, người làm hay trạng thái. Bạn tự theo dõi task mình làm, mình tạo hoặc đã comment; nút "🔔 Theo dõi" trên task để bật / tắt. 8 giờ sáng thứ Hai đến thứ Sáu, chuông nhắc số task của bạn đã quá hạn, đến hạn hôm nay và ngày làm việc kế tiếp. Thông báo đến ngay, không cần tải lại trang.':
+    'The bell in the sidebar tells you when a task is assigned to you, when you are mentioned, when a task of someone in the teams you lead is done, or when a task you follow gets a comment or a new due date, assignee or status. You follow the tasks you work on, created or commented on; the "🔔 Follow" button on a task turns it on or off. At 8 am, Monday to Friday, the bell counts your tasks that are overdue, due today and due the next work day. Notifications arrive at once, no reload needed.',
+  'Chuông thông báo trên thanh bên báo khi bạn được giao task, được nhắc tên, hoặc task bạn theo dõi có comment, đổi hạn chót, người làm hay trạng thái. Bạn tự theo dõi task mình làm, mình tạo hoặc đã comment; nút "🔔 Theo dõi" trên task để bật / tắt. 8 giờ sáng thứ Hai đến thứ Sáu, chuông nhắc số task của bạn đã quá hạn, đến hạn hôm nay và ngày làm việc kế tiếp. Thông báo đến ngay, không cần tải lại trang.':
+    'The bell in the sidebar tells you when a task is assigned to you, when you are mentioned, or when a task you follow gets a comment or a new due date, assignee or status. You follow the tasks you work on, created or commented on; the "🔔 Follow" button on a task turns it on or off. At 8 am, Monday to Friday, the bell counts your tasks that are overdue, due today and due the next work day. Notifications arrive at once, no reload needed.',
   'Task của tôi và Dashboard': 'My tasks and Dashboard',
   'Mọi task được giao cho bạn ở mọi project, chia theo Quá hạn, Hôm nay, 7 ngày tới…; nút Danh sách / Lịch để đổi cách xem, ô "Mọi kênh" để lọc theo kênh.':
     'Every task assigned to you in every project, grouped by Overdue, Today, Next 7 days…; the List / Calendar switch changes the view, "All channels" filters by channel.',

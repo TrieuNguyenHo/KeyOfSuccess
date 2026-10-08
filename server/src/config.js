@@ -4,6 +4,10 @@ import { fileURLToPath } from 'node:url';
 
 const SERVER_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 
+// Dates ("today", overdue, the 8:00 reminder of due dates) follow the company's clock, not the machine's: a VPS
+// usually runs on UTC. TZ in server/.env overrides it.
+process.env.TZ ||= 'Asia/Ho_Chi_Minh';
+
 export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 // Not PORT: dev tools often set PORT for the frontend, which would collide with Vite.
 export const PORT = process.env.API_PORT || 3001;

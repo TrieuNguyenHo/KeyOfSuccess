@@ -10,6 +10,7 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 - **Theo dõi team** (Leader) và **Theo dõi công việc** (Manager): xem task theo cả team, từng người, hoặc tất cả
 - **Dashboard** (Member: chỉ dashboard của các project mình tham gia; Leader: gộp các team của mình hoặc từng team; Manager: cả phòng hoặc từng team): số task đang mở / quá hạn / đến hạn 7 ngày / hoàn thành 7 ngày qua / chưa giao, **Workload** theo từng người (kể cả người đang trống việc; bấm vào để xem task của họ), biểu đồ hoàn thành mỗi ngày trong 14 ngày, tiến độ theo project
 - **Thông báo** (chuông trong app): khi một task được đánh dấu xong, báo cho Leader của team người làm và các Manager
+- **Theo dõi task và nhắc hạn** (v38): người làm, người tạo và người comment tự theo dõi task; nút "🔔 Theo dõi" trên panel task để bật / tắt (tắt rồi thì comment cũng không tự bật lại). Người theo dõi nhận thông báo khi task có comment, đổi hạn chót, đổi người làm, đổi trạng thái (subtask: tick / bỏ tick); không báo người gây ra thay đổi, không báo trùng (người được nhắc tên chỉ nhận "nhắc tên", người được giao chỉ nhận "được giao", Leader / Manager nhận "đã hoàn thành" thì không nhận thêm "đổi trạng thái"); người không còn xem được task (hoặc là root) không nhận. 8:00 sáng thứ Hai – thứ Sáu (giờ Việt Nam), mỗi người nhận một thông báo gộp: số task của mình đã quá hạn, đến hạn hôm nay và ngày làm việc kế tiếp (thứ Sáu: tới thứ Hai); không có task nào thì không gửi; bấm vào mở Task của tôi. Server tắt lúc 8:00 thì gửi khi chạy lại trong ngày, mỗi ngày một lần (`app_state`)
 - **Thông báo real-time**: server đẩy thông báo xuống trình duyệt ngay khi có (Server-Sent Events), chuông cập nhật không cần tải lại trang; vẫn hỏi lại 30 giây/lần làm dự phòng
 - **Giữ màn hình khi tải lại**: màn đang xem và bộ lọc nằm trên URL (`#/project/3/list?status=open&assignee=5`, `#/task/12`…), F5 không mất chỗ và gửi link cho đồng nghiệp được
 - **Nội dung real-time**: khi người khác sửa task, section, requirement hay gửi bình luận (task hoặc requirement), Board, List, Requirements, Task của tôi, panel task đang mở và bình luận của requirement tự tải lại (tiêu đề / mô tả đang gõ dở được giữ nguyên)
@@ -149,6 +150,7 @@ Copy `server/.env.example` thành `server/.env`:
 | `DB_PATH` | File SQLite, mặc định `server/data/app.db` |
 | `BACKUP_DIR` / `BACKUP_KEEP_DAYS` | Thư mục sao lưu (mặc định `server/data/backups` khi production, tắt khi dev) và số bản giữ lại (14) |
 | `CLIENT_DIST` | Frontend đã build, mặc định `client/dist` |
+| `TZ` | Múi giờ của "hôm nay", quá hạn và giờ nhắc hạn 8:00, mặc định `Asia/Ho_Chi_Minh` (VPS thường chạy giờ UTC) |
 
 ### 3. Chạy
 
@@ -234,6 +236,8 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `requirements.test.js` | Requirement, task theo requirement, tiến độ, chặn xoá, bình luận |
 | `mentions.test.js` | Tag @, chỉ tag được người xem được nội dung |
 | `live.test.js` | Thông báo giao task và luồng sự kiện `/api/events` |
+| `task-followers.test.js` | Theo dõi task v38: ai tự theo dõi, bật / tắt tay (tắt thì không tự bật lại), thông báo comment / hạn / người làm / trạng thái / subtask, không báo trùng (nhắc tên, được giao, đã hoàn thành), người mất quyền hoặc root không nhận, task lặp giữ người theo dõi, migration v37 → v38 |
+| `due-reminders.test.js` | Nhắc hạn 8:00: chỉ thứ Hai – thứ Sáu từ 8:00, một lần mỗi ngày, đếm quá hạn / hôm nay / ngày làm việc kế tiếp (thứ Sáu tới thứ Hai), bỏ task xong / không hạn / subtask, không gửi cho người không có task |
 | `live-changes.test.js` | Sự kiện `change` khi task, bình luận, section, requirement thay đổi; ai nhận được |
 | `dashboard.test.js` | Dashboard tổng và theo project, workload, biểu đồ hoàn thành |
 | `task-history.test.js` | Lịch sử task: các loại thay đổi, subtask / bình luận / file ghi vào task cha, ai xem được, ẩn quá 30 ngày, xoá theo task |
@@ -280,6 +284,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v38**: bảng `task_followers` (task, người, `following` 1 / 0; 0 = đã tắt, không tự bật lại) và `app_state` (key / value, vd. ngày đã gửi nhắc hạn); `notifications` được dựng lại (giữ id) để thông báo nhắc hạn `due_digest` không cần trỏ vào task. Task có sẵn: người làm, người tạo và người đã comment thành người theo dõi.
 - **v37**: bảng `polls` (tin nhắn mang bình chọn: `multiple`, `allow_add`, `closes_at`, `closed_at`), `poll_options`, `poll_votes`; `conversation_members.muted_until` (tắt thông báo có hạn) và `pinned_at` (ghim cuộc lên đầu danh sách). Chỉ thêm bảng và cột.
 - **v36**: `messages.pinned_at` / `pinned_by` (ghim), `forwarded`, `search` (nội dung bỏ dấu để tìm, `lib/fold.js`; tin cũ được điền lúc chuyển). Chỉ thêm cột.
 - **v35**: bảng `message_reactions` (tin nhắn, người, emoji; mỗi người một cảm xúc mỗi tin). Chỉ thêm bảng.
@@ -340,6 +345,7 @@ server/src/lib/        luật và helper dùng chung giữa các route
   users, requirements, statuses, history, channels, recurrence, mentions, notifications
   feedback           loadFeedback (chỉ người gửi và root), rootIds, touchFeedback; version: phiên bản đã deploy
   chat               ai ở trong cuộc nào (memberUsers, isMember, loadConversation), số chưa đọc (totalUnread), link task (taskLinks), purgeMessages (6 tháng)
+  reminders          nhắc hạn 8:00 thứ Hai – thứ Sáu (runDueDigests, scheduleDueDigests); theo dõi task ở notifications (follow, followersOf, notifyTaskChanges)
   live               Server-Sent Events (pushChange, pushNotifications, pushFeedbackChange, pushChat)
   backup             sao lưu hằng ngày database + uploads
   uploads            lưu file, sweepUploads; comments: COMMENT_KINDS dùng chung cho comment task / requirement
@@ -418,11 +424,12 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | PATCH | `/api/projects/:id/members/:userId` | `{ role: "admin" | "member" | "viewer" | null }` (null = theo team); `manage`, không cho owner, người quản lý mọi project, chính mình, vai trò cao hơn |
 | POST, PATCH, DELETE | `/api/projects/:id/sections`, `/api/sections/:id` | thành viên project |
 | POST | `/api/tasks` | quyền sửa project; task cần `section_id` + `requirement_id` cùng project, subtask chỉ cần `parent_id` |
-| GET | `/api/tasks/:id` | có quyền xem; trả về `task.access` = `edit` hoặc `view`, `task.channels`, `assignees` (người giao được, kèm `is_member`) và `channels` (kênh chọn được, cho người sửa được task cha), `next_task` (`{ id, title, due_date }` của bản kế tiếp nếu là task lặp đã xong) |
+| GET | `/api/tasks/:id` | có quyền xem; trả về `task.access` = `edit` hoặc `view`, `task.channels`, `assignees` (người giao được, kèm `is_member`) và `channels` (kênh chọn được, cho người sửa được task cha), `next_task` (`{ id, title, due_date }` của bản kế tiếp nếu là task lặp đã xong), `followers` (`[{ id, name }]`, người đang theo dõi còn xem được task) và `following` (mình có theo dõi không) |
+| POST | `/api/tasks/:id/follow` | có quyền xem task; `{ following: true \| false }` bật / tắt theo dõi; trả `{ following, followers }` |
 | PATCH, DELETE | `/api/tasks/:id` | thành viên project. PATCH nhận thêm `channel_ids: [id…]` (thay toàn bộ kênh của task; `[]` = bỏ hết; subtask: 400) và `recurrence`: `{ freq: "daily" }`, `{ freq: "weekly" | "biweekly", days: [1..7] }` (1 = thứ Hai), `{ freq: "monthly", day: 1..31 }` hoặc `null` để tắt; task chưa có hạn thì được đặt hạn là ngày đầu tiên của quy tắc từ hôm nay |
 | POST | `/api/tasks/:id/comments` | có quyền xem |
 | GET | `/api/tasks/:id/history` | có quyền xem task; 30 ngày gần nhất, mới nhất trước. Mỗi dòng `{ id, type, user_id, user_name, created_at, ... }`; `type` = `created`, `field` (`field`, `from`, `to`: giá trị đã đổi thành tên dễ đọc), `subtask_added`, `subtask_deleted`, `comment_added` / `comment_edited` / `comment_deleted` (`excerpt`, `from` / `to`, `author`, `files`), `file_added` / `file_deleted` (`name`, `in_comment`); thay đổi của subtask có thêm `subtask` (tên) và nằm trong lịch sử của task cha |
-| GET | `/api/notifications` | `{ items, unread, unreadFeedback, unreadChat, pendingUsers }`; `unreadChat`: số tin nhắn chưa đọc (hiện trên mục Tin nhắn); chuông chỉ có thông báo công việc (`type` = `task_completed`, `mention` hoặc `assigned`). Thông báo về feedback (`feedback_new`, `feedback_status`, `feedback_message`) không vào chuông: `unreadFeedback` là số chưa xem, hiện trên mục Feedback. `pendingUsers`: Manager đếm mọi tài khoản chờ duyệt, Leader đếm người tự đăng ký chưa có team (người mình duyệt được) |
+| GET | `/api/notifications` | `{ items, unread, unreadFeedback, unreadChat, pendingUsers }`; `unreadChat`: số tin nhắn chưa đọc (hiện trên mục Tin nhắn); chuông chỉ có thông báo công việc (`type` = `task_completed`, `mention`, `assigned`; từ v38 cho người theo dõi: `comment`, `task_due` / `task_assignee` / `task_status` (excerpt = hạn / tên người làm / tên trạng thái mới), `task_done` / `task_reopened` (subtask), và `due_digest` lúc 8:00 (excerpt JSON `{ day, until, overdue, today, soon }`, không thuộc task / project nào). Thông báo về feedback (`feedback_new`, `feedback_status`, `feedback_message`) không vào chuông: `unreadFeedback` là số chưa xem, hiện trên mục Feedback. `pendingUsers`: Manager đếm mọi tài khoản chờ duyệt, Leader đếm người tự đăng ký chưa có team (người mình duyệt được) |
 | GET | `/api/events` | luồng Server-Sent Events; gửi `event: notification` khi user có thông báo mới, và `event: change` (data `{ project_id, task_id, requirement_id, source }`, chỉ id) khi task, bình luận, section, requirement của một project thay đổi, tới người mở được project đó hoặc xem được task đó; `event: feedback` (data `{ feedback_id, source }`) khi một feedback thay đổi, chỉ tới người gửi và root; `event: chat` (data `{ conversation_id, source }`) khi có tin mới / sửa / xoá / đã đọc, chỉ tới hai thành viên. `source` là header `X-Client-Id` của tab gây ra thay đổi để tab đó bỏ qua. Đọc bằng fetch với header Authorization |
 | GET | `/api/tasks/:id/mentionable`, `/api/requirements/:id/mentionable` | người tag được (xem được task / mở được project) |
 | POST | `/api/notifications/read` | `{ id }` đánh dấu một cái, body rỗng đánh dấu tất cả thông báo trong chuông (không đụng thông báo feedback) |

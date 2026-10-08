@@ -8,7 +8,7 @@ import { logEvent } from './history.js';
 import { badRequest, notFound } from './http.js';
 import { pushChange, pushNotifications } from './live.js';
 import { plainExcerpt, projectViewers, resolveMentions, taskViewers } from './mentions.js';
-import { notifyMentions } from './notifications.js';
+import { follow, notifyFollowers, notifyMentions } from './notifications.js';
 import { loadRequirement } from './requirements.js';
 import { withCommentFiles } from './uploads.js';
 
@@ -67,20 +67,25 @@ export function loadComment(kind, req, res) {
 }
 
 // Posts a comment on what `context` describes. The text may be left out when files follow (with_files), uploaded
-// to /api/<kind>/:id/attachments. Mentioned people who can see it are notified.
+// to /api/<kind>/:id/attachments. Mentioned people who can see it are notified; on a task, the commenter follows it
+// and its other followers are told (v38).
 export function postComment(kind, req, res, { ownerId, task, viewers, target, change }) {
   const raw = req.body?.body?.trim() ?? '';
   if (!raw && !req.body?.with_files) return badRequest(res, 'Comment không được để trống');
   const { body, mentioned, excerpt } = resolveMentions(raw, viewers, req.user);
-  const id = transaction(() => {
+  const { id, notified } = transaction(() => {
     const { lastInsertRowid } = db
       .prepare(`INSERT INTO ${kind.table} (${kind.ownerColumn}, user_id, body) VALUES (?, ?, ?)`)
       .run(ownerId, req.user.id, body);
-    notifyMentions(mentioned, req.user, { ...target, excerpt });
-    if (task) logEvent(task, req.user, 'comment_added', { excerpt: plainExcerpt(body) });
-    return lastInsertRowid;
+    const notified = [...notifyMentions(mentioned, req.user, { ...target, excerpt })];
+    if (task) {
+      logEvent(task, req.user, 'comment_added', { excerpt: plainExcerpt(body) });
+      follow(task.id, req.user.id);
+      notified.push(...notifyFollowers(task, req.user, 'comment', excerpt, mentioned));
+    }
+    return { id: lastInsertRowid, notified };
   });
-  pushNotifications(mentioned);
+  pushNotifications(notified);
   pushChange(req, ...change);
   res.status(201).json(commentById(kind, id));
 }

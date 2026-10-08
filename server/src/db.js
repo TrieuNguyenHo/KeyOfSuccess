@@ -30,7 +30,8 @@ const sectionsTable = (name) => `
 
 // Shared by the schema below and the v2 migration, which rebuilds the table.
 // Shared by the schema below and the v8 and v31 migrations, which rebuild the table.
-// A notification points at a task, a requirement (mentions in requirement feedback) or, since v31, a feedback.
+// A notification points at a task, a requirement (mentions in requirement feedback) or, since v31, a feedback; the
+// morning reminder of due dates (v38, due_digest) points at nothing and opens My tasks.
 const notificationsTable = (name) => `
   CREATE TABLE IF NOT EXISTS ${name} (
     id INTEGER PRIMARY KEY,
@@ -39,11 +40,15 @@ const notificationsTable = (name) => `
     task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
     requirement_id INTEGER REFERENCES requirements(id) ON DELETE CASCADE,
     feedback_id INTEGER REFERENCES feedback(id) ON DELETE CASCADE,
-    type TEXT NOT NULL, -- task_completed | mention | assigned | feedback_new | feedback_status | feedback_message
-    excerpt TEXT, -- start of the comment or message; the new status for feedback_status
+    -- task_completed | mention | assigned | feedback_new | feedback_status | feedback_message; v38: due_digest and,
+    -- for a task's followers, comment | task_due | task_assignee | task_status | task_done | task_reopened
+    type TEXT NOT NULL,
+    -- start of the comment or message; the new status for feedback_status and task_status; the new date or
+    -- assignee's name for task_due / task_assignee; the counts (JSON) for due_digest
+    excerpt TEXT,
     read_at TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    CHECK (task_id IS NOT NULL OR requirement_id IS NOT NULL OR feedback_id IS NOT NULL)
+    CHECK (task_id IS NOT NULL OR requirement_id IS NOT NULL OR feedback_id IS NOT NULL OR type = 'due_digest')
   );`;
 
 // Files attached to a task, a requirement or (v31) a feedback, or sent in a chat message (v32); the bytes are
@@ -322,6 +327,22 @@ db.exec(`
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (option_id, user_id)
+  );
+
+  -- Who follows a task (v38): told about its comments, due date, assignee and status (lib/notifications.js). The
+  -- assignee, the creator and commenters follow it on their own; following = 0 keeps someone who turned it off from
+  -- being added back.
+  CREATE TABLE IF NOT EXISTS task_followers (
+    task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    following INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (task_id, user_id)
+  );
+
+  -- Small facts the server keeps between restarts (v38), e.g. the day the due date reminders last went out.
+  CREATE TABLE IF NOT EXISTS app_state (
+    key TEXT PRIMARY KEY,
+    value TEXT
   );
 
   ${attachmentsTable('attachments')}
@@ -929,6 +950,32 @@ if (schemaVersion() < 37) {
     if (!hasColumn('conversation_members', 'muted_until')) db.exec('ALTER TABLE conversation_members ADD COLUMN muted_until TEXT');
     if (!hasColumn('conversation_members', 'pinned_at')) db.exec('ALTER TABLE conversation_members ADD COLUMN pinned_at TEXT');
     db.exec('PRAGMA user_version = 37');
+  });
+}
+
+// v38: following tasks and the morning reminder of due dates (tables created above). The notifications table is
+// rebuilt (ids kept) so the reminder, which points at nothing, passes its CHECK. The people a task already has follow
+// it: its assignee, its creator and those who commented on it.
+if (schemaVersion() < 38) {
+  transaction(() => {
+    const sql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'notifications'").get().sql;
+    if (!sql.includes('due_digest')) {
+      const columns = 'id, user_id, actor_id, task_id, requirement_id, feedback_id, type, excerpt, read_at, created_at';
+      db.exec(`
+        ${notificationsTable('notifications_v38')}
+        INSERT INTO notifications_v38 (${columns}) SELECT ${columns} FROM notifications;
+        DROP TABLE notifications;
+        ALTER TABLE notifications_v38 RENAME TO notifications;
+        CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read_at);
+      `);
+    }
+    db.exec(`
+      INSERT OR IGNORE INTO task_followers (task_id, user_id)
+        SELECT id, assignee_id FROM tasks WHERE assignee_id IS NOT NULL
+        UNION SELECT id, created_by FROM tasks WHERE created_by IS NOT NULL
+        UNION SELECT task_id, user_id FROM comments WHERE user_id IS NOT NULL;
+      PRAGMA user_version = 38;
+    `);
   });
 }
 

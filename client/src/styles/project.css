@@ -57,6 +57,12 @@
   border-radius: var(--rounded-pill); padding: 6px 16px; cursor: pointer;
 }
 .complete-btn.on { background: var(--primary); color: var(--on-primary); }
+/* Follow / stop following the task (its comments, due date, assignee and status reach the bell). */
+.follow-btn {
+  border: 1px solid var(--hairline); background: none; color: var(--muted);
+  border-radius: var(--rounded-pill); padding: 4px 12px; cursor: pointer; white-space: nowrap;
+}
+.follow-btn.on { border-color: var(--primary); color: var(--primary-text); }
 .detail-title {
   font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.19; letter-spacing: -0.28px;
   border-color: transparent; padding: 6px 8px; margin-left: -8px;

@@ -12,7 +12,8 @@ router.get('/events', openEventStream);
 
 // The bell holds the work only (tasks, requirements). Notifications about feedback on the app stay out of it
 // (decided 2026-10-08): they show as unreadFeedback on the Feedback menu and as `unread` on each feedback, and are
-// read when the feedback is opened (routes/feedback.js).
+// read when the feedback is opened (routes/feedback.js). The morning reminder of due dates (due_digest) belongs to no
+// project.
 router.get('/notifications', (req, res) => {
   const items = db
     .prepare(
@@ -21,7 +22,7 @@ router.get('/notifications', (req, res) => {
        FROM notifications n
        LEFT JOIN tasks t ON t.id = n.task_id
        LEFT JOIN requirements r ON r.id = n.requirement_id
-       JOIN projects p ON p.id = COALESCE(t.project_id, r.project_id)
+       LEFT JOIN projects p ON p.id = COALESCE(t.project_id, r.project_id)
        LEFT JOIN users a ON a.id = n.actor_id
        WHERE n.user_id = ? AND n.feedback_id IS NULL ORDER BY n.id DESC LIMIT 50`
     )

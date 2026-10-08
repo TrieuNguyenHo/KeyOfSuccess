@@ -21,7 +21,14 @@ import { HISTORY_DAYS, logEvent, logTaskChanges } from '../lib/history.js';
 import { badRequest, forbidden } from '../lib/http.js';
 import { pushChange, pushNotifications } from '../lib/live.js';
 import { mentionList, taskViewers } from '../lib/mentions.js';
-import { notifyAssigned, notifyCompleted } from '../lib/notifications.js';
+import {
+  follow,
+  followersOf,
+  notifyAssigned,
+  notifyCompleted,
+  notifyTaskChanges,
+  setFollowing,
+} from '../lib/notifications.js';
 import { nextOccurrence, parseRecurrence, spawnNextOccurrence } from '../lib/recurrence.js';
 import { findRequirement } from '../lib/requirements.js';
 import { endOfStatus, statusSync } from '../lib/statuses.js';
@@ -122,6 +129,8 @@ router.post('/tasks', (req, res) => {
       completed ? nowStamp() : null
     );
   const created = findTask(lastInsertRowid);
+  follow(created.id, req.user.id);
+  follow(created.id, assigneeId);
   logEvent(created, req.user, created.parent_id ? 'subtask_added' : 'created', { title: created.title });
   pushChange(req, { project_id: projectId, task_id: created.id }, created);
   res.status(201).json(created);
@@ -142,8 +151,11 @@ router.get('/tasks/:id', (req, res) => {
   const channels = editable && !task.parent_id ? db.prepare('SELECT id, name, color FROM channels ORDER BY name').all() : [];
   // The occurrence a completed recurring task created, for the link to it.
   const nextTask = task.next_task_id ? db.prepare('SELECT id, title, due_date FROM tasks WHERE id = ?').get(task.next_task_id) : null;
+  const followers = followersOf(task).map(({ id, name }) => ({ id, name }));
   res.json({
     task: withChannels(task),
+    followers,
+    following: followers.some((u) => u.id === req.user.id),
     next_task: nextTask ?? null,
     subtasks,
     comments: commentsOf(COMMENT_KINDS.comments, task.id),
@@ -260,13 +272,19 @@ router.patch('/tasks/:id', (req, res) => {
         logEvent(updated, req.user, 'field', { field: 'channels', from: channelNames(channelsBefore), to });
       }
       const ids = [];
-      if (assignee && assignee.id !== task.assignee_id) ids.push(...notifyAssigned(updated, assignee.id, req.user));
+      if (assignee && assignee.id !== task.assignee_id) {
+        follow(task.id, assignee.id);
+        ids.push(...notifyAssigned(updated, assignee.id, req.user));
+      }
       if (!task.parent_id && !task.completed && updated.completed) {
         const rule = updated.recurrence && JSON.parse(updated.recurrence);
         // A daily task would notify every day, so its completion stays quiet.
         if (rule?.freq !== 'daily') ids.push(...notifyCompleted(updated, req.user));
         if (rule && !updated.next_task_id) ids.push(...spawnNextOccurrence(updated, req.user));
       }
+      // Followers hear of the due date, assignee and status; those just told the same (the new assignee, the
+      // Leaders told it was completed) are not told twice.
+      ids.push(...notifyTaskChanges(task, updated, req.user, [...ids]));
       return ids;
     });
     pushNotifications(notified);
@@ -283,6 +301,14 @@ router.delete('/tasks/:id', (req, res) => {
   sweepUploads();
   pushChange(req, { project_id: task.project_id, task_id: task.id }, task);
   res.status(204).end();
+});
+
+// Body { following: true | false }: the user follows a task they can see, or stops following it.
+router.post('/tasks/:id/follow', (req, res) => {
+  const task = loadTask(req, res, req.params.id, 'view');
+  if (!task) return;
+  setFollowing(task.id, req.user.id, Boolean(req.body?.following));
+  res.json({ following: Boolean(req.body?.following), followers: followersOf(task).map(({ id, name }) => ({ id, name })) });
 });
 
 // ---------- Comments ----------

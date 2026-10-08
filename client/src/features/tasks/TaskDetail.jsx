@@ -148,6 +148,17 @@ export default function TaskDetail({
   const isAdmin = task.access === 'admin';
   const openRequirement = () => onOpenRequirement(task.project_id, task.requirement_id);
 
+  // Following: the task's comments, due date, assignee and status reach the bell (v38).
+  async function toggleFollow() {
+    try {
+      const res = await api(`/tasks/${task.id}/follow`, { method: 'POST', body: { following: !data.following } });
+      setData((d) => ({ ...d, ...res }));
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+  const followerNames = data.followers.map((u) => u.name).join(', ');
+
   // The task's own page (#/task/12): anyone who can see the task opens it; pasted in chat it shows as the task's chip.
   async function copyLink() {
     try {
@@ -171,6 +182,17 @@ export default function TaskDetail({
         </button>
       )}
       <span className="grow" />
+      <button
+        className={`follow-btn ${data.following ? 'on' : ''}`}
+        onClick={toggleFollow}
+        aria-pressed={data.following}
+        title={
+          (data.following ? tr('Bấm để bỏ theo dõi.') : tr('Theo dõi để nhận thông báo khi task có comment, đổi hạn, người làm hoặc trạng thái.')) +
+          (followerNames ? ` ${tr('Đang theo dõi: {names}', { names: followerNames })}` : '')
+        }
+      >
+        🔔 <span className="follow-label">{data.following ? tr('Đang theo dõi') : tr('Theo dõi')}</span>
+      </button>
       <button
         className="icon-btn"
         onClick={copyLink}
