@@ -10,6 +10,8 @@ import { canEdit, findProject, findTask, projectAccess, taskAccess } from '../li
 import {
   EVERYONE_MARKUP,
   MESSAGE_MAX,
+  MUTE_HOURS,
+  PINNED_CHATS_MAX,
   REACTIONS,
   TITLE_MAX,
   canChatWith,
@@ -30,6 +32,7 @@ import { logEvent } from '../lib/history.js';
 import { badRequest, forbidden, notFound, requirePermission } from '../lib/http.js';
 import { pushChange, pushChat } from '../lib/live.js';
 import { plainExcerpt, resolveMentions } from '../lib/mentions.js';
+import { OPTIONS_LIMIT, OPTIONS_MAX, OPTIONS_MIN, OPTION_MAX, QUESTION_MAX, cleanOptions, findPoll, isOpen, toStamp, withPolls } from '../lib/polls.js';
 import { can } from '../lib/permissions.js';
 import { AT_WORK, USER_SELECT, findUser, withUserTeams } from '../lib/users.js';
 import { ATTACHMENT_SELECT, IMAGE_TYPES, copyAttachments, rawUpload, saveAttachment, sweepUploads, withCommentFiles } from '../lib/uploads.js';
@@ -81,7 +84,7 @@ function withReactions(messages, reader) {
     return { ...m, reactions };
   });
 }
-const messagesFor = (rows, reader) => withReactions(withCommentFiles(rows, 'message_id').map((m) => shown(m, reader)), reader);
+const messagesFor = (rows, reader) => withPolls(withReactions(withCommentFiles(rows, 'message_id').map((m) => shown(m, reader)), reader), reader);
 const messageById = (id, reader) => messagesFor([db.prepare(`${MESSAGE_SELECT} WHERE m.id = ?`).get(id)], reader)[0];
 
 const personOf = (u) => ({ id: u.id, name: u.name, role_name: u.role_name, team_name: u.team_name, status: u.status });
@@ -93,7 +96,8 @@ function summaryOf(c, me, { withMembers = false } = {}) {
   const last = db
     .prepare(
       `SELECT m.id, m.user_id, u.name AS user_name, m.body, m.kind, m.data, m.created_at, m.deleted_at,
-         EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id) AS has_files
+         EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id) AS has_files,
+         EXISTS (SELECT 1 FROM polls p WHERE p.message_id = m.id) AS is_poll
        FROM messages m LEFT JOIN users u ON u.id = m.user_id WHERE m.conversation_id = ? ORDER BY m.id DESC LIMIT 1`
     )
     .get(c.id);
@@ -109,11 +113,14 @@ function summaryOf(c, me, { withMembers = false } = {}) {
           body: last.deleted_at || last.kind ? '' : plainExcerpt(last.body).slice(0, EXCERPT_LENGTH),
           data: last.data ? JSON.parse(last.data) : null,
           has_files: Boolean(last.has_files),
+          is_poll: Boolean(last.is_poll),
         }
       : null,
     unread,
     mentioned: mentions > 0,
     muted: Boolean(state.muted),
+    muted_until: state.muted_until ?? null,
+    pinned_chat: Boolean(state.pinned_at), // at the top of the user's list (v37); `pinned` lists the pinned messages
     last_read_id: state.last_read_id,
     can_send: true,
   };
@@ -226,12 +233,15 @@ router.get('/chats/search', (req, res) => {
   res.json(rows.map((m) => ({ ...m, body: plainExcerpt(m.body), conversation: nameOf(m.conversation_id) })));
 });
 
-// The user's conversations: those with messages, and the groups they are in; latest first.
+// The user's conversations: those with messages, the groups they are in and those they pinned; pinned ones first
+// (v37), each part latest first.
 router.get('/chats', (req, res) => {
+  const latest = (c) => c.last_message_at ?? c.created_at;
   const list = conversationsOf(req.user)
-    .filter((c) => c.last_message_at || c.kind === 'group')
-    .sort((a, b) => (b.last_message_at ?? b.created_at).localeCompare(a.last_message_at ?? a.created_at) || b.id - a.id);
-  res.json(list.map((c) => summaryOf(c, req.user)));
+    .map((c) => ({ c, pinned: Boolean(stateOf(c.id, req.user.id).pinned_at) }))
+    .filter(({ c, pinned }) => c.last_message_at || c.kind === 'group' || pinned)
+    .sort((a, b) => b.pinned - a.pinned || latest(b.c).localeCompare(latest(a.c)) || b.c.id - a.c.id);
+  res.json(list.map(({ c }) => summaryOf(c, req.user)));
 });
 
 // Body { user_id }: the conversation with that person, created on first use. It shows in their list only once it
@@ -316,18 +326,75 @@ router.patch('/chats/:id', (req, res) => {
   res.json(summaryOf({ ...conversation, title }, req.user, { withMembers: true }));
 });
 
-// Body { muted }: a muted conversation is not counted on the Messages menu, except mentions of the user.
+// Body { muted, hours }: a muted conversation is not counted on the Messages menu, except mentions of the user. With
+// hours (1 or 8, v37) the mute ends by itself; without, it lasts until turned back on.
 router.post('/chats/:id/mute', (req, res) => {
   const conversation = loadConversation(req, res, req.params.id);
   if (!conversation) return;
+  const muted = Boolean(req.body?.muted);
+  const hours = req.body?.hours ?? null;
+  if (muted && hours !== null && !MUTE_HOURS.includes(hours)) return badRequest(res, 'Thời gian tắt thông báo không hợp lệ');
   ensureState(conversation.id, req.user.id);
-  db.prepare('UPDATE conversation_members SET muted = ? WHERE conversation_id = ? AND user_id = ?').run(
-    req.body?.muted ? 1 : 0,
+  db.prepare(
+    `UPDATE conversation_members SET muted = ?, muted_until = ${muted && hours ? "datetime('now', ?)" : 'NULL'}
+     WHERE conversation_id = ? AND user_id = ?`
+  ).run(...[muted ? 1 : 0, ...(muted && hours ? [`+${hours} hours`] : []), conversation.id, req.user.id]);
+  pushChat(req, [req.user.id], conversation.id);
+  res.status(204).end();
+});
+
+// Body { pinned }: keeps the conversation at the top of the user's own list (v37), at most PINNED_CHATS_MAX of them.
+router.post('/chats/:id/pin', (req, res) => {
+  const conversation = loadConversation(req, res, req.params.id);
+  if (!conversation) return;
+  const pinned = Boolean(req.body?.pinned);
+  if (pinned && !stateOf(conversation.id, req.user.id).pinned_at) {
+    const count = conversationsOf(req.user).filter((c) => stateOf(c.id, req.user.id).pinned_at).length;
+    if (count >= PINNED_CHATS_MAX) return badRequest(res, 'Chỉ ghim được tối đa 5 cuộc trò chuyện');
+  }
+  ensureState(conversation.id, req.user.id);
+  db.prepare(`UPDATE conversation_members SET pinned_at = ${pinned ? "COALESCE(pinned_at, datetime('now'))" : 'NULL'} WHERE conversation_id = ? AND user_id = ?`).run(
     conversation.id,
     req.user.id
   );
   pushChat(req, [req.user.id], conversation.id);
   res.status(204).end();
+});
+
+// Body { question, options, multiple, allow_add, closes_at }: a poll (v37) in a group, project or team chat, by anyone
+// in it. 2 to 10 options; closes_at (optional) must be ahead.
+router.post('/chats/:id/polls', (req, res) => {
+  const conversation = loadConversation(req, res, req.params.id);
+  if (!conversation) return;
+  if (conversation.kind === 'direct') return badRequest(res, 'Chỉ tạo bình chọn được trong nhóm, chat project hoặc chat team');
+  const raw = String(req.body?.question ?? '').trim();
+  if (!raw) return badRequest(res, 'Cần nhập câu hỏi');
+  if (raw.length > QUESTION_MAX) return badRequest(res, 'Câu hỏi quá dài');
+  const options = cleanOptions(req.body?.options);
+  if (!options) return badRequest(res, 'Phương án quá dài');
+  if (options.length < OPTIONS_MIN || options.length > OPTIONS_MAX) return badRequest(res, 'Cần từ 2 đến 10 phương án');
+  let closesAt = null;
+  if (req.body?.closes_at) {
+    const date = new Date(req.body.closes_at);
+    if (Number.isNaN(date.getTime()) || date <= new Date()) return badRequest(res, 'Hạn chót phải ở tương lai');
+    closesAt = toStamp(date);
+  }
+  const body = messageBody(req, res, conversation, { allowEmpty: false, raw });
+  if (body === null) return;
+  const id = transaction(() => {
+    const messageId = postMessage(conversation, req.user, { body });
+    db.prepare('INSERT INTO polls (message_id, multiple, allow_add, closes_at) VALUES (?, ?, ?, ?)').run(
+      messageId,
+      req.body?.multiple ? 1 : 0,
+      req.body?.allow_add ? 1 : 0,
+      closesAt
+    );
+    const insert = db.prepare('INSERT INTO poll_options (message_id, text, added_by) VALUES (?, ?, ?)');
+    options.forEach((text) => insert.run(messageId, text, req.user.id));
+    return messageId;
+  });
+  pushChat(req, memberIds(conversation), conversation.id);
+  res.status(201).json(messageById(id, req.user));
 });
 
 // Body { user_ids }: anyone in a group adds people who can be messaged.
@@ -512,6 +579,7 @@ router.patch('/chat-messages/:id', (req, res) => {
   if (!found) return;
   const { message, conversation } = found;
   if (message.user_id !== req.user.id) return forbidden(res, 'Chỉ người viết mới sửa được nội dung này');
+  if (findPoll(message.id)) return badRequest(res, 'Không sửa được bình chọn');
   const hasFiles = Boolean(db.prepare('SELECT 1 FROM attachments WHERE message_id = ?').get(message.id));
   const body = messageBody(req, res, conversation, { allowEmpty: hasFiles });
   if (body === null) return;
@@ -557,6 +625,7 @@ router.post('/chat-messages/:id/pin', (req, res) => {
 router.post('/chat-messages/:id/forward', (req, res) => {
   const found = loadMessage(req, res);
   if (!found) return;
+  if (findPoll(found.message.id)) return badRequest(res, 'Không chuyển tiếp được bình chọn');
   const target = loadConversation(req, res, Number(req.body?.conversation_id));
   if (!target) return;
   if (!summaryOf(target, req.user).can_send) return badRequest(res, 'Người này hiện không nhận được tin nhắn');
@@ -582,6 +651,69 @@ router.post('/chat-messages/:id/copy-files', (req, res) => {
   files.forEach((f) => logEvent(task, req.user, 'file_added', { name: f.name, in_comment: false }));
   pushChange(req, { project_id: task.project_id, task_id: task.id }, task);
   res.json({ copied: files.length });
+});
+
+// The open poll of the message :id (members only), or an error sent.
+function loadOpenPoll(req, res) {
+  const found = loadMessage(req, res);
+  if (!found) return null;
+  const poll = findPoll(found.message.id);
+  if (!poll) {
+    notFound(res);
+    return null;
+  }
+  if (!isOpen(poll)) {
+    badRequest(res, 'Bình chọn đã khoá');
+    return null;
+  }
+  return { ...found, poll };
+}
+
+// Body { option_ids }: the user's choice, replacing the previous one (none takes it back); one option unless the poll
+// allows several.
+router.post('/chat-messages/:id/vote', (req, res) => {
+  const found = loadOpenPoll(req, res);
+  if (!found) return;
+  const { message, conversation, poll } = found;
+  const ids = [...new Set((Array.isArray(req.body?.option_ids) ? req.body.option_ids : []).map(Number))];
+  const own = new Set(db.prepare('SELECT id FROM poll_options WHERE message_id = ?').all(message.id).map((o) => o.id));
+  if (ids.some((id) => !own.has(id))) return badRequest(res, 'Phương án không hợp lệ');
+  if (ids.length > 1 && !poll.multiple) return badRequest(res, 'Bình chọn này chỉ chọn một phương án');
+  transaction(() => {
+    db.prepare(`DELETE FROM poll_votes WHERE user_id = ? AND option_id IN (${placeholders([...own])})`).run(req.user.id, ...own);
+    const insert = db.prepare('INSERT INTO poll_votes (option_id, user_id) VALUES (?, ?)');
+    ids.forEach((id) => insert.run(id, req.user.id));
+  });
+  pushChat(req, memberIds(conversation), conversation.id);
+  res.json(messageById(message.id, req.user));
+});
+
+// Body { text }: another option, by its creator or, when the poll allows it, by anyone in the conversation.
+router.post('/chat-messages/:id/poll-options', (req, res) => {
+  const found = loadOpenPoll(req, res);
+  if (!found) return;
+  const { message, conversation, poll } = found;
+  if (!poll.allow_add && message.user_id !== req.user.id) return forbidden(res, 'Người tạo bình chọn không cho thêm phương án');
+  const text = String(req.body?.text ?? '').trim();
+  if (!text) return badRequest(res, 'Cần nhập phương án');
+  if (text.length > OPTION_MAX) return badRequest(res, 'Phương án quá dài');
+  const options = db.prepare('SELECT text FROM poll_options WHERE message_id = ?').all(message.id);
+  if (options.some((o) => o.text.toLowerCase() === text.toLowerCase())) return badRequest(res, 'Phương án này đã có');
+  if (options.length >= OPTIONS_LIMIT) return badRequest(res, 'Bình chọn đã đủ 20 phương án');
+  db.prepare('INSERT INTO poll_options (message_id, text, added_by) VALUES (?, ?, ?)').run(message.id, text, req.user.id);
+  pushChat(req, memberIds(conversation), conversation.id);
+  res.status(201).json(messageById(message.id, req.user));
+});
+
+// Its creator closes a poll before its deadline (or one without).
+router.post('/chat-messages/:id/close-poll', (req, res) => {
+  const found = loadOpenPoll(req, res);
+  if (!found) return;
+  const { message, conversation } = found;
+  if (message.user_id !== req.user.id) return forbidden(res, 'Chỉ người tạo mới khoá được bình chọn');
+  db.prepare("UPDATE polls SET closed_at = datetime('now') WHERE message_id = ?").run(message.id);
+  pushChat(req, memberIds(conversation), conversation.id);
+  res.json(messageById(message.id, req.user));
 });
 
 // Body { emoji }: the user's reaction to a message (one per person, replacing theirs); null or '' takes it back.

@@ -138,6 +138,11 @@ export default function ChatPage({ conversationId, focusMessageId, onOpen, onRea
                   <span className="chat-row-main">
                     <span className="chat-row-top">
                       <span className="ellipsis grow chat-row-name">{chatTitle(c)}</span>
+                      {c.pinned_chat && (
+                        <span className="muted small" title={tr('Đã ghim')} aria-label={tr('Đã ghim')}>
+                          📌
+                        </span>
+                      )}
                       {c.muted && (
                         <span className="muted small" title={tr('Đã tắt thông báo')} aria-label={tr('Đã tắt thông báo')}>
                           🔕

@@ -183,6 +183,43 @@
 .chat-dialog-list { max-height: 50vh; overflow-y: auto; border: 1px solid var(--divider-soft); border-radius: var(--rounded-sm); }
 .chat-dialog .form-field select, .chat-dialog .form-field input { width: 100%; color: var(--ink); }
 
+/* v37: polls, the mute menu, pinned conversations. */
+.chat-bubble.poll-bubble, .chat-msg.own .chat-bubble.poll-bubble {
+  width: min(360px, 100%); background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline);
+}
+.poll { display: flex; flex-direction: column; gap: 8px; }
+.poll-question { font-weight: 600; overflow-wrap: anywhere; }
+.poll-options { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.poll-option {
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px;
+  border: 1px solid var(--hairline); border-radius: var(--rounded-sm); background: var(--canvas); color: var(--ink);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.poll-option:active { transform: none; }
+.poll-option:disabled { cursor: default; }
+.poll-option.mine { border-color: var(--primary); }
+.poll-bar { position: absolute; inset: 0 auto 0 0; background: var(--primary-tint); }
+.poll-option > :not(.poll-bar) { position: relative; }
+.poll-text { min-width: 0; overflow-wrap: anywhere; }
+.poll-mark { flex: none; width: 14px; height: 14px; border: 1.5px solid var(--chip); }
+.poll-mark.dot { border-radius: 50%; }
+.poll-mark.box { border-radius: 4px; }
+.poll-option.mine .poll-mark { border-color: var(--primary); background: var(--primary); }
+.poll-voters { display: flex; }
+.poll-voters .avatar.small { width: 18px; height: 18px; font-size: 7px; margin-left: -4px; border: 1.5px solid var(--canvas); }
+.poll-count { min-width: 1.5em; text-align: right; font-weight: 600; }
+.poll-add { display: flex; gap: 6px; }
+.poll-add input { flex: 1; min-width: 0; color: var(--ink); }
+.poll-facts { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+.poll-edit { display: flex; flex-direction: column; gap: 6px; }
+.poll-edit-row { display: flex; gap: 6px; align-items: center; }
+.poll-edit-row input { flex: 1; min-width: 0; color: var(--ink); }
+.poll-edit > .link-btn { align-self: flex-start; }
+.poll-check { display: flex; align-items: center; gap: 8px; }
+.chat-composer-tools { display: flex; gap: 8px; margin-bottom: 6px; }
+.chat-mute { position: relative; }
+.chat-mute-menu { position: absolute; right: 0; top: 100%; z-index: 5; white-space: nowrap; }
+
 @media (max-width: 1023px) { .chat { margin: 0 20px 20px; } }
 /* Phones: the list, or the open conversation with a way back. */
 @media (max-width: 700px) {

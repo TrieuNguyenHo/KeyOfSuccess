@@ -57,7 +57,7 @@ export function previewOf(chat, me) {
   if (!last) return '';
   if (last.kind === 'system') return systemText(last, me);
   if (last.deleted_at) return tr('Tin nhắn đã bị xoá');
-  const text = last.body || (last.has_files ? tr('📎 File') : '');
+  const text = last.is_poll ? `📊 ${last.body}` : last.body || (last.has_files ? tr('📎 File') : '');
   if (last.user_id === me.id) return tr('Bạn: {text}', { text });
   return chat.kind === 'direct' ? text : `${last.user_name ?? tr('Người dùng đã xoá')}: ${text}`;
 }
