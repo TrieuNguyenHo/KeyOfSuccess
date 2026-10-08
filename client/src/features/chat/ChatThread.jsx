@@ -6,9 +6,10 @@ import { askConfirm } from '../../components/Dialog.jsx';
 import { MentionTextarea, fromMentionMarkup, toMentionMarkup } from '../../components/Mentions.jsx';
 import { locale, tr } from '../../i18n.js';
 import { CommentComposer } from '../comments/CommentList.jsx';
-import { FileList } from '../comments/Attachments.jsx';
+import { FileList, PREVIEW_TYPES } from '../comments/Attachments.jsx';
+import ChatImages from './ChatMedia.jsx';
 import ChatMembers from './ChatMembers.jsx';
-import { ChatAvatar, chatTitle, personLine, systemText } from './ChatParts.jsx';
+import { ChatAvatar, REACTIONS, chatTitle, personLine, systemText } from './ChatParts.jsx';
 
 // How close to the bottom (px) still counts as reading the latest messages, so new ones scroll into view.
 const STICK_PX = 80;
@@ -18,6 +19,9 @@ const URL_RE = /(https?:\/\/[^\s<]+)/g;
 // As on the server (lib/chat.js): a task's page, or any screen with its side panel open (?task=12).
 const TASK_LINK = /#\/(?:task\/(\d+)|[^\s#]*[?&]task=(\d+))/;
 const FLASH_MS = 1500;
+const SEEN_SHOWN = 5; // read-by avatars under a message before "+N"
+// What was typed and not sent, per conversation, kept while the app is open.
+const drafts = new Map();
 
 export const parseTime = (s) => new Date(`${s.replace(' ', 'T')}Z`);
 const dayOf = (s) => parseTime(s).toDateString();
@@ -85,14 +89,26 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
   const [showMembers, setShowMembers] = useState(false);
   const [flash, setFlash] = useState(null);
   const [visible, setVisible] = useState(document.visibilityState === 'visible');
+  const [picking, setPicking] = useState(null); // the message whose reaction picker is open
+  const [atBottom, setAtBottom] = useState(true);
+  const [newBelow, setNewBelow] = useState(0); // others' messages that arrived while scrolled up
   const scroller = useRef(null);
   const stick = useRef(true);
+  // The first message that was unread on opening (the "Tin chưa đọc" line), and whether to scroll to it.
+  const unreadFrom = useRef(undefined);
+  const jumpToUnread = useRef(false);
+  const lastNewest = useRef(0);
   const fromBottom = useRef(null); // set while older messages load, to keep the view where it was
   const loadedOlder = useRef(false);
 
   const load = useCallback(async () => {
     try {
       const [summary, page] = await Promise.all([api(`/chats/${conversationId}`), api(`/chats/${conversationId}/messages`)]);
+      if (unreadFrom.current === undefined) {
+        const first = page.messages.find((m) => m.id > summary.last_read_id && m.user_id !== me.id);
+        unreadFrom.current = first?.id ?? null;
+        jumpToUnread.current = Boolean(first);
+      }
       setChat(summary);
       setMessages((old) => merge(old, page.messages));
       if (!loadedOlder.current) setHasMore(page.has_more);
@@ -100,7 +116,7 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
       setMissing(true);
       onError(e.message);
     }
-  }, [conversationId, onError]);
+  }, [conversationId, onError, me.id]);
 
   useEffect(() => {
     load();
@@ -123,16 +139,48 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
       .catch(() => {});
   }, [chat, visible, newest, conversationId, onRead]);
 
+  // Opening: to the first unread message when there is one, else to the bottom. Later: keep to the bottom while the
+  // reader is there; scrolled up, count the others' new messages on the "↓" button instead.
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    if (fromBottom.current != null) {
+    const newest = messages.at(-1)?.id ?? 0;
+    const divider = jumpToUnread.current && document.getElementById('chat-unread');
+    if (divider) {
+      el.scrollTop += divider.getBoundingClientRect().top - el.getBoundingClientRect().top - 8;
+      jumpToUnread.current = false;
+      stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
+      setAtBottom(stick.current);
+    } else if (fromBottom.current != null) {
       el.scrollTop = el.scrollHeight - fromBottom.current;
       fromBottom.current = null;
     } else if (stick.current) {
       el.scrollTop = el.scrollHeight;
+    } else if (lastNewest.current && newest > lastNewest.current) {
+      const arrived = messages.filter((m) => m.id > lastNewest.current && m.user_id !== me.id).length;
+      if (arrived) setNewBelow((n) => n + arrived);
     }
-  }, [messages, showMembers]);
+    lastNewest.current = newest;
+  }, [messages, showMembers, me.id]);
+
+  function scrollToBottom() {
+    const el = scroller.current;
+    el?.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    setNewBelow(0);
+  }
+
+  // One reaction per person: the same emoji again takes it back. Updated in place, so the view does not jump.
+  async function react(m, emoji) {
+    setPicking(null);
+    try {
+      const updated = await api(`/chat-messages/${m.id}/reaction`, { method: 'POST', body: { emoji } });
+      setMessages((list) => list.map((x) => (x.id === updated.id ? updated : x)));
+    } catch (e) {
+      onError(e.message);
+    }
+  }
+
+  const saveDraft = useCallback((draft) => drafts.set(conversationId, draft), [conversationId]);
 
   async function loadOlder() {
     const el = scroller.current;
@@ -199,6 +247,22 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
   if (chat.kind === 'group') subtitle = tr('Nhóm · {count} người', { count: chat.members.length });
   if (chat.kind === 'project') subtitle = tr('Chat project · {count} người', { count: chat.members.length });
   if (chat.kind === 'team') subtitle = tr('Chat team · {count} người', { count: chat.members.length });
+  // In a group, project or team: each member's avatar under the last message they have read (not one of their own).
+  const seenAt = new Map();
+  if (!direct) {
+    for (const member of chat.members) {
+      if (member.id === me.id || member.last_read_id == null) continue;
+      const target = messages.findLast((m) => m.id <= member.last_read_id && !m.kind);
+      if (!target || target.user_id === member.id) continue;
+      seenAt.set(target.id, [...(seenAt.get(target.id) ?? []), member]);
+    }
+  }
+  const unreadLine = (m) =>
+    m.id === unreadFrom.current && (
+      <div id="chat-unread" className="chat-unread-divider">
+        <span>{tr('Tin chưa đọc')}</span>
+      </div>
+    );
 
   return (
     <div className="chat-thread">
@@ -230,119 +294,178 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
       {showMembers ? (
         <ChatMembers chat={chat} act={act} onLeft={onLeft} onError={onError} />
       ) : (
-        <div
-          className="chat-messages"
-          ref={scroller}
-          onScroll={(e) => {
-            const el = e.currentTarget;
-            stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
-          }}
-        >
-          {hasMore && (
-            <button className="link-btn chat-older" onClick={loadOlder}>
-              {tr('Xem tin nhắn cũ hơn')}
-            </button>
-          )}
-          {messages.length === 0 && <p className="muted chat-empty">{tr('Chưa có tin nhắn nào. Gửi lời chào đầu tiên!')}</p>}
-          {messages.map((m, i) => {
-            const own = m.user_id === me.id;
-            const prev = messages[i - 1];
-            const newDay = !prev || dayOf(prev.created_at) !== dayOf(m.created_at);
-            if (m.kind === 'system') {
+        <div className="chat-messages-wrap">
+          <div
+            className="chat-messages"
+            ref={scroller}
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
+              if (stick.current !== atBottom) setAtBottom(stick.current);
+              if (stick.current) setNewBelow(0);
+            }}
+          >
+            {hasMore && (
+              <button className="link-btn chat-older" onClick={loadOlder}>
+                {tr('Xem tin nhắn cũ hơn')}
+              </button>
+            )}
+            {messages.length === 0 && <p className="muted chat-empty">{tr('Chưa có tin nhắn nào. Gửi lời chào đầu tiên!')}</p>}
+            {messages.map((m, i) => {
+              const own = m.user_id === me.id;
+              const prev = messages[i - 1];
+              const newDay = !prev || dayOf(prev.created_at) !== dayOf(m.created_at);
+              if (m.kind === 'system') {
+                return (
+                  <Fragment key={m.id}>
+                    {newDay && <div className="chat-day">{dayLabel(m.created_at)}</div>}
+                    {unreadLine(m)}
+                    <div className="chat-system" title={parseTime(m.created_at).toLocaleString(locale())}>
+                      {systemText(m, me)}
+                    </div>
+                  </Fragment>
+                );
+              }
+              // Someone else's run of messages starts with their avatar (and, in a group, project or team, their name);
+              // the rest of the run keeps the avatar's space, so the bubbles line up.
+              const runStart = !own && (newDay || prev.user_id !== m.user_id || Boolean(prev.kind));
+              const showName = !direct && runStart;
+              const images = m.attachments.filter((f) => PREVIEW_TYPES.includes(f.mime));
+              const otherFiles = m.attachments.filter((f) => !PREVIEW_TYPES.includes(f.mime));
+              const mediaOnly = images.length > 0 && !m.body && !m.reply && !otherFiles.length && editing?.id !== m.id;
+              const myReaction = m.reactions?.find((r) => r.mine)?.emoji;
+              const seen = seenAt.get(m.id) ?? [];
               return (
                 <Fragment key={m.id}>
                   {newDay && <div className="chat-day">{dayLabel(m.created_at)}</div>}
-                  <div className="chat-system" title={parseTime(m.created_at).toLocaleString(locale())}>
-                    {systemText(m, me)}
+                  {unreadLine(m)}
+                  <div id={`chat-msg-${m.id}`} className={`chat-msg ${own ? 'own' : ''} ${flash === m.id ? 'flash' : ''}`}>
+                    {!own && (
+                      <span className={`chat-msg-avatar ${showName ? 'named' : ''}`}>
+                        {runStart && <Avatar name={m.user_name ?? '?'} userId={m.user_id ?? undefined} />}
+                      </span>
+                    )}
+                    <div className="chat-msg-main">
+                      {showName && <span className="chat-sender">{m.user_name ?? tr('Người dùng đã xoá')}</span>}
+                      <div className={`chat-bubble ${m.deleted_at ? 'deleted' : ''} ${mediaOnly ? 'media-only' : ''}`}>
+                        {m.reply && (
+                          <button type="button" className="chat-quote" onClick={() => jumpTo(m.reply.id)}>
+                            <b>{m.reply.user_name ?? tr('Người dùng đã xoá')}</b>
+                            <span className="ellipsis">{m.reply.deleted ? tr('Tin nhắn đã bị xoá') : m.reply.body || tr('📎 File')}</span>
+                          </button>
+                        )}
+                        {m.deleted_at ? (
+                          tr('Tin nhắn đã bị xoá')
+                        ) : editing?.id === m.id ? (
+                          <form
+                            className="chat-edit"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              saveEdit();
+                            }}
+                            onKeyDown={(e) => e.key === 'Escape' && setEditing(null)}
+                          >
+                            <MentionTextarea
+                              value={editing.text}
+                              onChange={(text) => setEditing((ed) => ({ ...ed, text }))}
+                              users={mentionable}
+                              mentions={editing.mentions}
+                              onMentionsChange={(mentions) => setEditing((ed) => ({ ...ed, mentions }))}
+                              enterSends
+                            />
+                            <span className="chat-edit-buttons">
+                              <button type="button" className="btn small" onClick={() => setEditing(null)}>
+                                {tr('Huỷ')}
+                              </button>
+                              <button className="btn small primary">{tr('Lưu')}</button>
+                            </span>
+                          </form>
+                        ) : (
+                          m.body && <MessageText body={m.body} tasks={m.tasks} onOpenTask={onOpenTask} meId={me.id} />
+                        )}
+                        {images.length > 0 && <ChatImages files={images} act={act} onError={onError} />}
+                        {otherFiles.length > 0 && <FileList files={otherFiles} act={act} onError={onError} compact />}
+                      </div>
+                      {m.reactions?.length > 0 && (
+                        <div className="chat-reactions">
+                          {m.reactions.map((r) => (
+                            <button
+                              key={r.emoji}
+                              type="button"
+                              className={`chat-reaction ${r.mine ? 'mine' : ''}`}
+                              onClick={() => react(m, r.mine ? null : r.emoji)}
+                              title={r.names.join(', ')}
+                              aria-pressed={r.mine}
+                            >
+                              {r.emoji} {r.count}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="chat-meta muted small">
+                        <span title={parseTime(m.created_at).toLocaleString(locale())}>{timeOf(m.created_at)}</span>
+                        {m.edited_at && !m.deleted_at && <span> {tr('· đã sửa')}</span>}
+                        {direct && m.id === lastOwn?.id && chat.other_last_read_id >= m.id && <span> {tr('· Đã xem')}</span>}
+                        {!m.deleted_at && editing?.id !== m.id && (
+                          <span className="chat-actions">
+                            <button
+                              className="link-btn"
+                              onClick={() => setPicking(picking === m.id ? null : m.id)}
+                              aria-expanded={picking === m.id}
+                              title={tr('Thả cảm xúc')}
+                              aria-label={tr('Thả cảm xúc')}
+                            >
+                              😊
+                            </button>
+                            {chat.can_send && (
+                              <button className="link-btn" onClick={() => setReplyTo(m)}>
+                                {tr('Trả lời')}
+                              </button>
+                            )}
+                            {own && (
+                              <>
+                                <button
+                                  className="link-btn"
+                                  onClick={() => setEditing({ id: m.id, hasFiles: m.attachments.length > 0, ...fromMentionMarkup(m.body) })}
+                                >
+                                  {tr('Sửa')}
+                                </button>
+                                <button className="link-btn danger" onClick={() => remove(m)}>
+                                  {tr('Xoá')}
+                                </button>
+                              </>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                      {picking === m.id && (
+                        <div className="chat-react-picker" role="group" aria-label={tr('Thả cảm xúc')}>
+                          {REACTIONS.map((emoji) => (
+                            <button key={emoji} type="button" className={emoji === myReaction ? 'mine' : ''} onClick={() => react(m, emoji === myReaction ? null : emoji)}>
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {seen.length > 0 && (
+                        <div className="chat-seen" title={tr('Đã xem: {names}', { names: seen.map((u) => u.name).join(', ') })}>
+                          {seen.slice(0, SEEN_SHOWN).map((u) => (
+                            <Avatar key={u.id} name={u.name} userId={u.id} small />
+                          ))}
+                          {seen.length > SEEN_SHOWN && <span className="muted small">+{seen.length - SEEN_SHOWN}</span>}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </Fragment>
               );
-            }
-            // Someone else's run of messages starts with their avatar (and, in a group, project or team, their name);
-            // the rest of the run keeps the avatar's space, so the bubbles line up.
-            const runStart = !own && (newDay || prev.user_id !== m.user_id || Boolean(prev.kind));
-            const showName = !direct && runStart;
-            return (
-              <Fragment key={m.id}>
-                {newDay && <div className="chat-day">{dayLabel(m.created_at)}</div>}
-                <div id={`chat-msg-${m.id}`} className={`chat-msg ${own ? 'own' : ''} ${flash === m.id ? 'flash' : ''}`}>
-                  {!own && (
-                    <span className={`chat-msg-avatar ${showName ? 'named' : ''}`}>
-                      {runStart && <Avatar name={m.user_name ?? '?'} userId={m.user_id ?? undefined} />}
-                    </span>
-                  )}
-                  <div className="chat-msg-main">
-                    {showName && <span className="chat-sender">{m.user_name ?? tr('Người dùng đã xoá')}</span>}
-                    <div className={`chat-bubble ${m.deleted_at ? 'deleted' : ''}`}>
-                      {m.reply && (
-                        <button type="button" className="chat-quote" onClick={() => jumpTo(m.reply.id)}>
-                          <b>{m.reply.user_name ?? tr('Người dùng đã xoá')}</b>
-                          <span className="ellipsis">{m.reply.deleted ? tr('Tin nhắn đã bị xoá') : m.reply.body || tr('📎 File')}</span>
-                        </button>
-                      )}
-                      {m.deleted_at ? (
-                        tr('Tin nhắn đã bị xoá')
-                      ) : editing?.id === m.id ? (
-                        <form
-                          className="chat-edit"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            saveEdit();
-                          }}
-                          onKeyDown={(e) => e.key === 'Escape' && setEditing(null)}
-                        >
-                          <MentionTextarea
-                            value={editing.text}
-                            onChange={(text) => setEditing((ed) => ({ ...ed, text }))}
-                            users={mentionable}
-                            mentions={editing.mentions}
-                            onMentionsChange={(mentions) => setEditing((ed) => ({ ...ed, mentions }))}
-                            enterSends
-                          />
-                          <span className="chat-edit-buttons">
-                            <button type="button" className="btn small" onClick={() => setEditing(null)}>
-                              {tr('Huỷ')}
-                            </button>
-                            <button className="btn small primary">{tr('Lưu')}</button>
-                          </span>
-                        </form>
-                      ) : (
-                        m.body && <MessageText body={m.body} tasks={m.tasks} onOpenTask={onOpenTask} meId={me.id} />
-                      )}
-                      {m.attachments.length > 0 && <FileList files={m.attachments} act={act} onError={onError} compact />}
-                    </div>
-                    <div className="chat-meta muted small">
-                      <span title={parseTime(m.created_at).toLocaleString(locale())}>{timeOf(m.created_at)}</span>
-                      {m.edited_at && !m.deleted_at && <span> {tr('· đã sửa')}</span>}
-                      {direct && m.id === lastOwn?.id && chat.other_last_read_id >= m.id && <span> {tr('· Đã xem')}</span>}
-                      {!m.deleted_at && editing?.id !== m.id && (
-                        <span className="chat-actions">
-                          {chat.can_send && (
-                            <button className="link-btn" onClick={() => setReplyTo(m)}>
-                              {tr('Trả lời')}
-                            </button>
-                          )}
-                          {own && (
-                            <>
-                              <button
-                                className="link-btn"
-                                onClick={() => setEditing({ id: m.id, hasFiles: m.attachments.length > 0, ...fromMentionMarkup(m.body) })}
-                              >
-                                {tr('Sửa')}
-                              </button>
-                              <button className="link-btn danger" onClick={() => remove(m)}>
-                                {tr('Xoá')}
-                              </button>
-                            </>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Fragment>
-            );
-          })}
+            })}
+          </div>
+          {!atBottom && (
+            <button className="chat-to-bottom" onClick={scrollToBottom} aria-label={tr('Xuống tin mới nhất')}>
+              {newBelow ? tr('↓ {count} tin mới', { count: newBelow }) : '↓'}
+            </button>
+          )}
         </div>
       )}
 
@@ -371,6 +494,8 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
             onError={onError}
             enterSends
             extra={replyTo ? { reply_to_id: replyTo.id } : undefined}
+            draft={drafts.get(conversationId)}
+            onDraftChange={saveDraft}
           />
         </div>
       ) : (

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, onLiveChange, publishChatChange, publishFeedbackChange, publishLiveChange, subscribeEvents } from '../../api.js';
 import { loadAvatars } from '../../avatars.js';
+import { ding, setTitleCount, showNotification } from '../../chatAlerts.js';
+import { chatTitle, previewOf } from '../chat/ChatParts.jsx';
 import { formatRoute, parseRoute } from '../../route.js';
 import { PROJECT_COLORS, can } from '../../utils.js';
 import AdminPage from '../admin/AdminPage.jsx';
@@ -58,18 +60,53 @@ export default function Workspace({ user, onLogout, onUserChange }) {
     return list;
   }, []);
 
+  // Resolves with the counts (null on failure), so a chat event can compare them with the previous ones.
   const loadNotifications = useCallback(
     () =>
       api('/notifications')
-        .then(setNotifications)
-        .catch(() => {}),
+        .then((data) => {
+          setNotifications(data);
+          return data;
+        })
+        .catch(() => null),
     []
   );
 
+  // For chat alerts from the event stream: the screen shown now, and the Messages count last seen.
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const unreadChatRef = useRef(null);
+  // The count of things waiting (bell + messages) in the tab title, so it shows from another tab.
+  useEffect(() => {
+    setTitleCount(notifications.unread + notifications.unreadChat);
+  }, [notifications.unread, notifications.unreadChat]);
+  useEffect(() => () => setTitleCount(0), []);
+
   useEffect(() => {
     loadProjects();
-    loadNotifications();
+    loadNotifications().then((data) => (unreadChatRef.current = data?.unreadChat ?? 0));
     loadAvatars();
+
+    // A new message counted on the Messages menu (muted conversations count only mentions): a sound, unless it is the
+    // conversation on screen; a desktop notification while the tab is in the background.
+    async function alertChat(data, change) {
+      const before = unreadChatRef.current;
+      unreadChatRef.current = data.unreadChat;
+      if (before === null || data.unreadChat <= before) return;
+      const shown = viewRef.current;
+      if (!document.hidden && shown.type === 'chat' && shown.id === change.conversation_id) return;
+      const chat = await api(`/chats/${change.conversation_id}`).catch(() => null);
+      if (!chat?.last_message || chat.last_message.user_id === user.id) return;
+      ding();
+      if (document.hidden) {
+        showNotification({
+          title: chatTitle(chat),
+          body: previewOf(chat, user),
+          tag: `chat-${chat.id}`,
+          onClick: () => navigate({ type: 'chat', id: chat.id }),
+        });
+      }
+    }
     // The server pushes an event the moment a notification is created; polling is only a fallback
     // for when the stream is down.
     const unsubscribe = subscribeEvents((name, data) => {
@@ -77,7 +114,8 @@ export default function Workspace({ user, onLogout, onUserChange }) {
       if (name === 'change') publishLiveChange(data);
       if (name === 'feedback') publishFeedbackChange(data);
       if (name === 'chat') {
-        loadNotifications(); // the Messages count, also after this user read a conversation in another tab
+        // The Messages count, also after this user read a conversation in another tab.
+        loadNotifications().then((counts) => counts && alertChat(counts, data));
         publishChatChange(data);
       }
     });

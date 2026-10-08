@@ -794,8 +794,8 @@ export default {
   '· Đã xem': '· Seen',
   'Nhập tin nhắn… Enter để gửi, Shift+Enter để xuống dòng': 'Type a message… Enter sends, Shift+Enter for a new line',
   'Người này hiện không nhận được tin nhắn. Các tin cũ vẫn ở đây.': 'This person cannot receive messages now. The earlier ones stay here.',
-  'Mục "Tin nhắn" trên thanh bên, bấm "+ Tin nhắn mới": nhắn riêng một người, tạo nhóm (bạn quản lý nhóm: đổi tên, bỏ người; ai trong nhóm cũng thêm được người hoặc rời nhóm), hoặc mở chat của project (ai mở được project đều ở trong; có cả nút "Chat" trên đầu project) và của team bạn. Ai được thêm vào nhóm sẽ thấy dòng "… đã thêm bạn vào nhóm" như một tin chưa đọc; mọi thay đổi của nhóm (thêm, bỏ người, rời nhóm, đổi tên) hiện thành dòng nhỏ giữa cuộc trò chuyện. Chỉ người trong cuộc đọc được, kể cả Manager hay Director. Enter để gửi, Shift+Enter để xuống dòng; gõ @ để nhắc ai đó trong nhóm; dán ảnh hoặc bấm 📎 để gửi file; dán link task thì người xem được task thấy tên task, bấm để mở. "Trả lời" để trích dẫn một tin; bạn sửa / xoá được tin của mình. 🔔 / 🔕 tắt thông báo từng cuộc (vẫn đếm khi có người nhắc tới bạn). Số tin chưa đọc hiện trên mục "Tin nhắn", không vào chuông. Tin nhắn tự xoá sau 6 tháng.':
-    '"Messages" in the sidebar, then "+ New message": write to one person, make a group (you run it: rename it, take people out; anyone in it can add people or leave), or open the chat of a project (everyone who can open the project is in it; there is also a "Chat" button at the top of the project) or of your team. Someone added to a group gets "… added you to the group" as an unread message; every change to a group (people added or taken out, someone leaving, a new name) shows as a small line in the conversation. Only the people in a conversation can read it, not even a Manager or the Director. Enter sends, Shift+Enter starts a new line; type @ to mention someone in a group; paste an image or click 📎 to send a file; paste a task link and those who can see the task get its name, a click opens it. "Reply" quotes a message; you can edit or delete your own. 🔔 / 🔕 mutes a conversation (mentions of you still count). Unread messages are counted on "Messages", not in the bell. Messages are deleted after 6 months.',
+  'Mục "Tin nhắn" trên thanh bên, bấm "+ Tin nhắn mới": nhắn riêng một người, tạo nhóm (bạn quản lý nhóm: đổi tên, bỏ người; ai trong nhóm cũng thêm được người hoặc rời nhóm), hoặc mở chat của project (ai mở được project đều ở trong; có cả nút "Chat" trên đầu project) và của team bạn. Ai được thêm vào nhóm sẽ thấy dòng "… đã thêm bạn vào nhóm" như một tin chưa đọc; mọi thay đổi của nhóm (thêm, bỏ người, rời nhóm, đổi tên) hiện thành dòng nhỏ giữa cuộc trò chuyện. Chỉ người trong cuộc đọc được, kể cả Manager hay Director. Enter để gửi, Shift+Enter để xuống dòng; gõ @ để nhắc ai đó trong nhóm; dán ảnh hoặc bấm 📎 để gửi file; dán link task thì người xem được task thấy tên task, bấm để mở. "Trả lời" để trích dẫn một tin; bạn sửa / xoá được tin của mình. 🔔 / 🔕 tắt thông báo từng cuộc (vẫn đếm khi có người nhắc tới bạn). Bấm 😊 để thả cảm xúc; ảnh hiện ngay trong khung chat, bấm để xem to. Số tin chưa đọc hiện trên mục "Tin nhắn" và trên tên tab, không vào chuông; bấm "🔔 Bật thông báo trên máy tính" ở đầu màn Tin nhắn để có thông báo khi đang ở tab khác. Tin nhắn tự xoá sau 6 tháng.':
+    '"Messages" in the sidebar, then "+ New message": write to one person, make a group (you run it: rename it, take people out; anyone in it can add people or leave), or open the chat of a project (everyone who can open the project is in it; there is also a "Chat" button at the top of the project) or of your team. Someone added to a group gets "… added you to the group" as an unread message; every change to a group (people added or taken out, someone leaving, a new name) shows as a small line in the conversation. Only the people in a conversation can read it, not even a Manager or the Director. Enter sends, Shift+Enter starts a new line; type @ to mention someone in a group; paste an image or click 📎 to send a file; paste a task link and those who can see the task get its name, a click opens it. "Reply" quotes a message; you can edit or delete your own. 🔔 / 🔕 mutes a conversation (mentions of you still count). Click 😊 to react; images show right in the conversation, click one to see it large. Unread messages are counted on "Messages" and in the tab title, not in the bell; click "🔔 Turn on desktop notifications" at the top of Messages to be told while you are in another tab. Messages are deleted after 6 months.',
 
   // Chat (v33): groups, project and team chats, muting, answers
   'Chọn một cuộc trò chuyện, hoặc bấm "+ Tin nhắn mới" để nhắn cho đồng nghiệp, tạo nhóm hay mở chat của project / team.':
@@ -851,6 +851,19 @@ export default {
   '{actor} đã rời nhóm': '{actor} left the group',
   '{actor} đã rời nhóm; {names} giờ quản lý nhóm': '{actor} left the group; it is now run by {names}',
   '{actor} đã đổi tên nhóm thành "{title}"': '{actor} renamed the group "{title}"',
+
+  // Chat (v35): images, reactions, unread line, desktop notifications
+  'Xem ảnh {name}': 'View image {name}',
+  'Tải về': 'Download',
+  'Ảnh trước': 'Previous image',
+  'Ảnh sau': 'Next image',
+  '🔔 Bật thông báo trên máy tính': '🔔 Turn on desktop notifications',
+  'Thả cảm xúc': 'React',
+  'Tin chưa đọc': 'Unread',
+  'Xuống tin mới nhất': 'Go to the latest message',
+  'Đã xem: {names}': 'Seen by {names}',
+  '↓ {count} tin mới': '↓ {count} new',
+  'Cảm xúc không hợp lệ': 'Invalid reaction',
 
   // Chat (v32): server messages
   'Không nhắn tin được cho người này': 'You cannot message this person',

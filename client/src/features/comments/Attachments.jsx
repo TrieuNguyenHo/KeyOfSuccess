@@ -7,13 +7,13 @@ import { tr } from '../../i18n.js';
 
 export const MAX_MB = 25; // same limit as the server
 // Images the server serves as themselves (see INLINE_TYPES there); only these get a preview.
-const PREVIEW_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+export const PREVIEW_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 const formatSize = (bytes) =>
   bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 // Saves a blob under its name. A download link never renders the file, so an uploaded page cannot run.
-function saveBlob(blob, name) {
+export function saveBlob(blob, name) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;

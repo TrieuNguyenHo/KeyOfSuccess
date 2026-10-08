@@ -11,6 +11,9 @@ const fold = (s) =>
     .replace(/đ/gi, 'd')
     .toLowerCase();
 
+// Reactions to a message (as on the server, lib/chat.js REACTIONS).
+export const REACTIONS = ['👍', '❤️', '😆', '😮', '😢', '🙏'];
+
 export const personLine = (p) => [p.role_name, p.team_name].filter(Boolean).join(' · ');
 
 // What a conversation is called: the other person, the group's name, the project, or "Team <name>".
@@ -39,6 +42,17 @@ export function systemText(message, me) {
     default:
       return '';
   }
+}
+
+// The last message in the list: "Bạn: …" for the user's own; in a group, project or team, the sender's name.
+export function previewOf(chat, me) {
+  const last = chat.last_message;
+  if (!last) return '';
+  if (last.kind === 'system') return systemText(last, me);
+  if (last.deleted_at) return tr('Tin nhắn đã bị xoá');
+  const text = last.body || (last.has_files ? tr('📎 File') : '');
+  if (last.user_id === me.id) return tr('Bạn: {text}', { text });
+  return chat.kind === 'direct' ? text : `${last.user_name ?? tr('Người dùng đã xoá')}: ${text}`;
 }
 
 // The picture of a conversation: the person; a project's color; a team or group mark.

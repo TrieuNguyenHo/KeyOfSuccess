@@ -8,18 +8,20 @@ import { db, transaction } from '../db.js';
 import { findProject, projectAccess } from '../lib/access.js';
 import {
   MESSAGE_MAX,
+  REACTIONS,
   TITLE_MAX,
   canChatWith,
   conversationsOf,
   ensureState,
   findConversation,
   loadConversation,
+  markNewcomers,
   memberIds,
   memberUsers,
   reachableMembers,
   stateOf,
   taskLinks,
-  unreadOf,
+  unreadFor,
 } from '../lib/chat.js';
 import { badRequest, forbidden, notFound, requirePermission } from '../lib/http.js';
 import { pushChat } from '../lib/live.js';
@@ -27,6 +29,7 @@ import { plainExcerpt, resolveMentions } from '../lib/mentions.js';
 import { can } from '../lib/permissions.js';
 import { AT_WORK, USER_SELECT, findUser, withUserTeams } from '../lib/users.js';
 import { rawUpload, saveAttachment, sweepUploads, withCommentFiles } from '../lib/uploads.js';
+import { placeholders } from '../lib/util.js';
 
 const router = express.Router();
 const PAGE_SIZE = 50;
@@ -51,7 +54,24 @@ function shown(row, reader) {
   if (m.deleted_at) return { ...m, body: '', attachments: [], reply: null, tasks: [] };
   return { ...m, reply, tasks: taskLinks(m.body, reader) };
 }
-const messagesFor = (rows, reader) => withCommentFiles(rows, 'message_id').map((m) => shown(m, reader));
+// Each message's reactions (v35), grouped by emoji: how many, who, whether the reader is one of them.
+function withReactions(messages, reader) {
+  if (!messages.length) return messages;
+  const rows = db
+    .prepare(
+      `SELECT r.message_id, r.emoji, r.user_id, u.name FROM message_reactions r LEFT JOIN users u ON u.id = r.user_id
+       WHERE r.message_id IN (${placeholders(messages)}) ORDER BY r.created_at, r.rowid`
+    )
+    .all(...messages.map((m) => m.id));
+  return messages.map((m) => {
+    const own = rows.filter((r) => r.message_id === m.id);
+    const reactions = REACTIONS.map((emoji) => own.filter((r) => r.emoji === emoji))
+      .filter((list) => list.length)
+      .map((list) => ({ emoji: list[0].emoji, count: list.length, names: list.map((r) => r.name), mine: list.some((r) => r.user_id === reader.id) }));
+    return { ...m, reactions };
+  });
+}
+const messagesFor = (rows, reader) => withReactions(withCommentFiles(rows, 'message_id').map((m) => shown(m, reader)), reader);
 const messageById = (id, reader) => messagesFor([db.prepare(`${MESSAGE_SELECT} WHERE m.id = ?`).get(id)], reader)[0];
 
 const personOf = (u) => ({ id: u.id, name: u.name, role_name: u.role_name, team_name: u.team_name, status: u.status });
@@ -59,8 +79,7 @@ const personOf = (u) => ({ id: u.id, name: u.name, role_name: u.role_name, team_
 // A conversation as one of its members sees it. Direct: the other person (as anyone sees them, no personal details)
 // and how far they have read. Group: title, owner. Project / team: which one. withMembers adds the member list.
 function summaryOf(c, me, { withMembers = false } = {}) {
-  const state = stateOf(c.id, me.id);
-  const { unread, mentions } = unreadOf(c.id, me.id, state.last_read_id);
+  const { state, unread, mentions } = unreadFor(c, me.id);
   const last = db
     .prepare(
       `SELECT m.id, m.user_id, u.name AS user_name, m.body, m.kind, m.data, m.created_at, m.deleted_at,
@@ -106,7 +125,11 @@ function summaryOf(c, me, { withMembers = false } = {}) {
     Object.assign(summary, { title: team.name, team });
   }
   if (withMembers) {
-    summary.members = memberUsers(c).map((u) => ({ ...personOf(u), owner: c.kind === 'group' && u.id === c.owner_id, at_work: canChatWith(u.id) }));
+    // last_read_id: how far each has read, for "Đã xem" (null: nothing stored yet).
+    summary.members = memberUsers(c).map((u) => {
+      const state = stateOf(c.id, u.id);
+      return { ...personOf(u), owner: c.kind === 'group' && u.id === c.owner_id, at_work: canChatWith(u.id), last_read_id: state.missing ? null : state.last_read_id };
+    });
   }
   return summary;
 }
@@ -352,6 +375,7 @@ router.post('/chats/:id/messages', (req, res) => {
     return badRequest(res, 'Không tìm thấy tin nhắn được trả lời');
   }
   const id = transaction(() => {
+    markNewcomers(conversation);
     const { lastInsertRowid } = db
       .prepare('INSERT INTO messages (conversation_id, user_id, body, reply_to_id) VALUES (?, ?, ?, ?)')
       .run(conversation.id, req.user.id, body, replyTo);
@@ -365,8 +389,8 @@ router.post('/chats/:id/messages', (req, res) => {
   res.status(201).json(messageById(id, req.user));
 });
 
-// Marks the conversation read up to its last message. The user's other tabs update their counts; in a one-to-one
-// conversation the other person's thread shows "Đã xem".
+// Marks the conversation read up to its last message. The user's other tabs update their counts; the others' threads
+// show it as "Đã xem".
 router.post('/chats/:id/read', (req, res) => {
   const conversation = loadConversation(req, res, req.params.id);
   if (!conversation) return;
@@ -377,7 +401,7 @@ router.post('/chats/:id/read', (req, res) => {
        WHERE conversation_id = ? AND user_id = ? AND last_read_id < (SELECT COALESCE(MAX(id), 0) FROM messages WHERE conversation_id = ?)`
     )
     .run(conversation.id, conversation.id, req.user.id, conversation.id);
-  if (changes) pushChat(req, conversation.kind === 'direct' ? memberIds(conversation) : [req.user.id], conversation.id);
+  if (changes) pushChat(req, memberIds(conversation), conversation.id);
   res.status(204).end();
 });
 
@@ -415,10 +439,29 @@ router.delete('/chat-messages/:id', (req, res) => {
   transaction(() => {
     db.prepare("UPDATE messages SET body = '', deleted_at = datetime('now') WHERE id = ?").run(message.id);
     db.prepare('DELETE FROM attachments WHERE message_id = ?').run(message.id);
+    db.prepare('DELETE FROM message_reactions WHERE message_id = ?').run(message.id);
   });
   sweepUploads();
   pushChat(req, memberIds(conversation), conversation.id);
   res.status(204).end();
+});
+
+// Body { emoji }: the user's reaction to a message (one per person, replacing theirs); null or '' takes it back.
+router.post('/chat-messages/:id/reaction', (req, res) => {
+  const found = loadMessage(req, res);
+  if (!found) return;
+  const emoji = req.body?.emoji || null;
+  if (emoji !== null && !REACTIONS.includes(emoji)) return badRequest(res, 'Cảm xúc không hợp lệ');
+  if (emoji === null) {
+    db.prepare('DELETE FROM message_reactions WHERE message_id = ? AND user_id = ?').run(found.message.id, req.user.id);
+  } else {
+    db.prepare(
+      `INSERT INTO message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)
+       ON CONFLICT (message_id, user_id) DO UPDATE SET emoji = excluded.emoji, created_at = datetime('now')`
+    ).run(found.message.id, req.user.id, emoji);
+  }
+  pushChat(req, memberIds(found.conversation), found.conversation.id);
+  res.json(messageById(found.message.id, req.user));
 });
 
 // Files sent with a message: only its author, right after posting it.
