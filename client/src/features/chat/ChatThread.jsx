@@ -9,8 +9,9 @@ import { CommentComposer } from '../comments/CommentList.jsx';
 import { FileList, PREVIEW_TYPES } from '../comments/Attachments.jsx';
 import ChatImages from './ChatMedia.jsx';
 import ChatInfo from './ChatInfo.jsx';
+import EmojiPicker from './EmojiPicker.jsx';
 import { PollCard, PollDialog } from './ChatPoll.jsx';
-import { ChatAvatar, EVERYONE_ID, REACTIONS, chatTitle, personLine, systemText } from './ChatParts.jsx';
+import { ChatAvatar, EVERYONE_ID, REACTIONS, chatTitle, emojiOnly, personLine, systemText } from './ChatParts.jsx';
 import ForwardDialog from './ForwardDialog.jsx';
 import TaskFromMessage from './TaskFromMessage.jsx';
 
@@ -496,6 +497,8 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
               const images = m.attachments.filter((f) => PREVIEW_TYPES.includes(f.mime));
               const otherFiles = m.attachments.filter((f) => !PREVIEW_TYPES.includes(f.mime));
               const mediaOnly = images.length > 0 && !m.body && !m.reply && !otherFiles.length && editing?.id !== m.id;
+            const bigEmoji =
+              !m.deleted_at && !m.poll && !m.reply && !m.forwarded && !m.attachments.length && editing?.id !== m.id && emojiOnly(m.body);
               const myReaction = m.reactions?.find((r) => r.mine)?.emoji;
               const seen = seenAt.get(m.id) ?? [];
               return (
@@ -510,7 +513,7 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
                     )}
                     <div className="chat-msg-main">
                       {showName && <span className="chat-sender">{m.user_name ?? tr('Người dùng đã xoá')}</span>}
-                      <div className={`chat-bubble ${m.deleted_at ? 'deleted' : ''} ${mediaOnly ? 'media-only' : ''} ${m.poll ? 'poll-bubble' : ''}`}>
+                      <div className={`chat-bubble ${m.deleted_at ? 'deleted' : ''} ${mediaOnly ? 'media-only' : ''} ${m.poll ? 'poll-bubble' : ''} ${bigEmoji ? 'emoji-only' : ''}`}>
                         {m.forwarded ? <span className="chat-forwarded">{tr('↪ Đã chuyển tiếp')}</span> : null}
                         {m.reply && (
                           <button type="button" className="chat-quote" onClick={() => jumpTo(m.reply.id)}>
@@ -734,6 +737,7 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
             extra={replyTo ? { reply_to_id: replyTo.id } : undefined}
             draft={drafts.get(conversationId)}
             onDraftChange={saveDraft}
+            tools={(insert) => <EmojiPicker onPick={insert} />}
           />
         </div>
       ) : (
