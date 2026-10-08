@@ -3,7 +3,8 @@ import { api, onChatChange } from '../../api.js';
 import { ErrorBanner } from '../../components/Controls.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
 import { locale, tr } from '../../i18n.js';
-import { ChatAvatar, chatTitle, systemText } from './ChatParts.jsx';
+import { askNotifyPermission, notifyPermission } from '../../chatAlerts.js';
+import { ChatAvatar, chatTitle, previewOf } from './ChatParts.jsx';
 import ChatThread, { parseTime } from './ChatThread.jsx';
 import NewChat from './NewChat.jsx';
 
@@ -15,17 +16,6 @@ function shortTime(s) {
     : d.toLocaleDateString(locale(), { day: '2-digit', month: '2-digit' });
 }
 
-// The last message in the list: "Bạn: …" for the user's own; in a group, project or team, the sender's name.
-function preview(chat, me) {
-  const last = chat.last_message;
-  if (!last) return '';
-  if (last.kind === 'system') return systemText(last, me);
-  if (last.deleted_at) return tr('Tin nhắn đã bị xoá');
-  const text = last.body || (last.has_files ? tr('📎 File') : '');
-  if (last.user_id === me.id) return tr('Bạn: {text}', { text });
-  return chat.kind === 'direct' ? text : `${last.user_name ?? tr('Người dùng đã xoá')}: ${text}`;
-}
-
 // "Tin nhắn" (#/chat, #/chat/4): one-to-one conversations (v32), groups, project and team chats (v33). Private to
 // their members. Unread messages count on the menu, never in the bell. onOpen(id | null) moves between conversations;
 // onRead() refreshes the menu count after a conversation is read; onOpenTask(id) opens a linked task.
@@ -34,6 +24,7 @@ export default function ChatPage({ conversationId, onOpen, onRead, onOpenTask })
   const [chats, setChats] = useState(null);
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState('');
+  const [permission, setPermission] = useState(notifyPermission);
 
   const load = useCallback(
     () =>
@@ -64,6 +55,12 @@ export default function ChatPage({ conversationId, onOpen, onRead, onOpenTask })
     <div className="project">
       <header className="project-header">
         <h1>{tr('Tin nhắn')}</h1>
+        <span className="grow" />
+        {permission === 'default' && (
+          <button className="btn small" onClick={() => askNotifyPermission().then(setPermission)}>
+            {tr('🔔 Bật thông báo trên máy tính')}
+          </button>
+        )}
       </header>
       <ErrorBanner error={error} onClose={() => setError('')} />
       <div className={`chat ${conversationId || picking ? 'chat-open' : ''}`}>
@@ -95,7 +92,7 @@ export default function ChatPage({ conversationId, onOpen, onRead, onOpenTask })
                       {c.last_message_at && <span className="muted small">{shortTime(c.last_message_at)}</span>}
                     </span>
                     <span className="chat-row-last">
-                      <span className="ellipsis grow">{preview(c, me)}</span>
+                      <span className="ellipsis grow">{previewOf(c, me)}</span>
                       {c.mentioned && (
                         <span className="badge inline" title={tr('Có người nhắc tới bạn')} aria-label={tr('Có người nhắc tới bạn')}>
                           @

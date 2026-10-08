@@ -19,6 +19,8 @@ import { placeholders } from './util.js';
 export const RETENTION_MONTHS = 6;
 export const MESSAGE_MAX = 4000;
 export const TITLE_MAX = 80;
+// Reactions (v35): one per person per message, among these.
+export const REACTIONS = ['👍', '❤️', '😆', '😮', '😢', '🙏'];
 // A task's page (#/task/12) or any screen with its side panel open (#/project/3/board?task=12, #/my?task=12).
 const TASK_LINK_RE = /#\/(?:task\/(\d+)|[^\s#]*[?&]task=(\d+))/g;
 const TASK_LINKS_MAX = 5;
@@ -87,15 +89,29 @@ export function conversationsOf(user) {
     .filter((c) => !c.project_id || isMember(user, c));
 }
 
-// A member's read position and mute; nothing stored yet reads as nothing read, not muted.
+// A member's read position and mute; `missing` when nothing is stored yet.
 export const stateOf = (conversationId, userId) =>
   db.prepare('SELECT last_read_id, muted FROM conversation_members WHERE conversation_id = ? AND user_id = ?').get(conversationId, userId) ?? {
     last_read_id: 0,
     muted: 0,
+    missing: true,
   };
-// Project and team members get their row when they first read, mute or write there.
+const lastMessageId = (conversationId) =>
+  db.prepare('SELECT COALESCE(MAX(id), 0) AS id FROM messages WHERE conversation_id = ?').get(conversationId).id;
+// Project and team members get their row when they first read, mute or write there, as having read what was there.
 export const ensureState = (conversationId, userId) =>
-  db.prepare('INSERT OR IGNORE INTO conversation_members (conversation_id, user_id) VALUES (?, ?)').run(conversationId, userId);
+  db
+    .prepare('INSERT OR IGNORE INTO conversation_members (conversation_id, user_id, last_read_id) VALUES (?, ?, ?)')
+    .run(conversationId, userId, lastMessageId(conversationId));
+// Before a message goes to a project or team chat, everyone in it without a row gets one at the current last message,
+// so the new message is unread for them and the older ones are not. Someone still without a row therefore came in
+// after the last message: nothing there is new to them (unreadFor()).
+export function markNewcomers(conversation) {
+  if (!conversation.project_id && !conversation.team_id) return;
+  const last = lastMessageId(conversation.id);
+  const insert = db.prepare('INSERT OR IGNORE INTO conversation_members (conversation_id, user_id, last_read_id) VALUES (?, ?, ?)');
+  for (const id of memberIds(conversation)) insert.run(conversation.id, id, last);
+}
 
 // The others' messages after the user's read position, and how many of them mention the user. A system line (v34)
 // counts only for the people it is about (added to the group, made its owner), never as a mention.
@@ -109,12 +125,21 @@ export function unreadOf(conversationId, userId, lastReadId) {
     .get(about, conversationId, lastReadId, userId, about);
 }
 
+// A member's state and unread counts in a conversation. In a project or team chat, no row yet means they came in after
+// its last message (markNewcomers()): nothing unread, everything there counts as read.
+export function unreadFor(conversation, userId) {
+  const state = stateOf(conversation.id, userId);
+  if (state.missing && (conversation.project_id || conversation.team_id)) {
+    return { state: { ...state, last_read_id: lastMessageId(conversation.id) }, unread: 0, mentions: 0 };
+  }
+  return { state, ...unreadOf(conversation.id, userId, state.last_read_id) };
+}
+
 // The count on the Messages menu: unread messages, of muted conversations only those that mention the user.
 export function totalUnread(user) {
   if (!can(user, 'chat.use')) return 0;
   return conversationsOf(user).reduce((sum, c) => {
-    const state = stateOf(c.id, user.id);
-    const { unread, mentions } = unreadOf(c.id, user.id, state.last_read_id);
+    const { state, unread, mentions } = unreadFor(c, user.id);
     return sum + (state.muted ? mentions : unread);
   }, 0);
 }

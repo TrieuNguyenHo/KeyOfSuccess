@@ -34,6 +34,8 @@
   --sidebar: #c24e26;
   --hover: rgba(0, 0, 0, 0.05);
   --backdrop: rgba(0, 0, 0, 0.32);
+  --lightbox: rgba(0, 0, 0, 0.9); /* full-screen image viewer, same in both themes */
+  --on-lightbox: #ffffff;
   --frost: rgba(255, 255, 255, 0.86); /* floating panels: frosted glass instead of a shadow */
   color-scheme: light;
 

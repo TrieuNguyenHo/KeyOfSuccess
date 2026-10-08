@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { api, uploadFile } from '../../api.js';
 import { can, formatDateTime } from '../../utils.js';
 import { FileList, MAX_MB, uploadable } from './Attachments.jsx';
@@ -111,9 +111,13 @@ export default function CommentList({ comments, kind, mentionable, empty, act, c
 // The box for a new comment: text with @mentions, plus files (📎, drag and drop, or pasting a screenshot).
 // The comment is posted to createPath, then its files to /<kind>/<id>/attachments. act(fn) runs it and reloads.
 // enterSends as in MentionTextarea (chat messages); extra goes into the posted body (a chat answer's reply_to_id).
-export function CommentComposer({ kind, createPath, mentionable, placeholder, act, onError, enterSends = false, extra }) {
-  const [text, setText] = useState('');
-  const [mentions, setMentions] = useState([]);
+// draft { text, mentions } starts the box with what was typed before; onDraftChange(draft) follows every change.
+export function CommentComposer({ kind, createPath, mentionable, placeholder, act, onError, enterSends = false, extra, draft, onDraftChange }) {
+  const [text, setText] = useState(draft?.text ?? '');
+  const [mentions, setMentions] = useState(draft?.mentions ?? []);
+  useEffect(() => {
+    onDraftChange?.({ text, mentions });
+  }, [text, mentions, onDraftChange]);
   const [files, setFiles] = useState([]);
   const [dragOver, setDragOver] = useState(false);
   const input = useRef(null);

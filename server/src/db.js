@@ -278,6 +278,15 @@ db.exec(`
     deleted_at TEXT
   );
 
+  -- Reactions to chat messages (v35): one per person per message, from a fixed set of emoji (REACTIONS in lib/chat.js).
+  CREATE TABLE IF NOT EXISTS message_reactions (
+    message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    emoji TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (message_id, user_id)
+  );
+
   ${attachmentsTable('attachments')}
 
   ${notificationsTable('notifications')}
@@ -854,6 +863,9 @@ if (schemaVersion() < 34) {
     db.exec('PRAGMA user_version = 34');
   });
 }
+
+// v35: reactions to chat messages (table created above).
+if (schemaVersion() < 35) db.exec('PRAGMA user_version = 35');
 
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id) WHERE project_id IS NOT NULL;
