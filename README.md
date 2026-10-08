@@ -58,7 +58,7 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 | `people.profiles`: hồ sơ cá nhân của người khác | – | Team | Team | Toàn phòng |
 | `users.manage`: Quản lý người dùng, lời mời hoạt động ngay (Team: người trong team mình và người chưa có team, chỉ xếp vào team mình) | – | – | Team | Toàn phòng |
 | `teams.members`: thêm / duyệt / mời / bỏ thành viên team | – | Team | Team | Toàn phòng |
-| `teams.manage` (Team: chỉ đổi tên team mình; tạo / xoá team cần Toàn phòng) | – | – | Team | Toàn phòng |
+| `teams.manage` (Team: chỉ đổi tên team mình; tạo / xoá team cần Toàn phòng; người tạo team mà Quản lý người dùng không Toàn phòng được tự thêm vào team mới) | – | – | Team | Toàn phòng |
 | `channels.manage`, `comments.delete_any` | – | – | Có | Có |
 | `notify.task_completed`: nhận thông báo task xong | – | Team | Team | – |
 | `chat.use`: Tin nhắn 1-1 với người cũng có quyền này | Có | Có | Có | Có |
