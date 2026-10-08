@@ -1,7 +1,7 @@
 # KeyOfSuccess (formerly TaskFlow)
 
 Asana-like task manager for a Marketing department of about 40 people.
-React + Vite (`client/`), Node/Express + SQLite via `node:sqlite` (`server/`). Run with `npm run dev` from the repo root.
+React + Vite (`client/`), Node/Express + SQLite via `node:sqlite` (`server/`). Run with `npm run dev` from the repo root, or in the background with pm2: `pm2 start ecosystem.config.cjs` (stop it with `pm2 stop keyofsuccess-dev` before a schema change; README › Cài đặt › Chạy).
 README.md documents setup, env vars, permissions and the API.
 
 Server layout (split 2026-10-06): `server/src/index.js` only builds the app; each feature's endpoints are an `express.Router` in `server/src/routes/<feature>.js` (mounted under `/api`), and rules or helpers used by more than one route live in `server/src/lib/` (access rules in `lib/access.js`). A new endpoint goes in its feature's route file, never back into `index.js`.

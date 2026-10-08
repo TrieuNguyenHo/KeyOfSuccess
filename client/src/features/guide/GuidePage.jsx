@@ -58,8 +58,8 @@ function sections(user) {
       items: [
         ['mytasks', tr('Task của tôi'), tr('Mọi task được giao cho bạn ở mọi project, chia theo Quá hạn, Hôm nay, 7 ngày tới…; nút Danh sách / Lịch để đổi cách xem, ô "Mọi kênh" để lọc theo kênh.')],
         ['dashboard', 'Dashboard', can(user, 'people.watch')
-          ? tr('"Tổng quan" cho số liệu của các team bạn theo dõi: workload từng người, task hoàn thành 14 ngày, tiến độ project và kênh. Mỗi project cũng có dashboard riêng.')
-          : tr('Mỗi project bạn tham gia có dashboard riêng: phần trăm hoàn thành, tiến độ từng requirement, workload thành viên, tiến độ theo trạng thái và kênh.')],
+          ? tr('"Tổng quan" cho số liệu của các team bạn theo dõi: workload từng người, task hoàn thành 14 ngày, tiến độ project và kênh. Mỗi project cũng có dashboard riêng. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet kèm biểu đồ như trên màn hình.')
+          : tr('Mỗi project bạn tham gia có dashboard riêng: phần trăm hoàn thành, tiến độ từng requirement, workload thành viên, tiến độ theo trạng thái và kênh. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet kèm biểu đồ như trên màn hình.')],
       ],
     },
     can(user, 'people.watch') && {

@@ -158,6 +158,25 @@ npm run dev
 - Frontend: http://localhost:5173
 - API: http://localhost:3001 (Vite proxy `/api` sang đây)
 
+#### Chạy nền bằng pm2 (tắt terminal server vẫn chạy)
+
+`npm run dev` dừng khi đóng terminal (`-d` của npm chỉ là mức log, không chạy nền). Muốn server chạy nền trên máy dev, dùng [pm2](https://pm2.keymetrics.io/) với `ecosystem.config.cjs` ở thư mục gốc:
+
+```bash
+npm install -g pm2
+pm2 start ecosystem.config.cjs     # bật (app tên keyofsuccess-dev)
+pm2 logs keyofsuccess-dev          # xem log
+pm2 stop keyofsuccess-dev          # tắt
+pm2 restart keyofsuccess-dev       # bật lại
+pm2 list                           # trạng thái
+```
+
+- Trên Windows, `pm2 start npm -- run dev` hay `pm2 start "npm run dev"` báo `Script not found` vì pm2 không chạy được `npm.cmd`; `ecosystem.config.cjs` chạy thẳng `npm-cli.js` nên không bị lỗi này.
+- Đừng chạy thêm `npm run dev` khi pm2 đang chạy (trùng cổng 3001 / 5173).
+- Server chạy `node --watch`: **tắt pm2 trước khi đổi schema** (lưu `server/src/db.js` là migration chạy ngay).
+- `autorestart: false`: server lỗi thì dừng hẳn để thấy lỗi trong log. Khởi động lại máy thì chạy lại `pm2 start ecosystem.config.cjs`.
+- Chỉ dùng cho máy dev. Trên VPS app chạy bằng systemd (`systemctl restart keyofsuccess`, xem mục Deploy và `DEPLOY.md`).
+
 ## Deploy
 
 **Hướng dẫn từng bước (lần đầu, cập nhật, quay lại bản cũ, xử lý lỗi): [DEPLOY.md](DEPLOY.md).** Phần dưới là chi tiết kỹ thuật.

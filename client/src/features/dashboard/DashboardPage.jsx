@@ -5,6 +5,7 @@ import { Avatar } from '../../components/Avatar.jsx';
 import { useAllTeams } from '../../components/hooks.js';
 import { ErrorBanner } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
+import { exportOverview } from './dashboardExport.js';
 
 const dayLabel = (iso) => new Date(`${iso}T00:00`).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
 
@@ -102,6 +103,12 @@ export default function DashboardPage({ user, onOpenPerson }) {
 
   const maxOpen = data ? Math.max(1, ...data.people.map((p) => p.open)) : 1;
   const showTeam = scope === 'all' || (scope === 'mine' && user.teams.length > 1);
+  const scopeLabel =
+    scope === 'all'
+      ? tr('Cả phòng')
+      : scope === 'mine'
+        ? user.teams.length > 1 ? tr('Tất cả team của tôi') : myTeamsLabel(user)
+        : `Team ${[...teams, ...user.teams].find((t) => `team:${t.id}` === scope)?.name ?? ''}`;
 
   return (
     <div className="project">
@@ -129,6 +136,9 @@ export default function DashboardPage({ user, onOpenPerson }) {
         ) : (
           <span className="muted">{myTeamsLabel(user)}</span>
         )}
+        <button className="btn small" disabled={!data} onClick={() => exportOverview(data, scopeLabel, showTeam)}>
+          {tr('Xuất Excel')}
+        </button>
       </header>
 
       <ErrorBanner error={error} onClose={() => setError('')} />

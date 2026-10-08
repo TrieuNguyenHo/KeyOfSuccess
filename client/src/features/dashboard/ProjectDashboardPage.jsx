@@ -3,6 +3,7 @@ import { api } from '../../api.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { ChannelProgress, CompletionTrend, StatTile, WorkloadBar } from './DashboardPage.jsx';
 import { tr } from '../../i18n.js';
+import { exportProject } from './dashboardExport.js';
 
 // done/total meter row, shared by the requirement and section cards.
 function ProgressRow({ label, done, total, overdue, onClick }) {
@@ -62,6 +63,12 @@ export default function ProjectDashboardPage({ projectId, onOpenProject, onOpenR
             </option>
           ))}
         </select>
+        <button
+          className="btn small"
+          onClick={() => exportProject(data, teamId ? `Team ${teams.find((t) => String(t.id) === teamId)?.name ?? ''}` : tr('Mọi team'), showTeam)}
+        >
+          {tr('Xuất Excel')}
+        </button>
         <button className="link-btn" onClick={() => onOpenProject(project.id)}>
           {tr('Mở project →')}
         </button>
