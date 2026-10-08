@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { can, scopeOf } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { TeamPills, teamsLabel } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
+import SaveTemplateModal from './SaveTemplateModal.jsx';
 
-// A project's name with its teams (a picker for projects.change_teams) and, for 'manage' access, rename and delete;
-// then its members and the view tabs.
+// A project's name with its teams (a picker for projects.change_teams), "save as template" for whoever may create
+// projects and, for 'manage' access, rename and delete; then its members and the view tabs.
 export default function ProjectHeader({
   project,
   user,
@@ -21,6 +23,7 @@ export default function ProjectHeader({
 }) {
   const changesTeams = can(user, 'projects.change_teams');
   const canManage = project.access === 'manage';
+  const [savingTemplate, setSavingTemplate] = useState(false);
   return (
     <header className="project-header">
       {/* Two blocks that wrap as wholes on narrow screens: the name with its actions, then members and views. */}
@@ -48,6 +51,11 @@ export default function ProjectHeader({
           <span className="tag team-tag" title={teamsLabel(project.teams)}>
             {teamsLabel(project.teams)}
           </span>
+        )}
+        {can(user, 'projects.create') && (
+          <button className="icon-btn" onClick={() => setSavingTemplate(true)} title={tr('Lưu làm mẫu')} aria-label={tr('Lưu làm mẫu')}>
+            ⧉
+          </button>
         )}
         {canManage && (
           <>
@@ -97,6 +105,7 @@ export default function ProjectHeader({
           </div>
         </div>
       </div>
+      {savingTemplate && <SaveTemplateModal project={project} onClose={() => setSavingTemplate(false)} />}
     </header>
   );
 }

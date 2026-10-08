@@ -17,10 +17,11 @@ import {
   withTeams,
 } from '../lib/access.js';
 import { channelsByTask } from '../lib/channels.js';
-import { pushChange } from '../lib/live.js';
+import { pushChange, pushNotifications } from '../lib/live.js';
 import { badRequest, conflict, forbidden, notFound, requirePermission } from '../lib/http.js';
 import { requirementsOf } from '../lib/requirements.js';
 import { DEFAULT_STATUSES } from '../lib/statuses.js';
+import { addDays, fillFromTemplate } from '../lib/templates.js';
 import { sweepUploads } from '../lib/uploads.js';
 import { AT_WORK, findUser, parseTeamIds } from '../lib/users.js';
 import { IN_TEAM, placeholders, replaceLinks } from '../lib/util.js';
@@ -57,7 +58,24 @@ router.post('/projects', requirePermission('projects.create'), (req, res) => {
   if (scopeOf(me, 'projects.change_teams') === 'team' && (!teamIds.length || teamIds.some((id) => !me.team_ids.includes(id)))) {
     return forbidden(res, 'Chỉ chọn được team của bạn');
   }
+  // From a template (v39): its due dates are placed from anchor_date, as the start (the first due date) or, with
+  // anchor 'end', as the launch (the last one).
+  let template = null;
+  let start = null;
+  if (body.template_id != null) {
+    const row = db.prepare('SELECT data FROM project_templates WHERE id = ?').get(body.template_id);
+    if (!row) return badRequest(res, 'Không tìm thấy mẫu');
+    template = JSON.parse(row.data);
+    if (template.span != null) {
+      const day = String(body.anchor_date ?? '');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(new Date(`${day}T00:00:00Z`).getTime())) {
+        return badRequest(res, 'Cần chọn ngày để đặt hạn chót cho các task');
+      }
+      start = body.anchor === 'end' ? addDays(day, -template.span) : day;
+    }
+  }
 
+  let notified = [];
   const id = transaction(() => {
     const { lastInsertRowid } = db
       .prepare('INSERT INTO projects (name, color, owner_id) VALUES (?, ?, ?)')
@@ -73,8 +91,10 @@ router.post('/projects', requirePermission('projects.create'), (req, res) => {
     }
     const insertSection = db.prepare('INSERT INTO sections (project_id, name, position, kind) VALUES (?, ?, ?, ?)');
     DEFAULT_STATUSES.forEach(([kind, name], i) => insertSection.run(lastInsertRowid, name, i + 1, kind));
+    if (template) notified = fillFromTemplate(lastInsertRowid, template, start, me);
     return lastInsertRowid;
   });
+  pushNotifications(notified);
   const project = findProject(id);
   res.status(201).json({ ...project, access: projectAccess(me, project) });
 });
