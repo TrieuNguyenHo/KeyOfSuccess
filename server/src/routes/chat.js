@@ -2,11 +2,13 @@
 // which conversation: lib/chat.js. Only the author edits or deletes a message (a deleted one stays as "Tin nhắn đã bị
 // xoá"); files go with a message, sent by its author right after posting it. @mentions reach members only. Unread
 // messages are counted on the Messages menu, never in the bell. Messages are kept 6 months (purgeMessages()). Changes to
-// a group (created, people added or taken out, someone leaving, a new name) show in it as system lines (v34).
+// a group (created, people added or taken out, someone leaving, a new name) show in it as system lines (v34). Since v36:
+// pinning, @tất cả, search, the files and links of a conversation, forwarding, copying a message's files to a task.
 import express from 'express';
 import { db, transaction } from '../db.js';
-import { findProject, projectAccess } from '../lib/access.js';
+import { canEdit, findProject, findTask, projectAccess, taskAccess } from '../lib/access.js';
 import {
+  EVERYONE_MARKUP,
   MESSAGE_MAX,
   REACTIONS,
   TITLE_MAX,
@@ -23,17 +25,25 @@ import {
   taskLinks,
   unreadFor,
 } from '../lib/chat.js';
+import { foldText } from '../lib/fold.js';
+import { logEvent } from '../lib/history.js';
 import { badRequest, forbidden, notFound, requirePermission } from '../lib/http.js';
-import { pushChat } from '../lib/live.js';
+import { pushChange, pushChat } from '../lib/live.js';
 import { plainExcerpt, resolveMentions } from '../lib/mentions.js';
 import { can } from '../lib/permissions.js';
 import { AT_WORK, USER_SELECT, findUser, withUserTeams } from '../lib/users.js';
-import { rawUpload, saveAttachment, sweepUploads, withCommentFiles } from '../lib/uploads.js';
+import { ATTACHMENT_SELECT, IMAGE_TYPES, copyAttachments, rawUpload, saveAttachment, sweepUploads, withCommentFiles } from '../lib/uploads.js';
 import { placeholders } from '../lib/util.js';
 
 const router = express.Router();
 const PAGE_SIZE = 50;
 const EXCERPT_LENGTH = 120;
+const AROUND_BEFORE = 25; // messages shown before the one jumped to (?around=)
+const AROUND_MAX = 1000; // and at most this many from it on
+const SEARCH_MIN = 2;
+const SEARCH_LIMIT = 50;
+const MEDIA_LIMIT = 300;
+const URL_RE = /https?:\/\/[^\s<]+/g;
 
 router.use(['/chats', '/chat-messages'], requirePermission('chat.use'));
 
@@ -45,7 +55,7 @@ const MESSAGE_SELECT = `SELECT m.*, u.name AS user_name, r.user_id AS reply_user
 // A message as this reader sees it: the message it answers (a short excerpt), the tasks it links to that the reader
 // may see; a deleted message keeps its place, nothing of what it said.
 function shown(row, reader) {
-  const { reply_user_id, reply_user_name, reply_body, reply_deleted_at, ...rest } = row;
+  const { reply_user_id, reply_user_name, reply_body, reply_deleted_at, search, ...rest } = row;
   const m = { ...rest, data: rest.data ? JSON.parse(rest.data) : null };
   if (m.kind === 'system') return { ...m, body: '', attachments: [], reply: null, tasks: [] };
   const reply = m.reply_to_id
@@ -125,6 +135,16 @@ function summaryOf(c, me, { withMembers = false } = {}) {
     Object.assign(summary, { title: team.name, team });
   }
   if (withMembers) {
+    // Pinned messages (v36), latest pinned first.
+    summary.pinned = db
+      .prepare(
+        `SELECT m.id, m.user_id, u.name AS user_name, m.body, m.pinned_at, p.name AS pinned_by_name,
+           EXISTS (SELECT 1 FROM attachments a WHERE a.message_id = m.id) AS has_files
+         FROM messages m LEFT JOIN users u ON u.id = m.user_id LEFT JOIN users p ON p.id = m.pinned_by
+         WHERE m.conversation_id = ? AND m.pinned_at IS NOT NULL AND m.deleted_at IS NULL ORDER BY m.pinned_at DESC, m.id DESC`
+      )
+      .all(c.id)
+      .map((m) => ({ ...m, body: plainExcerpt(m.body), has_files: Boolean(m.has_files) }));
     // last_read_id: how far each has read, for "Đã xem" (null: nothing stored yet).
     summary.members = memberUsers(c).map((u) => {
       const state = stateOf(c.id, u.id);
@@ -175,6 +195,35 @@ router.get('/chats/rooms', (req, res) => {
     .filter((p) => projectAccess(req.user, p))
     .map(({ id, name, color }) => ({ id, name, color }));
   res.json({ projects, teams: req.user.teams });
+});
+
+// Body-less search (v36): ?q= (accent-insensitive, at least 2 characters) in the user's conversations, or only in
+// ?conversation=<id>; newest first, each result with its conversation's name.
+router.get('/chats/search', (req, res) => {
+  const q = foldText(req.query.q ?? '').trim();
+  if (q.length < SEARCH_MIN) return res.json([]);
+  let conversations = conversationsOf(req.user);
+  if (req.query.conversation) conversations = conversations.filter((c) => c.id === Number(req.query.conversation));
+  if (!conversations.length) return res.json([]);
+  const pattern = `%${q.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+  const rows = db
+    .prepare(
+      `SELECT m.id, m.conversation_id, m.user_id, u.name AS user_name, m.body, m.created_at
+       FROM messages m LEFT JOIN users u ON u.id = m.user_id
+       WHERE m.conversation_id IN (${placeholders(conversations)}) AND m.kind IS NULL AND m.deleted_at IS NULL
+         AND m.search LIKE ? ESCAPE '\\'
+       ORDER BY m.id DESC LIMIT ?`
+    )
+    .all(...conversations.map((c) => c.id), pattern, SEARCH_LIMIT);
+  const named = new Map();
+  const nameOf = (id) => {
+    if (!named.has(id)) {
+      const { kind, title, other, project, team } = summaryOf(conversations.find((c) => c.id === id), req.user);
+      named.set(id, { id, kind, title, other, project, team });
+    }
+    return named.get(id);
+  };
+  res.json(rows.map((m) => ({ ...m, body: plainExcerpt(m.body), conversation: nameOf(m.conversation_id) })));
 });
 
 // The user's conversations: those with messages, and the groups they are in; latest first.
@@ -338,6 +387,15 @@ router.delete('/chats/:id/members/:userId', (req, res) => {
 router.get('/chats/:id/messages', (req, res) => {
   const conversation = loadConversation(req, res, req.params.id);
   if (!conversation) return;
+  const around = Number(req.query.around);
+  if (around) {
+    // A message to jump to (a search result, a pin, a link from a task): a few before it, and everything from it on.
+    const older = db
+      .prepare(`${MESSAGE_SELECT} WHERE m.conversation_id = ? AND m.id < ? ORDER BY m.id DESC LIMIT ?`)
+      .all(conversation.id, around, AROUND_BEFORE + 1);
+    const newer = db.prepare(`${MESSAGE_SELECT} WHERE m.conversation_id = ? AND m.id >= ? ORDER BY m.id LIMIT ?`).all(conversation.id, around, AROUND_MAX);
+    return res.json({ messages: messagesFor([...older.slice(0, AROUND_BEFORE).reverse(), ...newer], req.user), has_more: older.length > AROUND_BEFORE });
+  }
   const before = Number(req.query.before) || Number.MAX_SAFE_INTEGER;
   const rows = db
     .prepare(`${MESSAGE_SELECT} WHERE m.conversation_id = ? AND m.id < ? ORDER BY m.id DESC LIMIT ?`)
@@ -345,9 +403,33 @@ router.get('/chats/:id/messages', (req, res) => {
   res.json({ messages: messagesFor(rows.slice(0, PAGE_SIZE).reverse(), req.user), has_more: rows.length > PAGE_SIZE });
 });
 
-// Keeps @mentions of the conversation's members (others become plain "@Name"); checks the length.
-function messageBody(req, res, conversation, { allowEmpty }) {
-  const raw = String(req.body?.body ?? '').trim();
+// The images, other files and links sent in a conversation (v36), newest first.
+router.get('/chats/:id/media', (req, res) => {
+  const conversation = loadConversation(req, res, req.params.id);
+  if (!conversation) return;
+  const files = db
+    .prepare(
+      `${ATTACHMENT_SELECT} JOIN messages m ON m.id = a.message_id
+       WHERE m.conversation_id = ? AND m.deleted_at IS NULL ORDER BY a.id DESC LIMIT ?`
+    )
+    .all(conversation.id, MEDIA_LIMIT);
+  const links = db
+    .prepare(
+      `SELECT m.id AS message_id, m.body, m.created_at, u.name AS user_name FROM messages m LEFT JOIN users u ON u.id = m.user_id
+       WHERE m.conversation_id = ? AND m.kind IS NULL AND m.deleted_at IS NULL AND m.body LIKE '%http%' ORDER BY m.id DESC LIMIT ?`
+    )
+    .all(conversation.id, MEDIA_LIMIT)
+    .flatMap(({ body, ...m }) => (body.match(URL_RE) ?? []).map((url) => ({ ...m, url })));
+  res.json({
+    images: files.filter((f) => IMAGE_TYPES.includes(f.mime)),
+    files: files.filter((f) => !IMAGE_TYPES.includes(f.mime)),
+    links,
+  });
+});
+
+// Keeps @mentions of the conversation's members (others become plain "@Name") and, outside one-to-one chats, @tất cả
+// (v36); checks the length. `raw` defaults to the request's body text.
+function messageBody(req, res, conversation, { allowEmpty, raw = String(req.body?.body ?? '').trim() }) {
   if (!raw && !allowEmpty) {
     badRequest(res, 'Tin nhắn không được để trống');
     return null;
@@ -356,7 +438,25 @@ function messageBody(req, res, conversation, { allowEmpty }) {
     badRequest(res, 'Tin nhắn quá dài');
     return null;
   }
-  return resolveMentions(raw, reachableMembers(conversation), req.user).body;
+  const everyone = conversation.kind !== 'direct';
+  const held = raw.replace(/@\[[^\]\n]{1,80}\]\(0\)/g, everyone ? '\u0000' : '@all');
+  return resolveMentions(held, reachableMembers(conversation), req.user).body.replaceAll('\u0000', EVERYONE_MARKUP);
+}
+
+// Writes a message (and what goes with it: newcomers' read positions, the conversation's latest time, the author's
+// own read position); returns its id. Shared by sending and forwarding.
+function postMessage(conversation, user, { body, replyTo = null, forwarded = false }) {
+  return transaction(() => {
+    markNewcomers(conversation);
+    const { lastInsertRowid } = db
+      .prepare('INSERT INTO messages (conversation_id, user_id, body, reply_to_id, forwarded, search) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(conversation.id, user.id, body, replyTo, forwarded ? 1 : 0, foldText(body));
+    db.prepare("UPDATE conversations SET last_message_at = datetime('now') WHERE id = ?").run(conversation.id);
+    // What one writes counts as read.
+    ensureState(conversation.id, user.id);
+    db.prepare('UPDATE conversation_members SET last_read_id = ? WHERE conversation_id = ? AND user_id = ?').run(lastInsertRowid, conversation.id, user.id);
+    return lastInsertRowid;
+  });
 }
 
 // Body { body, with_files, reply_to_id }: the text may be left out when files follow, uploaded to
@@ -374,17 +474,7 @@ router.post('/chats/:id/messages', (req, res) => {
   ) {
     return badRequest(res, 'Không tìm thấy tin nhắn được trả lời');
   }
-  const id = transaction(() => {
-    markNewcomers(conversation);
-    const { lastInsertRowid } = db
-      .prepare('INSERT INTO messages (conversation_id, user_id, body, reply_to_id) VALUES (?, ?, ?, ?)')
-      .run(conversation.id, req.user.id, body, replyTo);
-    db.prepare("UPDATE conversations SET last_message_at = datetime('now') WHERE id = ?").run(conversation.id);
-    // What one writes counts as read.
-    ensureState(conversation.id, req.user.id);
-    db.prepare('UPDATE conversation_members SET last_read_id = ? WHERE conversation_id = ? AND user_id = ?').run(lastInsertRowid, conversation.id, req.user.id);
-    return lastInsertRowid;
-  });
+  const id = postMessage(conversation, req.user, { body, replyTo });
   pushChat(req, memberIds(conversation), conversation.id);
   res.status(201).json(messageById(id, req.user));
 });
@@ -425,7 +515,7 @@ router.patch('/chat-messages/:id', (req, res) => {
   const hasFiles = Boolean(db.prepare('SELECT 1 FROM attachments WHERE message_id = ?').get(message.id));
   const body = messageBody(req, res, conversation, { allowEmpty: hasFiles });
   if (body === null) return;
-  db.prepare("UPDATE messages SET body = ?, edited_at = datetime('now') WHERE id = ?").run(body, message.id);
+  db.prepare("UPDATE messages SET body = ?, search = ?, edited_at = datetime('now') WHERE id = ?").run(body, foldText(body), message.id);
   pushChat(req, memberIds(conversation), conversation.id);
   res.json(messageById(message.id, req.user));
 });
@@ -437,13 +527,61 @@ router.delete('/chat-messages/:id', (req, res) => {
   const { message, conversation } = found;
   if (message.user_id !== req.user.id) return forbidden(res, 'Chỉ người viết mới xoá được nội dung này');
   transaction(() => {
-    db.prepare("UPDATE messages SET body = '', deleted_at = datetime('now') WHERE id = ?").run(message.id);
+    db.prepare("UPDATE messages SET body = '', search = '', pinned_at = NULL, pinned_by = NULL, deleted_at = datetime('now') WHERE id = ?").run(message.id);
     db.prepare('DELETE FROM attachments WHERE message_id = ?').run(message.id);
     db.prepare('DELETE FROM message_reactions WHERE message_id = ?').run(message.id);
   });
   sweepUploads();
   pushChat(req, memberIds(conversation), conversation.id);
   res.status(204).end();
+});
+
+// Body { pinned }: anyone in the conversation pins a message to its top, or takes it off (v36); a system line says so.
+router.post('/chat-messages/:id/pin', (req, res) => {
+  const found = loadMessage(req, res);
+  if (!found) return;
+  const { message, conversation } = found;
+  const pinned = Boolean(req.body?.pinned);
+  if (pinned === Boolean(message.pinned_at)) return res.json(messageById(message.id, req.user));
+  transaction(() => {
+    db.prepare(`UPDATE messages SET pinned_at = ${pinned ? "datetime('now')" : 'NULL'}, pinned_by = ? WHERE id = ?`).run(pinned ? req.user.id : null, message.id);
+    systemLine(conversation, req.user, pinned ? 'pinned' : 'unpinned', { excerpt: plainExcerpt(message.body).slice(0, 80) });
+  });
+  pushChat(req, memberIds(conversation), conversation.id);
+  res.json(messageById(message.id, req.user));
+});
+
+// Body { conversation_id }: sends a copy of the message (text and files) to another conversation the user can write in,
+// marked as forwarded without saying from where (decided 2026-10-08). Mentions there keep only that conversation's
+// members.
+router.post('/chat-messages/:id/forward', (req, res) => {
+  const found = loadMessage(req, res);
+  if (!found) return;
+  const target = loadConversation(req, res, Number(req.body?.conversation_id));
+  if (!target) return;
+  if (!summaryOf(target, req.user).can_send) return badRequest(res, 'Người này hiện không nhận được tin nhắn');
+  const files = db.prepare('SELECT * FROM attachments WHERE message_id = ?').all(found.message.id);
+  const body = messageBody(req, res, target, { allowEmpty: files.length > 0, raw: found.message.body });
+  if (body === null) return;
+  const id = postMessage(target, req.user, { body, forwarded: true });
+  copyAttachments(files, { message_id: id }, req.user);
+  pushChat(req, memberIds(target), target.id);
+  res.status(201).json(messageById(id, req.user));
+});
+
+// Body { task_id }: copies the message's files to a task the user may edit (making a task from a message, v36).
+router.post('/chat-messages/:id/copy-files', (req, res) => {
+  const found = loadMessage(req, res);
+  if (!found) return;
+  const task = findTask(Number(req.body?.task_id));
+  const access = task && taskAccess(req.user, task);
+  if (!task || !access) return notFound(res);
+  if (!canEdit(access)) return forbidden(res, 'Bạn không sửa được task này');
+  const files = db.prepare('SELECT * FROM attachments WHERE message_id = ?').all(found.message.id);
+  copyAttachments(files, { taskId: task.id }, req.user);
+  files.forEach((f) => logEvent(task, req.user, 'file_added', { name: f.name, in_comment: false }));
+  pushChange(req, { project_id: task.project_id, task_id: task.id }, task);
+  res.json({ copied: files.length });
 });
 
 // Body { emoji }: the user's reaction to a message (one per person, replacing theirs); null or '' takes it back.

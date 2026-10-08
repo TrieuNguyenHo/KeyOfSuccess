@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DIRECTOR_EMAILS, ROOT_EMAILS, envRoleOf } from './config.js';
+import { foldText } from './lib/fold.js';
 
 export const dbPath = process.env.DB_PATH || join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'app.db');
 mkdirSync(dirname(dbPath), { recursive: true });
@@ -273,6 +274,12 @@ db.exec(`
     -- for whom it counts as unread. NULL: an ordinary message.
     kind TEXT,
     data TEXT,
+    -- v36: pinned to the top of its conversation (when, by whom); sent on from another conversation (shown as such,
+    -- never saying from where); its text folded for search (lib/fold.js), empty once deleted.
+    pinned_at TEXT,
+    pinned_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    forwarded INTEGER NOT NULL DEFAULT 0,
+    search TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     edited_at TEXT,
     deleted_at TEXT
@@ -867,7 +874,26 @@ if (schemaVersion() < 34) {
 // v35: reactions to chat messages (table created above).
 if (schemaVersion() < 35) db.exec('PRAGMA user_version = 35');
 
+// v36: pinned messages, forwarding, search (columns created above for new databases); the search text of the messages
+// already there is filled in.
+if (schemaVersion() < 36) {
+  transaction(() => {
+    for (const [column, definition] of [
+      ['pinned_at', 'TEXT'],
+      ['pinned_by', 'INTEGER REFERENCES users(id) ON DELETE SET NULL'],
+      ['forwarded', 'INTEGER NOT NULL DEFAULT 0'],
+      ['search', 'TEXT'],
+    ]) {
+      if (!hasColumn('messages', column)) db.exec(`ALTER TABLE messages ADD COLUMN ${column} ${definition}`);
+    }
+    const fill = db.prepare('UPDATE messages SET search = ? WHERE id = ?');
+    for (const m of db.prepare('SELECT id, body FROM messages WHERE kind IS NULL AND deleted_at IS NULL').all()) fill.run(foldText(m.body), m.id);
+    db.exec('PRAGMA user_version = 36');
+  });
+}
+
 db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_messages_pinned ON messages(conversation_id, pinned_at) WHERE pinned_at IS NOT NULL;
   CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id) WHERE project_id IS NOT NULL;
   CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_team ON conversations(team_id) WHERE team_id IS NOT NULL;
   CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, id);

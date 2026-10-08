@@ -1,12 +1,15 @@
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { api, onChatChange } from '../../api.js';
-import { ErrorBanner } from '../../components/Controls.jsx';
+import { ErrorBanner, SearchBox } from '../../components/Controls.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
 import { locale, tr } from '../../i18n.js';
 import { askNotifyPermission, notifyPermission } from '../../chatAlerts.js';
 import { ChatAvatar, chatTitle, previewOf } from './ChatParts.jsx';
 import ChatThread, { parseTime } from './ChatThread.jsx';
 import NewChat from './NewChat.jsx';
+
+const SEARCH_DELAY_MS = 300;
+const SEARCH_MIN = 2;
 
 // Today: the time; earlier: the day.
 function shortTime(s) {
@@ -17,14 +20,35 @@ function shortTime(s) {
 }
 
 // "Tin nhắn" (#/chat, #/chat/4): one-to-one conversations (v32), groups, project and team chats (v33). Private to
-// their members. Unread messages count on the menu, never in the bell. onOpen(id | null) moves between conversations;
-// onRead() refreshes the menu count after a conversation is read; onOpenTask(id) opens a linked task.
-export default function ChatPage({ conversationId, onOpen, onRead, onOpenTask }) {
+// their members. Unread messages count on the menu, never in the bell. onOpen(id | null, messageId?) moves between
+// conversations (at a message: a search result); onRead() refreshes the menu count after a conversation is read;
+// onOpenTask(id) opens a linked task. focusMessageId: the message the open conversation shows (from the URL).
+export default function ChatPage({ conversationId, focusMessageId, onOpen, onRead, onOpenTask }) {
   const me = useContext(CurrentUser);
   const [chats, setChats] = useState(null);
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState('');
   const [permission, setPermission] = useState(notifyPermission);
+  // Search (v36): accent-insensitive, in every conversation or only the open one; results replace the list.
+  const [query, setQuery] = useState('');
+  const [onlyHere, setOnlyHere] = useState(false);
+  const [results, setResults] = useState(null);
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < SEARCH_MIN) {
+      setResults(null);
+      return undefined;
+    }
+    const scope = onlyHere && conversationId ? `&conversation=${conversationId}` : '';
+    const timer = setTimeout(
+      () =>
+        api(`/chats/search?q=${encodeURIComponent(q)}${scope}`)
+          .then(setResults)
+          .catch((e) => setError(e.message)),
+      SEARCH_DELAY_MS
+    );
+    return () => clearTimeout(timer);
+  }, [query, onlyHere, conversationId]);
 
   const load = useCallback(
     () =>
@@ -38,9 +62,9 @@ export default function ChatPage({ conversationId, onOpen, onRead, onOpenTask })
     return onChatChange(load);
   }, [load]);
 
-  const open = (id) => {
+  const open = (id, messageId) => {
     setPicking(false);
-    onOpen(id);
+    onOpen(id, messageId);
   };
   // Runs a request that returns a conversation, then opens it.
   const start = (request) =>
@@ -69,10 +93,40 @@ export default function ChatPage({ conversationId, onOpen, onRead, onOpenTask })
             <button className="btn primary small" onClick={() => setPicking(true)}>
               {tr('+ Tin nhắn mới')}
             </button>
+            <SearchBox value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr('Tìm tin nhắn')} label={tr('Tìm tin nhắn')} wide />
+            {query.trim().length >= SEARCH_MIN && conversationId && (
+              <label className="chat-search-scope muted small">
+                <input type="checkbox" checked={onlyHere} onChange={(e) => setOnlyHere(e.target.checked)} />
+                {tr('Chỉ trong cuộc đang mở')}
+              </label>
+            )}
           </div>
-          {!chats && <p className="muted chat-note">{tr('Đang tải…')}</p>}
-          {chats?.length === 0 && <p className="muted chat-note">{tr('Chưa có tin nhắn nào.')}</p>}
-          <ul className="chat-list">
+          {results && (
+            <ul className="chat-list">
+              {results.map((m) => (
+                <li key={m.id}>
+                  <button className="chat-row" onClick={() => open(m.conversation_id, m.id)}>
+                    <ChatAvatar chat={m.conversation} />
+                    <span className="chat-row-main">
+                      <span className="chat-row-top">
+                        <span className="ellipsis grow chat-row-name">{chatTitle(m.conversation)}</span>
+                        <span className="muted small">{shortTime(m.created_at)}</span>
+                      </span>
+                      <span className="chat-row-last">
+                        <span className="ellipsis grow">
+                          {m.user_id === me.id ? tr('Bạn: {text}', { text: m.body }) : `${m.user_name ?? tr('Người dùng đã xoá')}: ${m.body}`}
+                        </span>
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+              {results.length === 0 && <li className="muted chat-note">{tr('Không tìm thấy tin nhắn nào.')}</li>}
+            </ul>
+          )}
+          {!results && !chats && <p className="muted chat-note">{tr('Đang tải…')}</p>}
+          {!results && chats?.length === 0 && <p className="muted chat-note">{tr('Chưa có tin nhắn nào.')}</p>}
+          <ul className="chat-list" hidden={Boolean(results)}>
             {chats?.map((c) => (
               <li key={c.id}>
                 <button
@@ -122,6 +176,7 @@ export default function ChatPage({ conversationId, onOpen, onRead, onOpenTask })
             <ChatThread
               key={conversationId}
               conversationId={conversationId}
+              focusMessageId={focusMessageId}
               onBack={() => onOpen(null)}
               onChanged={load}
               onLeft={() => {

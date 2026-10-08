@@ -4,12 +4,15 @@ import { SearchBox } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
 
 // Accent-insensitive, so "duc" finds "Đức".
-const fold = (s) =>
+export const fold = (s) =>
   s
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/đ/gi, 'd')
     .toLowerCase();
+
+// @tất cả (v36): a mention of everyone in a group, project or team chat, as on the server.
+export const EVERYONE_ID = 0;
 
 // Reactions to a message (as on the server, lib/chat.js REACTIONS).
 export const REACTIONS = ['👍', '❤️', '😆', '😮', '😢', '🙏'];
@@ -37,6 +40,10 @@ export function systemText(message, me) {
       return tr('{actor} đã bỏ {names} khỏi nhóm', { actor, names });
     case 'left':
       return data.owner ? tr('{actor} đã rời nhóm; {names} giờ quản lý nhóm', { actor, names }) : tr('{actor} đã rời nhóm', { actor });
+    case 'pinned':
+      return tr('{actor} đã ghim một tin: "{excerpt}"', { actor, excerpt: data.excerpt || tr('📎 File') });
+    case 'unpinned':
+      return tr('{actor} đã bỏ ghim một tin: "{excerpt}"', { actor, excerpt: data.excerpt || tr('📎 File') });
     case 'renamed':
       return tr('{actor} đã đổi tên nhóm thành "{title}"', { actor, title: data.title });
     default:
@@ -80,7 +87,7 @@ export function PeopleList({ people, selected, onPick }) {
   return (
     <>
       <div className="chat-picker-search">
-        <SearchBox value={query} onChange={setQuery} placeholder={tr('Tìm theo tên hoặc team')} label={tr('Tìm người')} wide />
+        <SearchBox value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr('Tìm theo tên hoặc team')} label={tr('Tìm người')} wide />
       </div>
       <ul className="chat-list">
         {shown.map((p) => (

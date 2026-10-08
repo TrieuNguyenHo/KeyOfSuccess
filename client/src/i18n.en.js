@@ -794,8 +794,8 @@ export default {
   '· Đã xem': '· Seen',
   'Nhập tin nhắn… Enter để gửi, Shift+Enter để xuống dòng': 'Type a message… Enter sends, Shift+Enter for a new line',
   'Người này hiện không nhận được tin nhắn. Các tin cũ vẫn ở đây.': 'This person cannot receive messages now. The earlier ones stay here.',
-  'Mục "Tin nhắn" trên thanh bên, bấm "+ Tin nhắn mới": nhắn riêng một người, tạo nhóm (bạn quản lý nhóm: đổi tên, bỏ người; ai trong nhóm cũng thêm được người hoặc rời nhóm), hoặc mở chat của project (ai mở được project đều ở trong; có cả nút "Chat" trên đầu project) và của team bạn. Ai được thêm vào nhóm sẽ thấy dòng "… đã thêm bạn vào nhóm" như một tin chưa đọc; mọi thay đổi của nhóm (thêm, bỏ người, rời nhóm, đổi tên) hiện thành dòng nhỏ giữa cuộc trò chuyện. Chỉ người trong cuộc đọc được, kể cả Manager hay Director. Enter để gửi, Shift+Enter để xuống dòng; gõ @ để nhắc ai đó trong nhóm; dán ảnh hoặc bấm 📎 để gửi file; dán link task thì người xem được task thấy tên task, bấm để mở. "Trả lời" để trích dẫn một tin; bạn sửa / xoá được tin của mình. 🔔 / 🔕 tắt thông báo từng cuộc (vẫn đếm khi có người nhắc tới bạn). Bấm 😊 để thả cảm xúc; ảnh hiện ngay trong khung chat, bấm để xem to. Số tin chưa đọc hiện trên mục "Tin nhắn" và trên tên tab, không vào chuông; bấm "🔔 Bật thông báo trên máy tính" ở đầu màn Tin nhắn để có thông báo khi đang ở tab khác. Tin nhắn tự xoá sau 6 tháng.':
-    '"Messages" in the sidebar, then "+ New message": write to one person, make a group (you run it: rename it, take people out; anyone in it can add people or leave), or open the chat of a project (everyone who can open the project is in it; there is also a "Chat" button at the top of the project) or of your team. Someone added to a group gets "… added you to the group" as an unread message; every change to a group (people added or taken out, someone leaving, a new name) shows as a small line in the conversation. Only the people in a conversation can read it, not even a Manager or the Director. Enter sends, Shift+Enter starts a new line; type @ to mention someone in a group; paste an image or click 📎 to send a file; paste a task link and those who can see the task get its name, a click opens it. "Reply" quotes a message; you can edit or delete your own. 🔔 / 🔕 mutes a conversation (mentions of you still count). Click 😊 to react; images show right in the conversation, click one to see it large. Unread messages are counted on "Messages" and in the tab title, not in the bell; click "🔔 Turn on desktop notifications" at the top of Messages to be told while you are in another tab. Messages are deleted after 6 months.',
+  'Mục "Tin nhắn" trên thanh bên, bấm "+ Tin nhắn mới": nhắn riêng một người, tạo nhóm (bạn quản lý nhóm: đổi tên, bỏ người; ai trong nhóm cũng thêm được người hoặc rời nhóm), hoặc mở chat của project (ai mở được project đều ở trong; có cả nút "Chat" trên đầu project) và của team bạn. Ai được thêm vào nhóm sẽ thấy dòng "… đã thêm bạn vào nhóm" như một tin chưa đọc; mọi thay đổi của nhóm (thêm, bỏ người, rời nhóm, đổi tên) hiện thành dòng nhỏ giữa cuộc trò chuyện. Chỉ người trong cuộc đọc được, kể cả Manager hay Director. Enter để gửi, Shift+Enter để xuống dòng; gõ @ để nhắc ai đó trong nhóm; dán ảnh hoặc bấm 📎 để gửi file; dán link task thì người xem được task thấy tên task, bấm để mở. "Trả lời" để trích dẫn một tin; bạn sửa / xoá được tin của mình. 🔔 / 🔕 tắt thông báo từng cuộc (vẫn đếm khi có người nhắc tới bạn). Bấm 😊 để thả cảm xúc; ảnh hiện ngay trong khung chat, bấm để xem to. Nút ⋯ cạnh mỗi tin để ghim tin lên đầu cuộc trò chuyện, chuyển tiếp sang cuộc khác, hoặc tạo task từ tin đó (ảnh, file đi theo, task có link quay về tin). Gõ @tất cả để nhắc mọi người trong nhóm. Ô "Tìm tin nhắn" tìm cả khi không gõ dấu; "Thông tin" ở đầu cuộc trò chuyện gom ảnh, file và link đã gửi. Số tin chưa đọc hiện trên mục "Tin nhắn" và trên tên tab, không vào chuông; bấm "🔔 Bật thông báo trên máy tính" ở đầu màn Tin nhắn để có thông báo khi đang ở tab khác. Tin nhắn tự xoá sau 6 tháng.':
+    '"Messages" in the sidebar, then "+ New message": write to one person, make a group (you run it: rename it, take people out; anyone in it can add people or leave), or open the chat of a project (everyone who can open the project is in it; there is also a "Chat" button at the top of the project) or of your team. Someone added to a group gets "… added you to the group" as an unread message; every change to a group (people added or taken out, someone leaving, a new name) shows as a small line in the conversation. Only the people in a conversation can read it, not even a Manager or the Director. Enter sends, Shift+Enter starts a new line; type @ to mention someone in a group; paste an image or click 📎 to send a file; paste a task link and those who can see the task get its name, a click opens it. "Reply" quotes a message; you can edit or delete your own. 🔔 / 🔕 mutes a conversation (mentions of you still count). Click 😊 to react; images show right in the conversation, click one to see it large. The ⋯ button next to a message pins it to the top of the conversation, forwards it to another one, or makes a task from it (its images and files go along, and the task links back to it). Type @everyone to mention everyone in a group. "Search messages" works without accents too; "Info" at the top of a conversation gathers the images, files and links sent in it. Unread messages are counted on "Messages" and in the tab title, not in the bell; click "🔔 Turn on desktop notifications" at the top of Messages to be told while you are in another tab. Messages are deleted after 6 months.',
 
   // Chat (v33): groups, project and team chats, muting, answers
   'Chọn một cuộc trò chuyện, hoặc bấm "+ Tin nhắn mới" để nhắn cho đồng nghiệp, tạo nhóm hay mở chat của project / team.':
@@ -864,6 +864,49 @@ export default {
   'Đã xem: {names}': 'Seen by {names}',
   '↓ {count} tin mới': '↓ {count} new',
   'Cảm xúc không hợp lệ': 'Invalid reaction',
+
+  // Chat (v36): pins, @everyone, search, files and links, forwarding, task from a message
+  'tất cả': 'everyone',
+  'Thông tin': 'Info',
+  'Ảnh': 'Images',
+  'Chưa có ảnh nào.': 'No images yet.',
+  'Chưa có file nào.': 'No files yet.',
+  'Chưa có link nào.': 'No links yet.',
+  'Xem tin': 'Show message',
+  'Tìm tin nhắn': 'Search messages',
+  'Chỉ trong cuộc đang mở': 'Only in the open conversation',
+  'Không tìm thấy tin nhắn nào.': 'No messages found.',
+  '{actor} đã ghim một tin: "{excerpt}"': '{actor} pinned a message: "{excerpt}"',
+  '{actor} đã bỏ ghim một tin: "{excerpt}"': '{actor} unpinned a message: "{excerpt}"',
+  '+{count} tin ghim': '+{count} pinned',
+  'Thu gọn': 'Show less',
+  'Xem tin đã ghim': 'Show the pinned message',
+  'ghim bởi {name}': 'pinned by {name}',
+  'Ghim': 'Pin',
+  'Bỏ ghim': 'Unpin',
+  'Đã ghim': 'Pinned',
+  'Chuyển tiếp': 'Forward',
+  '↪ Đã chuyển tiếp': '↪ Forwarded',
+  'Thêm thao tác': 'More actions',
+  'Tạo task': 'Create task',
+  'Chuyển tiếp tin nhắn': 'Forward message',
+  'Tìm cuộc trò chuyện': 'Find a conversation',
+  'Không có cuộc trò chuyện nào.': 'No conversations.',
+  'Đã gửi ✓': 'Sent ✓',
+  'Người nhận chỉ thấy "Đã chuyển tiếp", không thấy tin từ cuộc nào. Ảnh và file đi kèm cũng được gửi.':
+    'Recipients only see "Forwarded", not where it came from. Its images and files are sent too.',
+  'Tạo task từ tin nhắn': 'Create a task from a message',
+  'Task từ tin nhắn': 'Task from a message',
+  'Chọn project': 'Choose a project',
+  'Chọn requirement': 'Choose a requirement',
+  'Bạn không thêm task được ở project này.': 'You cannot add tasks in this project.',
+  'Project chưa có requirement nào, cần tạo requirement trước khi thêm task.': 'This project has no requirement yet; one is needed before adding tasks.',
+  'Mô tả task là nội dung tin nhắn kèm link quay về tin.': 'The task description is the message with a link back to it.',
+  'Mô tả task là nội dung tin nhắn kèm link quay về tin; {count} file của tin được chép vào task.':
+    'The task description is the message with a link back to it; its {count} files are copied to the task.',
+  'Task sẽ được giao cho bạn.': 'The task will be assigned to you.',
+  'Từ tin nhắn: {link}': 'From a message: {link}',
+  'Bạn không sửa được task này': 'You cannot edit this task',
 
   // Chat (v32): server messages
   'Không nhắn tin được cho người này': 'You cannot message this person',

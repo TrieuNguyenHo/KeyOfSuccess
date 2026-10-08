@@ -1,6 +1,6 @@
 // The current screen lives in the URL hash, so a reload (F5) stays on it and a link can be sent to a colleague:
 //   #/my  #/dashboard  #/dashboard/3  #/team  #/team/user:5  #/admin  #/myteams  #/profile  #/guide
-//   #/feedback  #/feedback/12 (the user's feedback 12)  #/chat  #/chat/4 (conversation 4)
+//   #/feedback  #/feedback/12 (the user's feedback 12)  #/chat  #/chat/4 (conversation 4)  #/chat/4?message=9 (at message 9)
 //   #/project/3/board  #/project/3/list  #/project/3/calendar  #/project/3/requirements/7 (requirement 7 selected)
 //   #/task/12  #/requirement/3/7 (project 3, requirement 7)
 // ?layout=calendar on #/my and #/team shows the calendar instead of the list; ?channel=2 keeps the tasks on channel 2.
@@ -45,6 +45,7 @@ export function formatRoute(view, { tab, filters, scope, layout, channel } = {},
     case 'feedback':
     case 'chat':
       path = view.id ? `${view.type}/${view.id}` : view.type;
+      if (view.messageId) query.set('message', view.messageId);
       break;
     default:
       path = view.type;
@@ -70,7 +71,9 @@ export function parseRoute(hash, user) {
   else if (type === 'admin' && canAdminister(user)) view = { type };
   else if (type === 'profile' || type === 'guide') view = { type };
   else if (type === 'feedback') view = { type, ...(id(a) && { id: id(a) }) };
-  else if (type === 'chat' && can(user, 'chat.use')) view = { type, ...(id(a) && { id: id(a) }) };
+  else if (type === 'chat' && can(user, 'chat.use')) {
+    view = { type, ...(id(a) && { id: id(a) }), ...(id(a) && id(query.get('message')) && { messageId: id(query.get('message')) }) };
+  }
   else if (type === 'myteams' && can(user, 'teams.members') && !can(user, 'users.manage')) view = { type };
   else if (type === 'project' && id(a)) {
     const tab = TABS.includes(b) ? b : 'board';

@@ -113,13 +113,18 @@ export function markNewcomers(conversation) {
   for (const id of memberIds(conversation)) insert.run(conversation.id, id, last);
 }
 
-// The others' messages after the user's read position, and how many of them mention the user. A system line (v34)
-// counts only for the people it is about (added to the group, made its owner), never as a mention.
+// @tất cả (v36): a mention of everyone in a group, project or team chat, stored as @[all](0) whatever the sender's
+// language; the client shows it in the reader's ("@tất cả" / "@everyone").
+export const EVERYONE_ID = 0;
+export const EVERYONE_MARKUP = '@[all](0)';
+
+// The others' messages after the user's read position, and how many of them mention the user (by name or @tất cả).
+// A system line (v34) counts only for the people it is about (added to the group, made its owner), never as a mention.
 export function unreadOf(conversationId, userId, lastReadId) {
   const about = `%](${userId})%`;
   return db
     .prepare(
-      `SELECT COUNT(*) AS unread, COALESCE(SUM(kind IS NULL AND body LIKE ?), 0) AS mentions FROM messages
+      `SELECT COUNT(*) AS unread, COALESCE(SUM(kind IS NULL AND (body LIKE ? OR body LIKE '%](0)%')), 0) AS mentions FROM messages
        WHERE conversation_id = ? AND id > ? AND user_id IS NOT ? AND deleted_at IS NULL AND (kind IS NULL OR body LIKE ?)`
     )
     .get(about, conversationId, lastReadId, userId, about);
