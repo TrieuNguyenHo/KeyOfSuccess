@@ -771,4 +771,38 @@ export default {
   'Cần ghi lý do khi chọn Không xử lý': "Give a reason when choosing Won't do",
   'Nội dung quá dài': 'The text is too long',
   'Chỉ người viết mới xoá được nội dung này': 'Only the author can delete this',
+
+  // Chat (v32): interface
+  'Tin nhắn': 'Messages',
+  'Nhắn tin riêng với người khác cũng có quyền này.': 'Private messages with other people who hold this permission too.',
+  'Tin nhắn đã bị xoá': 'Message deleted',
+  '📎 File': '📎 File',
+  'Bạn: {text}': 'You: {text}',
+  'Các cuộc trò chuyện': 'Conversations',
+  '+ Tin nhắn mới': '+ New message',
+  'Chưa có tin nhắn nào.': 'No messages yet.',
+  '{count} tin chưa đọc': '{count} unread',
+  'Chọn một cuộc trò chuyện, hoặc bấm "+ Tin nhắn mới" để nhắn cho đồng nghiệp.':
+    'Pick a conversation, or click "+ New message" to write to a colleague.',
+  'Tin nhắn mới': 'New message',
+  'Tìm theo tên hoặc team': 'Search by name or team',
+  'Tìm người': 'Find someone',
+  'Không tìm thấy ai.': 'Nobody found.',
+  'Xoá tin nhắn này?': 'Delete this message?',
+  'Người kia sẽ thấy "Tin nhắn đã bị xoá". Không hoàn tác được.': 'The other person will see "Message deleted". This cannot be undone.',
+  'Không tìm thấy cuộc trò chuyện này.': 'This conversation was not found.',
+  'Xem tin nhắn cũ hơn': 'Show older messages',
+  'Chưa có tin nhắn nào. Gửi lời chào đầu tiên!': 'No messages yet. Say hello!',
+  'Sửa tin nhắn': 'Edit message',
+  '· Đã xem': '· Seen',
+  'Nhập tin nhắn… Enter để gửi, Shift+Enter để xuống dòng': 'Type a message… Enter sends, Shift+Enter for a new line',
+  'Người này hiện không nhận được tin nhắn. Các tin cũ vẫn ở đây.': 'This person cannot receive messages now. The earlier ones stay here.',
+  'Mục "Tin nhắn" trên thanh bên: bấm "+ Tin nhắn mới", chọn đồng nghiệp rồi nhắn. Enter để gửi, Shift+Enter để xuống dòng; dán ảnh hoặc bấm 📎 để gửi file. Tin nhắn chỉ hai người trong cuộc đọc được, kể cả Manager hay Director cũng không xem được. Bạn sửa / xoá được tin của mình; "Đã xem" hiện khi người kia đã đọc. Số tin chưa đọc hiện trên mục "Tin nhắn", không vào chuông. Tin nhắn tự xoá sau 6 tháng.':
+    '"Messages" in the sidebar: click "+ New message", pick a colleague and write. Enter sends, Shift+Enter starts a new line; paste an image or click 📎 to send a file. Only the two people in a conversation can read it: not even a Manager or the Director can. You can edit or delete your own messages; "Seen" shows once the other person has read them. Unread messages are counted on "Messages", not in the bell. Messages are deleted after 6 months.',
+
+  // Chat (v32): server messages
+  'Không nhắn tin được cho người này': 'You cannot message this person',
+  'Tin nhắn không được để trống': 'The message cannot be empty',
+  'Tin nhắn quá dài': 'The message is too long',
+  'Người này hiện không nhận được tin nhắn': 'This person cannot receive messages now',
 };

@@ -31,6 +31,16 @@ router.get('/notifications', (req, res) => {
       .get(req.user.id).n;
   const unread = unreadOf(false);
   const unreadFeedback = unreadOf(true);
+  // Chat messages are no notifications: the others' messages after what the user last read (v32).
+  const unreadChat = can(req.user, 'chat.use')
+    ? db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM messages m
+           JOIN conversation_members cm ON cm.conversation_id = m.conversation_id AND cm.user_id = ?
+           WHERE m.id > cm.last_read_id AND m.user_id IS NOT ? AND m.deleted_at IS NULL`
+        )
+        .get(req.user.id, req.user.id).n
+    : 0;
   // Accounts waiting for this user's approval: all of them with users.manage 'all'; with 'team', those of the user's
   // teams and those with no team; with teams.members only, the self sign-ups without a team, which they may approve
   // into one of their teams (invitations wait for users.manage).
@@ -53,7 +63,7 @@ router.get('/notifications', (req, res) => {
       )
       .get().n;
   }
-  res.json({ items, unread, unreadFeedback, pendingUsers });
+  res.json({ items, unread, unreadFeedback, unreadChat, pendingUsers });
 });
 
 // Body { id } marks one notification read; an empty body marks all of the bell's (feedback ones are read by opening

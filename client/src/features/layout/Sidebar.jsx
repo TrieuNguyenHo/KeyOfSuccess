@@ -16,6 +16,7 @@ const ICON_PATHS = {
   admin: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
   guide: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01',
   feedback: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2zM8 9h8M8 13h5',
+  chat: 'M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 1 1 21 11.5zM8 11.5h.01M12 11.5h.01M16 11.5h.01',
   folder: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
 };
 
@@ -136,6 +137,12 @@ export default function Sidebar({
         <NavItem active={view.type === 'my'} onClick={() => go({ type: 'my' })} icon="tasks">
           {tr('Task của tôi')}
         </NavItem>
+        {can(user, 'chat.use') && (
+          // Unread messages count here, never in the bell (v32).
+          <NavItem active={view.type === 'chat'} onClick={() => go({ type: 'chat' })} icon="chat" badge={notifications.unreadChat}>
+            {tr('Tin nhắn')}
+          </NavItem>
+        )}
         {(can(user, 'people.watch') || projects.length > 0) && (
           // Sub-menu: the department / team overview (not for Members), then one dashboard per project.
           <li {...flyoutProps('dashboard')}>

@@ -351,6 +351,27 @@ const ARTS = {
       </g>
     </>
   ),
+  // Chat: a colleague's message on the left, the answer typed and sent on the right, a picture after it.
+  chat: () => (
+    <>
+      <Win />
+      <g className="ga-a-seq">
+        <circle className="ga-chipfill" cx="28" cy="28" r="9" />
+        <rect className="ga-col" x="42" y="18" width="110" height="22" rx="11" />
+        <Line x={52} y={26} w={84} />
+      </g>
+      <g className="ga-a-seq ga-d2">
+        <rect className="ga-brand" x="104" y="48" width="116" height="22" rx="11" />
+        <Line x={114} y={56} w={90} c="ga-white" />
+      </g>
+      <g className="ga-a-seq ga-d4">
+        <rect className="ga-col" x="160" y="76" width="60" height="22" rx="6" />
+        <path className="ga-chipfill" d="M166 94 l12 -12 l8 8 l5 -5 l11 9 z" />
+      </g>
+      <rect className="ga-field" x="20" y="108" width="200" height="26" rx="13" />
+      <rect className="ga-head ga-a-type ga-d1" x="34" y="119" width="96" height="4" rx="2" />
+    </>
+  ),
   // Notifications: the bell rings and a notice arrives.
   notify: () => (
     <>

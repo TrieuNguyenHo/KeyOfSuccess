@@ -43,9 +43,10 @@ const notificationsTable = (name) => `
     CHECK (task_id IS NOT NULL OR requirement_id IS NOT NULL OR feedback_id IS NOT NULL)
   );`;
 
-// Files attached to a task, a requirement or (v31) a feedback; the bytes are UPLOAD_DIR/<stored_name>. A file sent
-// with a comment (v13) or a feedback message (v31) also points at it and goes with it. Cascades leave the files
-// behind; sweepUploads() removes them. Shared by the schema below and the v31 migration, which rebuilds the table.
+// Files attached to a task, a requirement or (v31) a feedback, or sent in a chat message (v32); the bytes are
+// UPLOAD_DIR/<stored_name>. A file sent with a comment (v13) or a feedback message (v31) also points at it and goes
+// with it. Cascades leave the files behind; sweepUploads() removes them. Shared by the schema below and the v31 and
+// v32 migrations, which rebuild the table.
 const attachmentsTable = (name) => `
   CREATE TABLE IF NOT EXISTS ${name} (
     id INTEGER PRIMARY KEY,
@@ -55,13 +56,14 @@ const attachmentsTable = (name) => `
     comment_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
     requirement_comment_id INTEGER REFERENCES requirement_comments(id) ON DELETE CASCADE,
     feedback_message_id INTEGER REFERENCES feedback_messages(id) ON DELETE CASCADE,
+    message_id INTEGER REFERENCES messages(id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     name TEXT NOT NULL,
     mime TEXT NOT NULL,
     size INTEGER NOT NULL,
     stored_name TEXT NOT NULL UNIQUE,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    CHECK ((task_id IS NOT NULL) + (requirement_id IS NOT NULL) + (feedback_id IS NOT NULL) = 1)
+    CHECK ((task_id IS NOT NULL) + (requirement_id IS NOT NULL) + (feedback_id IS NOT NULL) + (message_id IS NOT NULL) = 1)
   );`;
 
 const usersTable = (name) => `
@@ -229,6 +231,37 @@ db.exec(`
     from_status TEXT NOT NULL,
     to_status TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Chat (v32, decided 2026-10-08): one-to-one conversations between people at work. Private: only their two
+  -- members read them (nobody else, Managers, Directors and root included). direct_key is "<smaller id>:<larger id>",
+  -- so a pair has one conversation. kind is 'direct' only for now (no CHECK, so group chats need no rebuild).
+  CREATE TABLE IF NOT EXISTS conversations (
+    id INTEGER PRIMARY KEY,
+    kind TEXT NOT NULL DEFAULT 'direct',
+    direct_key TEXT UNIQUE,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    last_message_at TEXT
+  );
+
+  -- last_read_id: the last message the member has seen; the unread ones are the others' messages after it.
+  CREATE TABLE IF NOT EXISTS conversation_members (
+    conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_read_id INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (conversation_id, user_id)
+  );
+
+  -- Kept 6 months (purgeMessages() in lib/chat.js). Deleting one by its author keeps the row (deleted_at, body
+  -- emptied, files removed), so the thread shows "Tin nhắn đã bị xoá".
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY,
+    conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    body TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    edited_at TEXT,
+    deleted_at TEXT
   );
 
   ${attachmentsTable('attachments')}
@@ -760,7 +793,32 @@ if (schemaVersion() < 31) {
   });
 }
 
+// v32: chat (tables created above). Files may now belong to a chat message, so attachments is rebuilt again with the
+// wider CHECK (ids kept). The word boundary tells message_id from feedback_message_id.
+if (schemaVersion() < 32) {
+  transaction(() => {
+    const sql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'attachments'").get().sql;
+    if (!/\bmessage_id\b/.test(sql)) {
+      const columns =
+        'id, task_id, requirement_id, feedback_id, comment_id, requirement_comment_id, feedback_message_id, user_id, name, mime, size, stored_name, created_at';
+      db.exec(`
+        ${attachmentsTable('attachments_v32')}
+        INSERT INTO attachments_v32 (${columns}) SELECT ${columns} FROM attachments;
+        DROP TABLE attachments;
+        ALTER TABLE attachments_v32 RENAME TO attachments;
+        CREATE INDEX IF NOT EXISTS idx_attachments_task ON attachments(task_id);
+        CREATE INDEX IF NOT EXISTS idx_attachments_requirement ON attachments(requirement_id);
+      `);
+    }
+    db.exec('PRAGMA user_version = 32');
+  });
+}
+
 db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, id);
+  CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
+  CREATE INDEX IF NOT EXISTS idx_conversation_members_user ON conversation_members(user_id);
+  CREATE INDEX IF NOT EXISTS idx_attachments_message ON attachments(message_id);
   CREATE INDEX IF NOT EXISTS idx_feedback_user ON feedback(user_id);
   CREATE INDEX IF NOT EXISTS idx_feedback_messages ON feedback_messages(feedback_id);
   CREATE INDEX IF NOT EXISTS idx_feedback_events ON feedback_events(feedback_id);

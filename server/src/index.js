@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { CLIENT_DIST, HOST, PORT } from './config.js';
 import { scheduleBackups } from './lib/backup.js';
+import { purgeMessages } from './lib/chat.js';
 import { purgeTaskEvents } from './lib/history.js';
 import { seedPermissions } from './lib/permissions.js';
 import { MAX_UPLOAD_MB, sweepUploads } from './lib/uploads.js';
@@ -12,6 +13,7 @@ import admin from './routes/admin.js';
 import attachments from './routes/attachments.js';
 import auth, { requireUser } from './routes/auth.js';
 import channels from './routes/channels.js';
+import chat from './routes/chat.js';
 import comments from './routes/comments.js';
 import dashboard from './routes/dashboard.js';
 import feedback from './routes/feedback.js';
@@ -36,7 +38,7 @@ app.use(express.json());
 app.use('/api', health, auth);
 // Every route mounted below requires a valid token.
 app.use('/api', requireUser);
-for (const router of [me, teams, channels, admin, permissions, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications, feedback]) {
+for (const router of [me, teams, channels, admin, permissions, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications, feedback, chat]) {
   app.use('/api', router);
 }
 
@@ -62,10 +64,15 @@ app.use((err, req, res, next) => {
 // Every role holds every permission; new ones start with their default.
 seedPermissions();
 
-// Housekeeping: task history older than 30 days (at startup, then daily), and files whose row is gone.
-purgeTaskEvents();
-setInterval(purgeTaskEvents, 24 * 60 * 60 * 1000).unref();
-sweepUploads();
+// Housekeeping, at startup then daily: task history older than 30 days, chat messages older than 6 months, and files
+// whose row is gone.
+function housekeeping() {
+  purgeTaskEvents();
+  purgeMessages();
+  sweepUploads();
+}
+housekeeping();
+setInterval(housekeeping, 24 * 60 * 60 * 1000).unref();
 scheduleBackups();
 
 app.listen(PORT, HOST, () => console.log(`API đang chạy tại http://${HOST ?? 'localhost'}:${PORT}`));
