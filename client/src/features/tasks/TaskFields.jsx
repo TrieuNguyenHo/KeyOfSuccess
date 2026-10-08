@@ -104,7 +104,7 @@ export default function TaskFields({
           onChange={(e) => update({ assignee_id: e.target.value ? Number(e.target.value) : null })}
         >
           <option value="">{tr('Chưa giao')}</option>
-          <optgroup label={tr('Thành viên project')}>
+          <optgroup label={tr('Thành viên của project')}>
             {assignees
               .filter((u) => u.is_member)
               .map((u) => (
