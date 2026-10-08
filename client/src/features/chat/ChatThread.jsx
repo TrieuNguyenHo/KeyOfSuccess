@@ -8,8 +8,10 @@ import { locale, tr } from '../../i18n.js';
 import { CommentComposer } from '../comments/CommentList.jsx';
 import { FileList, PREVIEW_TYPES } from '../comments/Attachments.jsx';
 import ChatImages from './ChatMedia.jsx';
-import ChatMembers from './ChatMembers.jsx';
-import { ChatAvatar, REACTIONS, chatTitle, personLine, systemText } from './ChatParts.jsx';
+import ChatInfo from './ChatInfo.jsx';
+import { ChatAvatar, EVERYONE_ID, REACTIONS, chatTitle, personLine, systemText } from './ChatParts.jsx';
+import ForwardDialog from './ForwardDialog.jsx';
+import TaskFromMessage from './TaskFromMessage.jsx';
 
 // How close to the bottom (px) still counts as reading the latest messages, so new ones scroll into view.
 const STICK_PX = 80;
@@ -56,9 +58,11 @@ function MessageText({ body, tasks, onOpenTask, meId }) {
       {body.split(MENTION_RE).map((part, i) => {
         const mention = MENTION_PARTS.exec(part);
         if (mention) {
+          const id = Number(mention[2]);
+          // @tất cả (v36) mentions every reader.
           return (
-            <span key={i} className={`mention ${Number(mention[2]) === meId ? 'me' : ''}`}>
-              @{mention[1]}
+            <span key={i} className={`mention ${id === meId || id === EVERYONE_ID ? 'me' : ''}`}>
+              @{id === EVERYONE_ID ? tr('tất cả') : mention[1]}
             </span>
           );
         }
@@ -78,7 +82,8 @@ const merge = (old, fresh) => (fresh.length ? [...old.filter((m) => m.id < fresh
 // One conversation: messages oldest first (older ones on request); the author edits or deletes theirs, anyone answers
 // one; files go with a message. Reading it marks it read (while the tab is visible). onChanged() after a change (the
 // list reorders), onRead() after marking read, onLeft() after leaving a group, onOpenTask(id) for a linked task.
-export default function ChatThread({ conversationId, onBack, onChanged, onRead, onLeft, onOpenTask, onError }) {
+// focusMessageId: a message to open the conversation at (a search result, a link from a task), flashed.
+export default function ChatThread({ conversationId, focusMessageId, onBack, onChanged, onRead, onLeft, onOpenTask, onError }) {
   const me = useContext(CurrentUser);
   const [chat, setChat] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -86,7 +91,11 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
   const [missing, setMissing] = useState(false);
   const [editing, setEditing] = useState(null); // { id, text, mentions, hasFiles }
   const [replyTo, setReplyTo] = useState(null);
-  const [showMembers, setShowMembers] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [showPins, setShowPins] = useState(false);
+  const [menuFor, setMenuFor] = useState(null); // the message whose "⋯" menu is open
+  const [forwarding, setForwarding] = useState(null);
+  const [tasking, setTasking] = useState(null); // the message a task is being made from
   const [flash, setFlash] = useState(null);
   const [visible, setVisible] = useState(document.visibilityState === 'visible');
   const [picking, setPicking] = useState(null); // the message whose reaction picker is open
@@ -100,17 +109,28 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
   const lastNewest = useRef(0);
   const fromBottom = useRef(null); // set while older messages load, to keep the view where it was
   const loadedOlder = useRef(false);
+  const pendingFocus = useRef(focusMessageId ?? null); // a message to scroll to and flash once it is shown
 
   const load = useCallback(async () => {
     try {
-      const [summary, page] = await Promise.all([api(`/chats/${conversationId}`), api(`/chats/${conversationId}/messages`)]);
-      if (unreadFrom.current === undefined) {
-        const first = page.messages.find((m) => m.id > summary.last_read_id && m.user_id !== me.id);
+      const opening = unreadFrom.current === undefined;
+      // Opened at a message: the page around it rather than the latest one.
+      const focus = opening ? pendingFocus.current : null;
+      const [summary, page] = await Promise.all([
+        api(`/chats/${conversationId}`),
+        api(`/chats/${conversationId}/messages${focus ? `?around=${focus}` : ''}`),
+      ]);
+      if (opening) {
+        const first = !focus && page.messages.find((m) => m.id > summary.last_read_id && m.user_id !== me.id);
         unreadFrom.current = first?.id ?? null;
         jumpToUnread.current = Boolean(first);
+        if (focus) {
+          loadedOlder.current = true;
+          setHasMore(page.has_more);
+        }
       }
       setChat(summary);
-      setMessages((old) => merge(old, page.messages));
+      setMessages((old) => (focus ? page.messages : merge(old, page.messages)));
       if (!loadedOlder.current) setHasMore(page.has_more);
     } catch (e) {
       setMissing(true);
@@ -145,8 +165,17 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
     const el = scroller.current;
     if (!el) return;
     const newest = messages.at(-1)?.id ?? 0;
+    const target = pendingFocus.current && document.getElementById(`chat-msg-${pendingFocus.current}`);
     const divider = jumpToUnread.current && document.getElementById('chat-unread');
-    if (divider) {
+    if (target) {
+      el.scrollTop += target.getBoundingClientRect().top - el.getBoundingClientRect().top - el.clientHeight / 3;
+      const id = pendingFocus.current;
+      pendingFocus.current = null;
+      setFlash(id);
+      setTimeout(() => setFlash(null), FLASH_MS);
+      stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
+      setAtBottom(stick.current);
+    } else if (divider) {
       el.scrollTop += divider.getBoundingClientRect().top - el.getBoundingClientRect().top - 8;
       jumpToUnread.current = false;
       stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_PX;
@@ -161,7 +190,7 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
       if (arrived) setNewBelow((n) => n + arrived);
     }
     lastNewest.current = newest;
-  }, [messages, showMembers, me.id]);
+  }, [messages, showInfo, me.id]);
 
   function scrollToBottom() {
     const el = scroller.current;
@@ -195,14 +224,14 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
     }
   }
 
-  // Runs a request, then reloads the thread (scrolled to the latest) and the list.
-  async function act(request) {
+  // Runs a request, then reloads the thread (scrolled to the latest, unless keepScroll) and the list.
+  async function act(request, { keepScroll = false } = {}) {
     try {
       await request();
     } catch (e) {
       onError(e.message);
     }
-    stick.current = true;
+    if (!keepScroll) stick.current = true;
     await load();
     onChanged();
   }
@@ -228,20 +257,40 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
 
   const toggleMute = () => act(() => api(`/chats/${conversationId}/mute`, { method: 'POST', body: { muted: !chat.muted } }));
 
-  // Scrolls to an answered message when it is loaded, and flashes it.
-  function jumpTo(id) {
+  // Scrolls to a message and flashes it; one not loaded yet comes with the page around it.
+  async function jumpTo(id) {
     const el = document.getElementById(`chat-msg-${id}`);
-    if (!el) return;
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    setFlash(id);
-    setTimeout(() => setFlash(null), FLASH_MS);
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      setFlash(id);
+      setTimeout(() => setFlash(null), FLASH_MS);
+      return;
+    }
+    try {
+      const page = await api(`/chats/${conversationId}/messages?around=${id}`);
+      pendingFocus.current = id;
+      loadedOlder.current = true;
+      stick.current = false;
+      setHasMore(page.has_more);
+      setMessages(page.messages);
+    } catch (e) {
+      onError(e.message);
+    }
   }
+
+  // Another message to show in the open conversation (a search result clicked while it is open).
+  useEffect(() => {
+    if (focusMessageId && chat) jumpTo(focusMessageId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the target changes
+  }, [focusMessageId]);
+
+  const pin = (m, pinned) => act(() => api(`/chat-messages/${m.id}/pin`, { method: 'POST', body: { pinned } }), { keepScroll: true });
 
   if (missing && !chat) return <p className="muted chat-empty">{tr('Không tìm thấy cuộc trò chuyện này.')}</p>;
   if (!chat) return <p className="muted chat-empty">{tr('Đang tải…')}</p>;
 
   const direct = chat.kind === 'direct';
-  const mentionable = direct ? [] : chat.members.filter((m) => m.id !== me.id && m.at_work);
+  const mentionable = direct ? [] : [{ id: EVERYONE_ID, name: tr('tất cả') }, ...chat.members.filter((m) => m.id !== me.id && m.at_work)];
   const lastOwn = messages.findLast((m) => m.user_id === me.id && !m.deleted_at && !m.kind);
   let subtitle = direct && chat.other ? personLine(chat.other) : '';
   if (chat.kind === 'group') subtitle = tr('Nhóm · {count} người', { count: chat.members.length });
@@ -284,15 +333,54 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
         >
           {chat.muted ? '🔕' : '🔔'}
         </button>
-        {!direct && (
-          <button className={`btn small ${showMembers ? 'primary' : ''}`} onClick={() => setShowMembers((s) => !s)} aria-expanded={showMembers}>
-            {tr('Thành viên')}
-          </button>
-        )}
+        <button className={`btn small ${showInfo ? 'primary' : ''}`} onClick={() => setShowInfo((s) => !s)} aria-expanded={showInfo}>
+          {tr('Thông tin')}
+        </button>
       </div>
 
-      {showMembers ? (
-        <ChatMembers chat={chat} act={act} onLeft={onLeft} onError={onError} />
+      {!showInfo && chat.pinned.length > 0 && (
+        <div className="chat-pins">
+          <div className="chat-pins-top">
+            <button className="chat-pin" onClick={() => jumpTo(chat.pinned[0].id)} title={tr('Xem tin đã ghim')}>
+              <span aria-hidden="true">📌</span>
+              <span className="ellipsis">
+                <b>{chat.pinned[0].user_name ?? tr('Người dùng đã xoá')}:</b> {chat.pinned[0].body || tr('📎 File')}
+              </span>
+            </button>
+            {chat.pinned.length > 1 && (
+              <button className="link-btn" onClick={() => setShowPins((v) => !v)} aria-expanded={showPins}>
+                {showPins ? tr('Thu gọn') : tr('+{count} tin ghim', { count: chat.pinned.length - 1 })}
+              </button>
+            )}
+          </div>
+          {showPins &&
+            chat.pinned.map((p) => (
+              <div key={p.id} className="chat-pins-row">
+                <button className="chat-pin" onClick={() => jumpTo(p.id)}>
+                  <span className="ellipsis">
+                    <b>{p.user_name ?? tr('Người dùng đã xoá')}:</b> {p.body || tr('📎 File')}
+                  </span>
+                </button>
+                <span className="muted small">{tr('ghim bởi {name}', { name: p.pinned_by_name ?? tr('Người dùng đã xoá') })}</span>
+                <button className="link-btn" onClick={() => pin(p, false)}>
+                  {tr('Bỏ ghim')}
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {showInfo ? (
+        <ChatInfo
+          chat={chat}
+          act={act}
+          onLeft={onLeft}
+          onJump={(id) => {
+            setShowInfo(false);
+            jumpTo(id);
+          }}
+          onError={onError}
+        />
       ) : (
         <div className="chat-messages-wrap">
           <div
@@ -348,6 +436,7 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
                     <div className="chat-msg-main">
                       {showName && <span className="chat-sender">{m.user_name ?? tr('Người dùng đã xoá')}</span>}
                       <div className={`chat-bubble ${m.deleted_at ? 'deleted' : ''} ${mediaOnly ? 'media-only' : ''}`}>
+                        {m.forwarded ? <span className="chat-forwarded">{tr('↪ Đã chuyển tiếp')}</span> : null}
                         {m.reply && (
                           <button type="button" className="chat-quote" onClick={() => jumpTo(m.reply.id)}>
                             <b>{m.reply.user_name ?? tr('Người dùng đã xoá')}</b>
@@ -405,6 +494,7 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
                       <div className="chat-meta muted small">
                         <span title={parseTime(m.created_at).toLocaleString(locale())}>{timeOf(m.created_at)}</span>
                         {m.edited_at && !m.deleted_at && <span> {tr('· đã sửa')}</span>}
+                        {m.pinned_at && <span title={tr('Đã ghim')}> · 📌</span>}
                         {direct && m.id === lastOwn?.id && chat.other_last_read_id >= m.id && <span> {tr('· Đã xem')}</span>}
                         {!m.deleted_at && editing?.id !== m.id && (
                           <span className="chat-actions">
@@ -422,19 +512,15 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
                                 {tr('Trả lời')}
                               </button>
                             )}
-                            {own && (
-                              <>
-                                <button
-                                  className="link-btn"
-                                  onClick={() => setEditing({ id: m.id, hasFiles: m.attachments.length > 0, ...fromMentionMarkup(m.body) })}
-                                >
-                                  {tr('Sửa')}
-                                </button>
-                                <button className="link-btn danger" onClick={() => remove(m)}>
-                                  {tr('Xoá')}
-                                </button>
-                              </>
-                            )}
+                            <button
+                              className="link-btn"
+                              onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}
+                              aria-expanded={menuFor === m.id}
+                              title={tr('Thêm thao tác')}
+                              aria-label={tr('Thêm thao tác')}
+                            >
+                              ⋯
+                            </button>
                           </span>
                         )}
                       </div>
@@ -445,6 +531,60 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
                               {emoji}
                             </button>
                           ))}
+                        </div>
+                      )}
+                      {menuFor === m.id && (
+                        <div className="chat-menu" role="menu">
+                          <button
+                            role="menuitem"
+                            onClick={() => {
+                              setMenuFor(null);
+                              pin(m, !m.pinned_at);
+                            }}
+                          >
+                            {m.pinned_at ? tr('Bỏ ghim') : tr('Ghim')}
+                          </button>
+                          <button
+                            role="menuitem"
+                            onClick={() => {
+                              setMenuFor(null);
+                              setForwarding(m);
+                            }}
+                          >
+                            {tr('Chuyển tiếp')}
+                          </button>
+                          <button
+                            role="menuitem"
+                            onClick={() => {
+                              setMenuFor(null);
+                              setTasking(m);
+                            }}
+                          >
+                            {tr('Tạo task')}
+                          </button>
+                          {own && (
+                            <>
+                              <button
+                                role="menuitem"
+                                onClick={() => {
+                                  setMenuFor(null);
+                                  setEditing({ id: m.id, hasFiles: m.attachments.length > 0, ...fromMentionMarkup(m.body) });
+                                }}
+                              >
+                                {tr('Sửa')}
+                              </button>
+                              <button
+                                role="menuitem"
+                                className="danger"
+                                onClick={() => {
+                                  setMenuFor(null);
+                                  remove(m);
+                                }}
+                              >
+                                {tr('Xoá')}
+                              </button>
+                            </>
+                          )}
                         </div>
                       )}
                       {seen.length > 0 && (
@@ -469,7 +609,7 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
         </div>
       )}
 
-      {showMembers ? null : chat.can_send ? (
+      {showInfo ? null : chat.can_send ? (
         <div className="chat-composer">
           {replyTo && (
             <div className="chat-replying">
@@ -501,6 +641,17 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
       ) : (
         <p className="muted chat-closed">{tr('Người này hiện không nhận được tin nhắn. Các tin cũ vẫn ở đây.')}</p>
       )}
+      {forwarding && (
+        <ForwardDialog
+          message={forwarding}
+          onClose={() => {
+            setForwarding(null);
+            onChanged();
+          }}
+          onError={onError}
+        />
+      )}
+      {tasking && <TaskFromMessage message={tasking} conversationId={conversationId} onCreated={onOpenTask} onClose={() => setTasking(null)} />}
     </div>
   );
 }

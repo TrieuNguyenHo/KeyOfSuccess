@@ -12,12 +12,12 @@ import { pushChange, pushChat } from '../lib/live.js';
 import { can } from '../lib/permissions.js';
 import { canEditRequirements, findRequirement } from '../lib/requirements.js';
 import { isRoot } from '../lib/roles.js';
+import { IMAGE_TYPES } from '../lib/uploads.js';
 
 const router = express.Router();
 
-// Only these are served with their own type (shown inline); anything else downloads as plain bytes, so an
+// Only IMAGE_TYPES are served with their own type (shown inline); anything else downloads as plain bytes, so an
 // uploaded HTML or SVG file never runs as a page of the app.
-const INLINE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 // Loads an attachment the user can see (else 404), with whether they may delete it: the uploader, task admins
 // for a task's files, requirement editors for a requirement's. A feedback's own files are deleted by root, or by
@@ -63,7 +63,7 @@ function loadAttachment(req, res) {
 router.get('/attachments/:id', (req, res) => {
   const attachment = loadAttachment(req, res);
   if (!attachment) return;
-  const inline = INLINE_TYPES.includes(attachment.mime);
+  const inline = IMAGE_TYPES.includes(attachment.mime);
   res.set({
     'Content-Type': inline ? attachment.mime : 'application/octet-stream',
     'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(attachment.name)}`,

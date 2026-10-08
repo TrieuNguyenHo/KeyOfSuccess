@@ -301,7 +301,8 @@ export default function Workspace({ user, onLogout, onUserChange }) {
       <ChatPage
         key={navCount}
         conversationId={view.id}
-        onOpen={(id) => setView({ type: 'chat', ...(id && { id }) })}
+        focusMessageId={view.messageId}
+        onOpen={(id, messageId) => setView({ type: 'chat', ...(id && { id }), ...(messageId && { messageId }) })}
         onRead={loadNotifications}
         onOpenTask={setOpenTaskId}
       />

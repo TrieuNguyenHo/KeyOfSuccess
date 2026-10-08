@@ -1,7 +1,7 @@
 // Attached files on disk (UPLOAD_DIR) and their rows in `attachments`.
 import express from 'express';
 import { randomBytes } from 'node:crypto';
-import { readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { UPLOAD_DIR, db } from '../db.js';
 import { findTask } from './access.js';
@@ -13,6 +13,8 @@ import { pushChange, pushChat } from './live.js';
 import { placeholders } from './util.js';
 
 export const MAX_UPLOAD_MB = 25;
+// Only these are served with their own type (shown inline); anything else downloads as plain bytes.
+export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 export const ATTACHMENT_SELECT = `SELECT a.id, a.task_id, a.requirement_id, a.feedback_id, a.comment_id, a.requirement_comment_id,
   a.feedback_message_id, a.message_id, a.user_id, a.name, a.mime, a.size, a.created_at, u.name AS user_name
   FROM attachments a LEFT JOIN users u ON u.id = a.user_id`;
@@ -44,6 +46,19 @@ export function sweepUploads() {
       .map((r) => r.stored_name)
   );
   for (const name of readdirSync(UPLOAD_DIR)) if (!kept.has(name)) rmSync(join(UPLOAD_DIR, name), { force: true });
+}
+
+// Copies files (attachment rows, with stored_name) to a task (taskId) or a chat message (message_id), uploaded by
+// `user`: the bytes go under new names, so the original and the copy are deleted on their own.
+export function copyAttachments(files, target, user) {
+  const insert = db.prepare(
+    `INSERT INTO attachments (task_id, message_id, user_id, name, mime, size, stored_name) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  );
+  for (const f of files) {
+    const storedName = randomBytes(16).toString('hex');
+    copyFileSync(join(UPLOAD_DIR, f.stored_name), join(UPLOAD_DIR, storedName));
+    insert.run(target.taskId ?? null, target.message_id ?? null, user.id, f.name, f.mime, f.size, storedName);
+  }
 }
 
 // The client sends the bytes as application/octet-stream (so express.json leaves them alone), with the file
