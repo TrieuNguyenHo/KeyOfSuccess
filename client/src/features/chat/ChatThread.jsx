@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { api, onChatChange } from '../../api.js';
+import { Avatar } from '../../components/Avatar.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
 import { askConfirm } from '../../components/Dialog.jsx';
 import { MentionTextarea, fromMentionMarkup, toMentionMarkup } from '../../components/Mentions.jsx';
@@ -7,7 +8,7 @@ import { locale, tr } from '../../i18n.js';
 import { CommentComposer } from '../comments/CommentList.jsx';
 import { FileList } from '../comments/Attachments.jsx';
 import ChatMembers from './ChatMembers.jsx';
-import { ChatAvatar, chatTitle, personLine } from './ChatParts.jsx';
+import { ChatAvatar, chatTitle, personLine, systemText } from './ChatParts.jsx';
 
 // How close to the bottom (px) still counts as reading the latest messages, so new ones scroll into view.
 const STICK_PX = 80;
@@ -193,7 +194,7 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
 
   const direct = chat.kind === 'direct';
   const mentionable = direct ? [] : chat.members.filter((m) => m.id !== me.id && m.at_work);
-  const lastOwn = messages.findLast((m) => m.user_id === me.id && !m.deleted_at);
+  const lastOwn = messages.findLast((m) => m.user_id === me.id && !m.deleted_at && !m.kind);
   let subtitle = direct && chat.other ? personLine(chat.other) : '';
   if (chat.kind === 'group') subtitle = tr('Nhóm · {count} người', { count: chat.members.length });
   if (chat.kind === 'project') subtitle = tr('Chat project · {count} người', { count: chat.members.length });
@@ -247,77 +248,96 @@ export default function ChatThread({ conversationId, onBack, onChanged, onRead, 
             const own = m.user_id === me.id;
             const prev = messages[i - 1];
             const newDay = !prev || dayOf(prev.created_at) !== dayOf(m.created_at);
-            // In a group, project or team, the sender's name heads each run of their messages.
-            const showName = !direct && !own && (newDay || prev.user_id !== m.user_id);
+            if (m.kind === 'system') {
+              return (
+                <Fragment key={m.id}>
+                  {newDay && <div className="chat-day">{dayLabel(m.created_at)}</div>}
+                  <div className="chat-system" title={parseTime(m.created_at).toLocaleString(locale())}>
+                    {systemText(m, me)}
+                  </div>
+                </Fragment>
+              );
+            }
+            // Someone else's run of messages starts with their avatar (and, in a group, project or team, their name);
+            // the rest of the run keeps the avatar's space, so the bubbles line up.
+            const runStart = !own && (newDay || prev.user_id !== m.user_id || Boolean(prev.kind));
+            const showName = !direct && runStart;
             return (
               <Fragment key={m.id}>
                 {newDay && <div className="chat-day">{dayLabel(m.created_at)}</div>}
                 <div id={`chat-msg-${m.id}`} className={`chat-msg ${own ? 'own' : ''} ${flash === m.id ? 'flash' : ''}`}>
-                  {showName && <span className="chat-sender">{m.user_name ?? tr('Người dùng đã xoá')}</span>}
-                  <div className={`chat-bubble ${m.deleted_at ? 'deleted' : ''}`}>
-                    {m.reply && (
-                      <button type="button" className="chat-quote" onClick={() => jumpTo(m.reply.id)}>
-                        <b>{m.reply.user_name ?? tr('Người dùng đã xoá')}</b>
-                        <span className="ellipsis">{m.reply.deleted ? tr('Tin nhắn đã bị xoá') : m.reply.body || tr('📎 File')}</span>
-                      </button>
-                    )}
-                    {m.deleted_at ? (
-                      tr('Tin nhắn đã bị xoá')
-                    ) : editing?.id === m.id ? (
-                      <form
-                        className="chat-edit"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          saveEdit();
-                        }}
-                        onKeyDown={(e) => e.key === 'Escape' && setEditing(null)}
-                      >
-                        <MentionTextarea
-                          value={editing.text}
-                          onChange={(text) => setEditing((ed) => ({ ...ed, text }))}
-                          users={mentionable}
-                          mentions={editing.mentions}
-                          onMentionsChange={(mentions) => setEditing((ed) => ({ ...ed, mentions }))}
-                          enterSends
-                        />
-                        <span className="chat-edit-buttons">
-                          <button type="button" className="btn small" onClick={() => setEditing(null)}>
-                            {tr('Huỷ')}
-                          </button>
-                          <button className="btn small primary">{tr('Lưu')}</button>
+                  {!own && (
+                    <span className={`chat-msg-avatar ${showName ? 'named' : ''}`}>
+                      {runStart && <Avatar name={m.user_name ?? '?'} userId={m.user_id ?? undefined} />}
+                    </span>
+                  )}
+                  <div className="chat-msg-main">
+                    {showName && <span className="chat-sender">{m.user_name ?? tr('Người dùng đã xoá')}</span>}
+                    <div className={`chat-bubble ${m.deleted_at ? 'deleted' : ''}`}>
+                      {m.reply && (
+                        <button type="button" className="chat-quote" onClick={() => jumpTo(m.reply.id)}>
+                          <b>{m.reply.user_name ?? tr('Người dùng đã xoá')}</b>
+                          <span className="ellipsis">{m.reply.deleted ? tr('Tin nhắn đã bị xoá') : m.reply.body || tr('📎 File')}</span>
+                        </button>
+                      )}
+                      {m.deleted_at ? (
+                        tr('Tin nhắn đã bị xoá')
+                      ) : editing?.id === m.id ? (
+                        <form
+                          className="chat-edit"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            saveEdit();
+                          }}
+                          onKeyDown={(e) => e.key === 'Escape' && setEditing(null)}
+                        >
+                          <MentionTextarea
+                            value={editing.text}
+                            onChange={(text) => setEditing((ed) => ({ ...ed, text }))}
+                            users={mentionable}
+                            mentions={editing.mentions}
+                            onMentionsChange={(mentions) => setEditing((ed) => ({ ...ed, mentions }))}
+                            enterSends
+                          />
+                          <span className="chat-edit-buttons">
+                            <button type="button" className="btn small" onClick={() => setEditing(null)}>
+                              {tr('Huỷ')}
+                            </button>
+                            <button className="btn small primary">{tr('Lưu')}</button>
+                          </span>
+                        </form>
+                      ) : (
+                        m.body && <MessageText body={m.body} tasks={m.tasks} onOpenTask={onOpenTask} meId={me.id} />
+                      )}
+                      {m.attachments.length > 0 && <FileList files={m.attachments} act={act} onError={onError} compact />}
+                    </div>
+                    <div className="chat-meta muted small">
+                      <span title={parseTime(m.created_at).toLocaleString(locale())}>{timeOf(m.created_at)}</span>
+                      {m.edited_at && !m.deleted_at && <span> {tr('· đã sửa')}</span>}
+                      {direct && m.id === lastOwn?.id && chat.other_last_read_id >= m.id && <span> {tr('· Đã xem')}</span>}
+                      {!m.deleted_at && editing?.id !== m.id && (
+                        <span className="chat-actions">
+                          {chat.can_send && (
+                            <button className="link-btn" onClick={() => setReplyTo(m)}>
+                              {tr('Trả lời')}
+                            </button>
+                          )}
+                          {own && (
+                            <>
+                              <button
+                                className="link-btn"
+                                onClick={() => setEditing({ id: m.id, hasFiles: m.attachments.length > 0, ...fromMentionMarkup(m.body) })}
+                              >
+                                {tr('Sửa')}
+                              </button>
+                              <button className="link-btn danger" onClick={() => remove(m)}>
+                                {tr('Xoá')}
+                              </button>
+                            </>
+                          )}
                         </span>
-                      </form>
-                    ) : (
-                      m.body && <MessageText body={m.body} tasks={m.tasks} onOpenTask={onOpenTask} meId={me.id} />
-                    )}
-                    {m.attachments.length > 0 && <FileList files={m.attachments} act={act} onError={onError} compact />}
-                  </div>
-                  <div className="chat-meta muted small">
-                    <span title={parseTime(m.created_at).toLocaleString(locale())}>{timeOf(m.created_at)}</span>
-                    {m.edited_at && !m.deleted_at && <span> {tr('· đã sửa')}</span>}
-                    {direct && m.id === lastOwn?.id && chat.other_last_read_id >= m.id && <span> {tr('· Đã xem')}</span>}
-                    {!m.deleted_at && editing?.id !== m.id && (
-                      <span className="chat-actions">
-                        {chat.can_send && (
-                          <button className="link-btn" onClick={() => setReplyTo(m)}>
-                            {tr('Trả lời')}
-                          </button>
-                        )}
-                        {own && (
-                          <>
-                            <button
-                              className="link-btn"
-                              onClick={() => setEditing({ id: m.id, hasFiles: m.attachments.length > 0, ...fromMentionMarkup(m.body) })}
-                            >
-                              {tr('Sửa')}
-                            </button>
-                            <button className="link-btn danger" onClick={() => remove(m)}>
-                              {tr('Xoá')}
-                            </button>
-                          </>
-                        )}
-                      </span>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               </Fragment>

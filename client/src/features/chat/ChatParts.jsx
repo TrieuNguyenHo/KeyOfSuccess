@@ -20,6 +20,27 @@ export function chatTitle(chat) {
   return chat.title;
 }
 
+// The text of a system line in a group (v34), for this reader: "Lan Anh đã thêm bạn, Minh vào nhóm".
+export function systemText(message, me) {
+  const actor = message.user_id === me.id ? tr('Bạn') : (message.user_name ?? tr('Người dùng đã xoá'));
+  const data = message.data ?? {};
+  const names = (data.people ?? []).map((p) => (p.id === me.id ? tr('bạn') : p.name)).join(', ');
+  switch (data.event) {
+    case 'created':
+      return tr('{actor} đã tạo nhóm "{title}" với {names}', { actor, title: data.title, names });
+    case 'added':
+      return tr('{actor} đã thêm {names} vào nhóm', { actor, names });
+    case 'removed':
+      return tr('{actor} đã bỏ {names} khỏi nhóm', { actor, names });
+    case 'left':
+      return data.owner ? tr('{actor} đã rời nhóm; {names} giờ quản lý nhóm', { actor, names }) : tr('{actor} đã rời nhóm', { actor });
+    case 'renamed':
+      return tr('{actor} đã đổi tên nhóm thành "{title}"', { actor, title: data.title });
+    default:
+      return '';
+  }
+}
+
 // The picture of a conversation: the person; a project's color; a team or group mark.
 export function ChatAvatar({ chat }) {
   if (chat.kind === 'direct') return <Avatar name={chat.other?.name ?? '?'} userId={chat.other?.id} small />;

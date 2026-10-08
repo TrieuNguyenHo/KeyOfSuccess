@@ -31,8 +31,15 @@
 .chat-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
 .chat-older { align-self: center; }
 .chat-day { align-self: center; margin: 12px 0 4px; color: var(--muted); font-size: 12px; }
-.chat-msg { max-width: min(75%, 560px); align-self: flex-start; display: flex; flex-direction: column; align-items: flex-start; }
-.chat-msg.own { align-self: flex-end; align-items: flex-end; }
+/* What happened to a group (v34): a quiet centred line, no bubble. */
+.chat-system { align-self: center; max-width: 90%; margin: 4px 0; text-align: center; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.chat-msg { max-width: min(75%, 560px); align-self: flex-start; display: flex; gap: 8px; }
+.chat-msg.own { align-self: flex-end; }
+.chat-msg-main { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.chat-msg.own .chat-msg-main { align-items: flex-end; }
+/* The sender's picture beside the first bubble of their run; level with the bubble when their name sits above it. */
+.chat-msg-avatar { flex: none; width: 28px; }
+.chat-msg-avatar.named { padding-top: 25px; }
 .chat-bubble { padding: 8px 12px; border-radius: var(--rounded-lg); background: var(--parchment); color: var(--ink); max-width: 100%; }
 /* Own messages: the filled control red with white text (4.76:1), as buttons. */
 .chat-msg.own .chat-bubble { background: var(--primary); color: var(--on-primary); }
