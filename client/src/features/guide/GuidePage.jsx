@@ -52,8 +52,8 @@ function sections(user) {
         ['comment', 'Comment', tr('Task và requirement đều có comments. Gõ @ rồi chọn tên để nhắc ai đó: họ nhận thông báo (chỉ nhắc được người xem được nội dung đó). Bạn sửa và xoá comment của mình.')],
         ['file', 'File', tr('Dán ảnh (Ctrl+V), kéo thả hoặc bấm 📎 để gửi file kèm comment; mục "Đính kèm" của task / requirement nhận file tối đa 25 MB.')],
         ['notify', tr('Thông báo'), can(user, 'notify.task_completed')
-          ? tr('Chuông thông báo trên thanh bên báo khi bạn được giao task, được nhắc tên, hoặc task của người trong team bạn phụ trách đã xong. Thông báo đến ngay, không cần tải lại trang.')
-          : tr('Chuông thông báo trên thanh bên báo khi bạn được giao task hoặc được nhắc tên. Thông báo đến ngay, không cần tải lại trang.')],
+          ? tr('Chuông thông báo trên thanh bên báo khi bạn được giao task, được nhắc tên, task của người trong team bạn phụ trách đã xong, hoặc task bạn theo dõi có comment, đổi hạn chót, người làm hay trạng thái. Bạn tự theo dõi task mình làm, mình tạo hoặc đã comment; nút "🔔 Theo dõi" trên task để bật / tắt. 8 giờ sáng thứ Hai đến thứ Sáu, chuông nhắc số task của bạn đã quá hạn, đến hạn hôm nay và ngày làm việc kế tiếp. Thông báo đến ngay, không cần tải lại trang.')
+          : tr('Chuông thông báo trên thanh bên báo khi bạn được giao task, được nhắc tên, hoặc task bạn theo dõi có comment, đổi hạn chót, người làm hay trạng thái. Bạn tự theo dõi task mình làm, mình tạo hoặc đã comment; nút "🔔 Theo dõi" trên task để bật / tắt. 8 giờ sáng thứ Hai đến thứ Sáu, chuông nhắc số task của bạn đã quá hạn, đến hạn hôm nay và ngày làm việc kế tiếp. Thông báo đến ngay, không cần tải lại trang.')],
       ],
     },
     {

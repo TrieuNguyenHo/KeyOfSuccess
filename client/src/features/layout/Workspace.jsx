@@ -218,7 +218,9 @@ export default function Workspace({ user, onLogout, onUserChange }) {
       await api('/notifications/read', { method: 'POST', body: { id: n.id } }).catch(() => {});
       loadNotifications();
     }
-    if (n.task_id) {
+    if (n.type === 'due_digest') {
+      navigate({ type: 'my' });
+    } else if (n.task_id) {
       setOpenTaskId(n.task_id);
     } else {
       // Mention in requirement feedback: open the project on that requirement.

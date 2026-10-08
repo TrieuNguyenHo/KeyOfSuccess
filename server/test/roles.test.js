@@ -169,9 +169,10 @@ test("completing a task notifies the assignee's Leader and the Managers", async 
   assert.equal(await api.unread(boss), 1);
 });
 
-test('nobody else is notified, including the person who completed it', async () => {
+test('nobody else is told it was completed, including the person who completed it', async () => {
   assert.equal(await api.unread(leadB), 0);
-  assert.equal(await api.unread(memA), 0);
+  // memA follows their task, so leadA's comment reached them; the completion did not.
+  assert.ok(!(await api.get('/notifications', memA)).body.items.some((n) => n.type === 'task_completed'));
 });
 
 test('editing a finished task does not notify again', async () => {

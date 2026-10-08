@@ -65,3 +65,9 @@
 .calendar-task.dragging { opacity: 0.4; }
 /* Phones: the sign-in card narrows, so the name shrinks with it. */
 @media (max-width: 420px) { .brand.dark { --brand-size: 14px; } }
+/* Phones: the task's top bar keeps one line, the follow button shows its bell only (its title says the rest). */
+@media (max-width: 480px) {
+  .follow-label { display: none; }
+  .follow-btn { padding: 4px 8px; }
+  .complete-btn { white-space: nowrap; padding: 6px 12px; }
+}

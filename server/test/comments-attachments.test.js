@@ -47,8 +47,12 @@ test('nobody else edits a comment, not even a Manager; empty text and hidden tas
 });
 
 test('an edit notifies only people it newly mentions', async () => {
+  // memB follows the task (they commented on it), so earlier comments told them already.
+  await api.post('/notifications/read', memB, {});
   const c = await comment(memA, `@[memB](${memB.id}) xem`);
   assert.equal(await api.unread(memB), 1);
+  // lead follows the task too, so the comment itself reached them; only the edit's mention counts from here.
+  await api.post('/notifications/read', lead, {});
   await api.patch(`/comments/${c.id}`, memA, { body: `@[memB](${memB.id}) xem lại @[lead](${lead.id})` });
   assert.equal(await api.unread(memB), 1);
   assert.equal(await api.unread(lead), 1);

@@ -4,7 +4,7 @@
 import { db } from '../db.js';
 import { canBeAssigned, findProject } from './access.js';
 import { logEvent } from './history.js';
-import { notifyAssigned } from './notifications.js';
+import { follow, notifyAssigned } from './notifications.js';
 import { endOfStatus } from './statuses.js';
 import { localDate } from './util.js';
 
@@ -60,7 +60,8 @@ export function nextOccurrence(rule, from, { notBefore = from, inclusive = false
 // Called in the transaction that completes a recurring top-level task: creates the next occurrence in the first
 // to-do status with the same title, description, requirement, priority, channels and subtasks (unticked), due on
 // the rule's next day after this one's due date (never in the past), and moves the rule to it. The assignee
-// carries over while they may still be given the project's tasks. Returns who to notify.
+// carries over while they may still be given the project's tasks, and so do the followers (v38), who keep following
+// it. Returns who to notify.
 export function spawnNextOccurrence(task, actor) {
   const section = db
     .prepare(
@@ -100,6 +101,10 @@ export function spawnNextOccurrence(task, actor) {
     `INSERT INTO tasks (project_id, parent_id, title, description, priority, position, created_by)
      SELECT project_id, ?, title, description, priority, position, ? FROM tasks WHERE parent_id = ? ORDER BY position`
   ).run(id, actor.id, task.id);
+  db.prepare(
+    'INSERT INTO task_followers (task_id, user_id, following) SELECT ?, user_id, following FROM task_followers WHERE task_id = ?'
+  ).run(id, task.id);
+  follow(id, assignee);
   db.prepare('UPDATE tasks SET recurrence = NULL, next_task_id = ? WHERE id = ?').run(id, task.id);
   logEvent(task, actor, 'recurred', { due, next_id: id });
   logEvent({ id, parent_id: null }, actor, 'created', { title: task.title, recurring_from: task.id });
