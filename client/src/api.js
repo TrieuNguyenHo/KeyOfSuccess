@@ -129,3 +129,14 @@ export function onFeedbackChange(handler) {
   liveChanges.addEventListener('feedback', listener);
   return () => liveChanges.removeEventListener('feedback', listener);
 }
+
+// Changes to a conversation the user is in: { conversation_id }. The chat screen subscribes with onChatChange(handler).
+export function publishChatChange(change) {
+  if (change.source !== CLIENT_ID) liveChanges.dispatchEvent(new CustomEvent('chat', { detail: change }));
+}
+
+export function onChatChange(handler) {
+  const listener = (e) => handler(e.detail);
+  liveChanges.addEventListener('chat', listener);
+  return () => liveChanges.removeEventListener('chat', listener);
+}

@@ -4,10 +4,12 @@ import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { UPLOAD_DIR, db } from '../db.js';
 import { findTask, loadProject, loadTask } from '../lib/access.js';
+import { loadConversation, memberIds } from '../lib/chat.js';
 import { editable, loadFeedback, touchFeedback } from '../lib/feedback.js';
 import { logEvent } from '../lib/history.js';
 import { forbidden, notFound } from '../lib/http.js';
-import { pushChange } from '../lib/live.js';
+import { pushChange, pushChat } from '../lib/live.js';
+import { can } from '../lib/permissions.js';
 import { canEditRequirements, findRequirement } from '../lib/requirements.js';
 import { isRoot } from '../lib/roles.js';
 
@@ -20,6 +22,7 @@ const INLINE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 // Loads an attachment the user can see (else 404), with whether they may delete it: the uploader, task admins
 // for a task's files, requirement editors for a requirement's. A feedback's own files are deleted by root, or by
 // the sender while it is still 'sent'; files of its messages by their author or root. Root reaches feedback files only.
+// Files of a chat message: the conversation's members (with chat.use) see them, the uploader deletes.
 function loadAttachment(req, res) {
   const attachment = db.prepare('SELECT * FROM attachments WHERE id = ?').get(req.params.id);
   if (!attachment || (isRoot(req.user) && !attachment.feedback_id)) {
@@ -27,6 +30,15 @@ function loadAttachment(req, res) {
     return null;
   }
   const own = attachment.user_id === req.user.id;
+  if (attachment.message_id) {
+    const message = db.prepare('SELECT conversation_id FROM messages WHERE id = ?').get(attachment.message_id);
+    if (!can(req.user, 'chat.use')) {
+      notFound(res);
+      return null;
+    }
+    const conversation = loadConversation(req, res, message.conversation_id);
+    return conversation && { ...attachment, conversation, canDelete: own };
+  }
   if (attachment.feedback_id) {
     const feedback = loadFeedback(req, res, attachment.feedback_id);
     if (!feedback) return null;
@@ -64,7 +76,7 @@ router.delete('/attachments/:id', (req, res) => {
   const attachment = loadAttachment(req, res);
   if (!attachment) return;
   if (!attachment.canDelete) {
-    if (attachment.feedback_message_id) return forbidden(res, 'Chỉ người tải lên mới xoá được file này');
+    if (attachment.feedback_message_id || attachment.message_id) return forbidden(res, 'Chỉ người tải lên mới xoá được file này');
     if (attachment.feedback) return forbidden(res, 'Feedback đã được tiếp nhận nên không đổi được file nữa');
     return forbidden(res, 'Chỉ người tải lên hoặc người quản lý task / requirement mới xoá được file này');
   }
@@ -74,6 +86,7 @@ router.delete('/attachments/:id', (req, res) => {
     logEvent(findTask(attachment.task_id), req.user, 'file_deleted', { name: attachment.name, in_comment: Boolean(attachment.comment_id) });
   }
   if (attachment.feedback) touchFeedback(req, attachment.feedback);
+  else if (attachment.conversation) pushChat(req, memberIds(attachment.conversation.id), attachment.conversation.id);
   else pushChange(req, ...attachment.change);
   res.status(204).end();
 });

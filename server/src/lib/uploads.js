@@ -5,15 +5,16 @@ import { readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { UPLOAD_DIR, db } from '../db.js';
 import { findTask } from './access.js';
+import { memberIds } from './chat.js';
 import { touchFeedback } from './feedback.js';
 import { logEvent } from './history.js';
 import { badRequest } from './http.js';
-import { pushChange } from './live.js';
+import { pushChange, pushChat } from './live.js';
 import { placeholders } from './util.js';
 
 export const MAX_UPLOAD_MB = 25;
 export const ATTACHMENT_SELECT = `SELECT a.id, a.task_id, a.requirement_id, a.feedback_id, a.comment_id, a.requirement_comment_id,
-  a.feedback_message_id, a.user_id, a.name, a.mime, a.size, a.created_at, u.name AS user_name
+  a.feedback_message_id, a.message_id, a.user_id, a.name, a.mime, a.size, a.created_at, u.name AS user_name
   FROM attachments a LEFT JOIN users u ON u.id = a.user_id`;
 // A task's, requirement's or feedback's own files; those sent with its comments or messages are listed under them.
 export const attachmentsOf = (column, id) =>
@@ -24,8 +25,8 @@ export const attachmentsOf = (column, id) =>
     )
     .all(id);
 
-// Adds each comment's files as `attachments`; column is attachments.comment_id, requirement_comment_id or
-// feedback_message_id.
+// Adds each comment's files as `attachments`; column is attachments.comment_id, requirement_comment_id,
+// feedback_message_id or (chat) message_id.
 export function withCommentFiles(comments, column) {
   if (!comments.length) return comments;
   const files = db
@@ -49,8 +50,9 @@ export function sweepUploads() {
 // name URI-encoded in X-File-Name and its type in X-File-Type.
 export const rawUpload = express.raw({ type: 'application/octet-stream', limit: `${MAX_UPLOAD_MB}mb` });
 
-// target: { taskId } | { requirementId } | { feedback: row }, plus comment_id / requirement_comment_id /
-// feedback_message_id for a file sent with one; change: what pushChange() announces (feedback tells its own people).
+// target: { taskId } | { requirementId } | { feedback: row } | { conversation: row, message_id }, plus comment_id /
+// requirement_comment_id / feedback_message_id for a file sent with one; change: what pushChange() announces
+// (feedback and chat tell their own people).
 export function saveAttachment(req, res, target, change) {
   if (!Buffer.isBuffer(req.body) || !req.body.length) return badRequest(res, 'File trống hoặc không đọc được');
   let name = '';
@@ -67,8 +69,8 @@ export function saveAttachment(req, res, target, change) {
   const { lastInsertRowid } = db
     .prepare(
       `INSERT INTO attachments (task_id, requirement_id, feedback_id, comment_id, requirement_comment_id, feedback_message_id,
-         user_id, name, mime, size, stored_name)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         message_id, user_id, name, mime, size, stored_name)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       target.taskId ?? null,
@@ -77,6 +79,7 @@ export function saveAttachment(req, res, target, change) {
       target.comment_id ?? null,
       target.requirement_comment_id ?? null,
       target.feedback_message_id ?? null,
+      target.message_id ?? null,
       req.user.id,
       name,
       mime,
@@ -85,6 +88,7 @@ export function saveAttachment(req, res, target, change) {
     );
   if (target.taskId) logEvent(findTask(target.taskId), req.user, 'file_added', { name, in_comment: Boolean(target.comment_id) });
   if (target.feedback) touchFeedback(req, target.feedback);
+  else if (target.conversation) pushChat(req, memberIds(target.conversation.id), target.conversation.id);
   else pushChange(req, ...change);
   res.status(201).json(db.prepare(`${ATTACHMENT_SELECT} WHERE a.id = ?`).get(lastInsertRowid));
 }

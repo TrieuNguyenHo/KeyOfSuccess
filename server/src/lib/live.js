@@ -46,6 +46,16 @@ export function pushFeedbackChange(req, userIds, feedbackId) {
   }
 }
 
+// Tells the open tabs of a conversation's members that it changed (a message sent, edited, deleted or read), so the
+// open list or thread reloads and the Messages count follows. Carries the id only; `source` as in pushChange().
+export function pushChat(req, userIds, conversationId) {
+  const source = String(req.get('X-Client-Id') ?? '').slice(0, 64);
+  const message = `event: chat\ndata: ${JSON.stringify({ conversation_id: conversationId, source })}\n\n`;
+  for (const userId of new Set(userIds)) {
+    for (const res of streams.get(userId) ?? []) res.write(message);
+  }
+}
+
 // Tells the open tabs of everyone who can open the project (or, given `task`, see that task) that its tasks,
 // sections, requirements or comments changed. Carries ids only, so nothing leaks; `source` echoes the
 // X-Client-Id of the tab that made the change, which already has it and skips the event.

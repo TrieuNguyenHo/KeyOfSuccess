@@ -110,7 +110,8 @@ export default function CommentList({ comments, kind, mentionable, empty, act, c
 
 // The box for a new comment: text with @mentions, plus files (📎, drag and drop, or pasting a screenshot).
 // The comment is posted to createPath, then its files to /<kind>/<id>/attachments. act(fn) runs it and reloads.
-export function CommentComposer({ kind, createPath, mentionable, placeholder, act, onError }) {
+// enterSends as in MentionTextarea (chat messages).
+export function CommentComposer({ kind, createPath, mentionable, placeholder, act, onError, enterSends = false }) {
   const [text, setText] = useState('');
   const [mentions, setMentions] = useState([]);
   const [files, setFiles] = useState([]);
@@ -166,6 +167,7 @@ export function CommentComposer({ kind, createPath, mentionable, placeholder, ac
         mentions={mentions}
         onMentionsChange={setMentions}
         placeholder={placeholder}
+        enterSends={enterSends}
       />
       {files.length > 0 && (
         <ul className="pending-files">

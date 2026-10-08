@@ -32,6 +32,7 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 - **Sửa / xoá bình luận** (task và requirement): người viết sửa và xoá bình luận của mình (hiện "đã sửa"); Manager xoá được mọi bình luận nhưng không sửa lời người khác; tag mới thêm khi sửa thì người đó được báo
 - **File trong bình luận** (task và requirement): nút 📎, kéo thả hoặc dán ảnh (Ctrl+V) vào ô bình luận; gửi chỉ file không cần chữ; file hiện dưới bình luận, xoá bình luận thì file đi theo; chỉ người viết đính kèm vào bình luận của mình
 - **Đính kèm file** vào task và requirement (tối đa 25 MB/file, chọn file hoặc kéo thả): ai bình luận được thì đính kèm được; người tải lên hoặc người có toàn quyền task / sửa requirement thì xoá được; ảnh PNG, JPG, GIF, WebP có xem trước, file khác bấm để tải về
+- **Tin nhắn** (`#/chat`, `#/chat/4`, v32): nhắn tin 1-1 với người đang làm việc (đã tham gia, đang hoạt động, không phải root) có quyền `chat.use` (mặc định mọi vai trò). Riêng tư: chỉ hai người trong cuộc đọc được, kể cả Manager, Director và root (người khác nhận 404). Enter để gửi, Shift+Enter xuống dòng; ảnh / file qua 📎, kéo thả hoặc dán (25 MB/file); link bấm được. Người viết sửa ("đã sửa") và xoá tin của mình (còn dòng "Tin nhắn đã bị xoá", file bị xoá); "Đã xem" khi người kia đã đọc. Số tin chưa đọc hiện trên mục "Tin nhắn", không vào chuông; cập nhật trực tiếp qua `event: chat`. Người bị khoá / chưa tham gia không nhận được tin mới, tin cũ vẫn đọc được. Tin nhắn quá 6 tháng tự xoá (lúc khởi động và mỗi ngày)
 - **Sidebar** theo mẫu `component_styles/side_bar`: nền tối, cột icon, menu con trượt ra khi rê chuột / bấm / dùng bàn phím (Escape để đóng)
 - **iPad**: màn dưới 1024px dùng sidebar dạng ngăn kéo (nút ☰), panel task toàn màn, bảng cột hẹp; trên màn cảm ứng giữ ngón tay 0,35 giây để kéo thẻ trên Board và task trên Lịch, ô nhập chữ 16px để Safari không tự phóng to
 - **Giao diện Sáng / Tối**: chọn ở sidebar, trình duyệt nhớ lựa chọn; lần đầu theo cài đặt của máy
@@ -60,6 +61,7 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 | `teams.manage` (Team: chỉ đổi tên team mình; tạo / xoá team cần Toàn phòng) | – | – | Team | Toàn phòng |
 | `channels.manage`, `comments.delete_any` | – | – | Có | Có |
 | `notify.task_completed`: nhận thông báo task xong | – | Team | Team | – |
+| `chat.use`: Tin nhắn 1-1 với người cũng có quyền này | Có | Có | Có | Có |
 
 Từ v26 (người dùng chốt 2026-10-06), **Manager chỉ quản lý các team của mình** ở mọi mặt; chỉ Director nhìn toàn phòng.
 
@@ -247,6 +249,7 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `project-roles.test.js` | Vai trò trong project (v30): theo team khi không gán, Quản lý / Thành viên project / Chỉ xem (kể cả hạ Leader), về lại theo team, ai gán được cho ai |
 | `bootstrap-emails.test.js` | `DIRECTOR_EMAILS` / `MANAGER_EMAILS` cấp vai trò một lần: đổi vai trò / khoá trong app được giữ, email thêm sau được cấp, lời mời, migration v29 |
 | `feedback.test.js` | Feedback: chỉ người gửi và root thấy, sửa / xoá khi còn "Đã gửi", root đổi trạng thái tự do, "Không xử lý" cần lý do, trao đổi và thông báo hai bên, file, sự kiện live |
+| `chat.test.js` | Tin nhắn (v32): mỗi cặp một cuộc trò chuyện, chỉ hai người đọc được (kể cả Manager / Director / root), chỉ nhắn người đang làm việc, quyền `chat.use`, sửa / xoá của mình, file, 50 tin mỗi lần, xoá tin quá 6 tháng, migration v32 |
 | `root.test.js` | Root: chỉ dùng API cấu hình, ẩn khỏi mọi danh sách, cấp Director, không ai sửa được root, thu hồi khi bỏ khỏi `ROOT_EMAILS`, migration v23 |
 | `custom-roles.test.js` | Vai trò tự tạo (v27): chỉ root, sao chép quyền, đổi tên vai trò có sẵn, không đổi cấp / xoá vai trò có sẵn, số team theo vai trò, không xoá vai trò còn người giữ |
 | `permissions.test.js` | Bảng quyền: `/me` trả quyền, chỉ root đọc / sửa, kiểm tra phạm vi, đổi quyền có hiệu lực ngay, khôi phục mặc định, quyền theo team, thông báo, cấp bậc vai trò |
@@ -273,6 +276,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v32**: tin nhắn 1-1: bảng `conversations` (`kind` = `direct`, `direct_key` "<id nhỏ>:<id lớn>" để mỗi cặp một cuộc), `conversation_members` (`last_read_id`: tin cuối đã xem), `messages` (xoá mềm: `deleted_at`, nội dung rỗng). `attachments` thêm `message_id` và được dựng lại lần nữa (giữ id) cho CHECK mới. Tin quá 6 tháng bị xoá.
 - **v31**: feedback về app: bảng `feedback` (người gửi, loại `bug` / `idea` / `other`, tiêu đề, nội dung, trạng thái `sent` / `received` / `in_progress` / `done` / `rejected`, màn hình đang đứng, phiên bản app, trình duyệt), `feedback_messages` (trao đổi giữa người gửi và root), `feedback_events` (lịch sử trạng thái). `attachments` thêm `feedback_id` / `feedback_message_id` và `notifications` thêm `feedback_id`; cả hai bảng được dựng lại (giữ id) vì ràng buộc CHECK cũ bắt mỗi dòng thuộc task hoặc requirement.
 - **v30**: cột `project_members.role` (`admin` / `member` / `viewer`, NULL = theo team): vai trò gán tay trong project, thắng luật theo team. Lúc chuyển mọi dòng là NULL nên không ai đổi quyền.
 - **v29**: cột `users.env_role` (vai trò `ROOT_EMAILS` / `DIRECTOR_EMAILS` / `MANAGER_EMAILS` đã cấp). Đăng nhập chỉ cấp lại khi danh sách đổi, nên vai trò đổi / khoá trong app được giữ. Tài khoản đang có trong danh sách lúc chuyển được coi như đã cấp.
@@ -318,6 +322,7 @@ server/src/routes/     REST API, mỗi tính năng một file (express.Router, g
   dashboard          Dashboard tổng và Dashboard project
   notifications      chuông thông báo, luồng sự kiện /events
   feedback           feedback về app: người dùng gửi / sửa / xoá của mình, root đổi trạng thái; trao đổi và file
+  chat               tin nhắn 1-1: danh sách, người nhắn được, tin nhắn (gửi / sửa / xoá / đã đọc), file trong tin
   permissions        /roles (mọi người), thêm / sửa / xoá vai trò /admin/roles và bảng quyền /admin/permissions (root)
 server/src/lib/        luật và helper dùng chung giữa các route
   access             quyền project / task (projectAccess, taskAccess, isTaskAdmin, canBeAssigned, taskScope…)
@@ -325,7 +330,8 @@ server/src/lib/        luật và helper dùng chung giữa các route
   roles              isRoot
   users, requirements, statuses, history, channels, recurrence, mentions, notifications
   feedback           loadFeedback (chỉ người gửi và root), rootIds, touchFeedback; version: phiên bản đã deploy
-  live               Server-Sent Events (pushChange, pushNotifications, pushFeedbackChange)
+  chat               loadConversation (chỉ thành viên), canChatWith, purgeMessages (6 tháng)
+  live               Server-Sent Events (pushChange, pushNotifications, pushFeedbackChange, pushChat)
   backup             sao lưu hằng ngày database + uploads
   uploads            lưu file, sweepUploads; comments: COMMENT_KINDS dùng chung cho comment task / requirement
   http, util         lỗi 400/403/404, managerOnly; helper SQL và ngày
@@ -398,7 +404,7 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | POST | `/api/comments/:id/attachments`, `/api/requirement-comments/:id/attachments` | chỉ người viết; gửi file như các endpoint đính kèm khác. Tạo bình luận chỉ có file: POST bình luận với `{ body: '', with_files: true }` rồi gửi file. Bình luận trả về kèm `attachments` |
 | POST | `/api/tasks/:id/attachments`, `/api/requirements/:id/attachments` | ai xem / bình luận được; body là nội dung file với `Content-Type: application/octet-stream`, tên file (URI-encoded) trong header `X-File-Name`, loại file trong `X-File-Type`; tối đa 25 MB (413 nếu quá) |
 | GET | `/api/requirements/:id/attachments` | danh sách file của requirement (file của task nằm trong `GET /api/tasks/:id`, mục `attachments`) |
-| GET, DELETE | `/api/attachments/:id` | GET trả nội dung file (ảnh PNG/JPG/GIF/WebP trả đúng loại để xem trước, còn lại `application/octet-stream` + tải về, kèm `nosniff`); DELETE người tải lên, người có toàn quyền task, hoặc người sửa được requirement. File của feedback: người gửi và root xem; root xoá, người gửi xoá file của feedback khi còn `sent`, người viết xoá file của tin nhắn; root chỉ mở được file của feedback |
+| GET, DELETE | `/api/attachments/:id` | GET trả nội dung file (ảnh PNG/JPG/GIF/WebP trả đúng loại để xem trước, còn lại `application/octet-stream` + tải về, kèm `nosniff`); DELETE người tải lên, người có toàn quyền task, hoặc người sửa được requirement. File của feedback: người gửi và root xem; root xoá, người gửi xoá file của feedback khi còn `sent`, người viết xoá file của tin nhắn; root chỉ mở được file của feedback. File trong tin nhắn chat: chỉ hai thành viên xem, người tải lên xoá |
 | POST, DELETE | `/api/projects/:id/members`, `/api/projects/:id/members/:userId` | `manage`; thành viên tự rời được |
 | PATCH | `/api/projects/:id/members/:userId` | `{ role: "admin" | "member" | "viewer" | null }` (null = theo team); `manage`, không cho owner, người quản lý mọi project, chính mình, vai trò cao hơn |
 | POST, PATCH, DELETE | `/api/projects/:id/sections`, `/api/sections/:id` | thành viên project |
@@ -407,8 +413,8 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | PATCH, DELETE | `/api/tasks/:id` | thành viên project. PATCH nhận thêm `channel_ids: [id…]` (thay toàn bộ kênh của task; `[]` = bỏ hết; subtask: 400) và `recurrence`: `{ freq: "daily" }`, `{ freq: "weekly" | "biweekly", days: [1..7] }` (1 = thứ Hai), `{ freq: "monthly", day: 1..31 }` hoặc `null` để tắt; task chưa có hạn thì được đặt hạn là ngày đầu tiên của quy tắc từ hôm nay |
 | POST | `/api/tasks/:id/comments` | có quyền xem |
 | GET | `/api/tasks/:id/history` | có quyền xem task; 30 ngày gần nhất, mới nhất trước. Mỗi dòng `{ id, type, user_id, user_name, created_at, ... }`; `type` = `created`, `field` (`field`, `from`, `to`: giá trị đã đổi thành tên dễ đọc), `subtask_added`, `subtask_deleted`, `comment_added` / `comment_edited` / `comment_deleted` (`excerpt`, `from` / `to`, `author`, `files`), `file_added` / `file_deleted` (`name`, `in_comment`); thay đổi của subtask có thêm `subtask` (tên) và nằm trong lịch sử của task cha |
-| GET | `/api/notifications` | `{ items, unread, unreadFeedback, pendingUsers }`; chuông chỉ có thông báo công việc (`type` = `task_completed`, `mention` hoặc `assigned`). Thông báo về feedback (`feedback_new`, `feedback_status`, `feedback_message`) không vào chuông: `unreadFeedback` là số chưa xem, hiện trên mục Feedback. `pendingUsers`: Manager đếm mọi tài khoản chờ duyệt, Leader đếm người tự đăng ký chưa có team (người mình duyệt được) |
-| GET | `/api/events` | luồng Server-Sent Events; gửi `event: notification` khi user có thông báo mới, và `event: change` (data `{ project_id, task_id, requirement_id, source }`, chỉ id) khi task, bình luận, section, requirement của một project thay đổi, tới người mở được project đó hoặc xem được task đó; `event: feedback` (data `{ feedback_id, source }`) khi một feedback thay đổi, chỉ tới người gửi và root. `source` là header `X-Client-Id` của tab gây ra thay đổi để tab đó bỏ qua. Đọc bằng fetch với header Authorization |
+| GET | `/api/notifications` | `{ items, unread, unreadFeedback, unreadChat, pendingUsers }`; `unreadChat`: số tin nhắn chưa đọc (hiện trên mục Tin nhắn); chuông chỉ có thông báo công việc (`type` = `task_completed`, `mention` hoặc `assigned`). Thông báo về feedback (`feedback_new`, `feedback_status`, `feedback_message`) không vào chuông: `unreadFeedback` là số chưa xem, hiện trên mục Feedback. `pendingUsers`: Manager đếm mọi tài khoản chờ duyệt, Leader đếm người tự đăng ký chưa có team (người mình duyệt được) |
+| GET | `/api/events` | luồng Server-Sent Events; gửi `event: notification` khi user có thông báo mới, và `event: change` (data `{ project_id, task_id, requirement_id, source }`, chỉ id) khi task, bình luận, section, requirement của một project thay đổi, tới người mở được project đó hoặc xem được task đó; `event: feedback` (data `{ feedback_id, source }`) khi một feedback thay đổi, chỉ tới người gửi và root; `event: chat` (data `{ conversation_id, source }`) khi có tin mới / sửa / xoá / đã đọc, chỉ tới hai thành viên. `source` là header `X-Client-Id` của tab gây ra thay đổi để tab đó bỏ qua. Đọc bằng fetch với header Authorization |
 | GET | `/api/tasks/:id/mentionable`, `/api/requirements/:id/mentionable` | người tag được (xem được task / mở được project) |
 | POST | `/api/notifications/read` | `{ id }` đánh dấu một cái, body rỗng đánh dấu tất cả thông báo trong chuông (không đụng thông báo feedback) |
 | GET, POST | `/api/feedback` | GET: feedback của mình (root: tất cả, lọc `?status=`, `?type=`), mới cập nhật trước, mỗi dòng có `unread` (số cập nhật chưa xem). POST (người dùng, không phải root): `{ type: "bug" | "idea" | "other", title, body, page }`; server ghi thêm phiên bản app và trình duyệt, báo root |
@@ -417,3 +423,11 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | POST | `/api/feedback/:id/messages` | người gửi hoặc root: `{ body, with_files }`; báo bên kia |
 | PATCH, DELETE | `/api/feedback-messages/:id` | PATCH người viết; DELETE người viết hoặc root |
 | POST | `/api/feedback/:id/attachments`, `/api/feedback-messages/:id/attachments` | file của feedback (người gửi, khi còn `sent`) / của tin nhắn (người viết); như các upload khác |
+| GET | `/api/chats/people` | người nhắn được: đang làm việc, có `chat.use`, trừ mình (id, tên, vai trò, team) |
+| GET | `/api/chats` | cuộc trò chuyện của mình đã có tin, mới nhất trước: `other`, `last_message`, `unread`, `last_read_id`, `other_last_read_id`, `can_send`. Mọi route `/chats`, `/chat-messages` cần `chat.use` (403); root 403 |
+| POST | `/api/chats/direct` | `{ user_id }`: cuộc trò chuyện với người đó (tạo khi chưa có; 400 nếu không nhắn được) |
+| GET | `/api/chats/:id` | chỉ hai thành viên (người khác 404) |
+| GET, POST | `/api/chats/:id/messages` | GET 50 tin mới nhất (cũ trước), `?before=<id>` để xem cũ hơn, `has_more`; POST `{ body, with_files }` (tối đa 4000 ký tự; 400 khi người kia không còn nhận được tin) |
+| POST | `/api/chats/:id/read` | đã xem tới tin cuối |
+| PATCH, DELETE | `/api/chat-messages/:id` | chỉ người viết; DELETE giữ dòng (`deleted_at`), xoá nội dung và file |
+| POST | `/api/chat-messages/:id/attachments` | file của tin nhắn (người viết); như các upload khác |

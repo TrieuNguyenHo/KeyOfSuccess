@@ -50,6 +50,9 @@ const PERMISSION_TEXT = {
   get 'notify.task_completed'() {
     return [tr('Nhận thông báo task hoàn thành'), tr('Khi một task được đánh dấu xong.')];
   },
+  get 'chat.use'() {
+    return [tr('Tin nhắn'), tr('Nhắn tin riêng với người khác cũng có quyền này.')];
+  },
 };
 const scopeLabel = (scope, scopes) => {
   if (scope === 'none') return tr('Không');

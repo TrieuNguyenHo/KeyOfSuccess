@@ -49,8 +49,9 @@ export function CommentBody({ body }) {
 }
 
 // Textarea with an @-mention picker. `users` are the people who may be mentioned (they can see the
-// task or requirement); `mentions` / `onMentionsChange` hold the ones picked so far.
-export function MentionTextarea({ value, onChange, users, mentions, onMentionsChange, placeholder }) {
+// task or requirement); `mentions` / `onMentionsChange` hold the ones picked so far. enterSends: Enter submits the
+// form (Shift+Enter starts a new line), as in chat.
+export function MentionTextarea({ value, onChange, users, mentions, onMentionsChange, placeholder, enterSends = false }) {
   const ref = useRef(null);
   const [query, setQuery] = useState(null); // { start, text } while the caret follows "@word"
   const [active, setActive] = useState(0);
@@ -78,7 +79,13 @@ export function MentionTextarea({ value, onChange, users, mentions, onMentionsCh
   }
 
   function onKeyDown(e) {
-    if (!matches.length) return;
+    if (!matches.length) {
+      if (enterSends && e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+        e.preventDefault();
+        e.currentTarget.form?.requestSubmit();
+      }
+      return;
+    }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       setActive((i) => (i + (e.key === 'ArrowDown' ? 1 : matches.length - 1)) % matches.length);

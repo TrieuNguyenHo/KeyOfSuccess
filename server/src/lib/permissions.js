@@ -40,6 +40,8 @@ export const PERMISSIONS = [
   { key: 'comments.delete_any', scopes: YES_NO, defaults: ['none', 'none', 'all', 'all'] },
   // Being told when a top-level task is completed: of the holder's teams, or of everyone.
   { key: 'notify.task_completed', scopes: TEAM_SCOPES, defaults: ['none', 'team', 'team', 'none'] },
+  // Chat (v32): one-to-one messages with the other people at work who hold it too.
+  { key: 'chat.use', scopes: YES_NO, defaults: ['all', 'all', 'all', 'all'] },
 ];
 // The built-in roles, in the order of each permission's defaults.
 const DEFAULT_ROLES = ['member', 'leader', 'manager', 'director'];

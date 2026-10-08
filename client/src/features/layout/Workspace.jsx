@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, onLiveChange, publishFeedbackChange, publishLiveChange, subscribeEvents } from '../../api.js';
+import { api, onLiveChange, publishChatChange, publishFeedbackChange, publishLiveChange, subscribeEvents } from '../../api.js';
 import { loadAvatars } from '../../avatars.js';
 import { formatRoute, parseRoute } from '../../route.js';
 import { PROJECT_COLORS } from '../../utils.js';
 import AdminPage from '../admin/AdminPage.jsx';
+import ChatPage from '../chat/ChatPage.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
 import { useCloseDetailsOutside } from '../../components/hooks.js';
 import CreateProjectModal from '../projects/CreateProjectModal.jsx';
@@ -43,7 +44,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
   const [openTaskId, setOpenTaskId] = useState(initialRoute.panelTaskId);
   // Bumped whenever the task panel changes something, so the page behind it reloads.
   const [refreshKey, setRefreshKey] = useState(0);
-  const [notifications, setNotifications] = useState({ items: [], unread: 0, unreadFeedback: 0, pendingUsers: 0 });
+  const [notifications, setNotifications] = useState({ items: [], unread: 0, unreadFeedback: 0, unreadChat: 0, pendingUsers: 0 });
   const [creatingProject, setCreatingProject] = useState(false);
   // On narrow screens the sidebar is a drawer behind the ☰ button; any navigation closes it.
   const [navOpen, setNavOpen] = useState(false);
@@ -75,6 +76,10 @@ export default function Workspace({ user, onLogout, onUserChange }) {
       if (name === 'notification') loadNotifications();
       if (name === 'change') publishLiveChange(data);
       if (name === 'feedback') publishFeedbackChange(data);
+      if (name === 'chat') {
+        loadNotifications(); // the Messages count, also after this user read a conversation in another tab
+        publishChatChange(data);
+      }
     });
     const timer = setInterval(loadNotifications, NOTIFICATION_POLL_MS);
     return () => {
@@ -247,6 +252,15 @@ export default function Workspace({ user, onLogout, onUserChange }) {
         onOpen={(id) => setView({ type: 'feedback', ...(id && { id }) })}
       />
     );
+  } else if (view.type === 'chat') {
+    content = (
+      <ChatPage
+        key={navCount}
+        conversationId={view.id}
+        onOpen={(id) => setView({ type: 'chat', ...(id && { id }) })}
+        onRead={loadNotifications}
+      />
+    );
   } else if (view.type === 'admin') {
     content = <AdminPage user={user} onChanged={loadNotifications} />;
   } else if (view.type === 'myteams') {
@@ -299,7 +313,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
       <main className="main">
         <div className="mobile-bar">
           <button className="icon-btn menu-btn" onClick={() => setNavOpen(true)} aria-label={tr('Mở menu')} aria-expanded={navOpen}>
-            ☰{notifications.unread + notifications.unreadFeedback + notifications.pendingUsers > 0 && <span className="menu-dot" aria-label={tr('Có thông báo mới')} />}
+            ☰{notifications.unread + notifications.unreadFeedback + notifications.unreadChat + notifications.pendingUsers > 0 && <span className="menu-dot" aria-label={tr('Có thông báo mới')} />}
           </button>
           <Brand />
         </div>
