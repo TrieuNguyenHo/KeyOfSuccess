@@ -267,6 +267,28 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
   // A message changed by an action that returns it (a reaction, a vote): updated in place, so the view does not jump.
   const replaceMessage = (updated) => setMessages((list) => list.map((x) => (x.id === updated.id ? updated : x)));
 
+  // The "⋯" menu, the reaction picker and the mute menu close on a click outside them and on Esc; their own buttons
+  // (data-popup-toggle) still toggle them.
+  const popupOpen = menuFor !== null || picking !== null || muteMenu;
+  useEffect(() => {
+    if (!popupOpen) return undefined;
+    const close = () => {
+      setMenuFor(null);
+      setPicking(null);
+      setMuteMenu(false);
+    };
+    const onPointerDown = (e) => {
+      if (!e.target.closest('.chat-menu, .chat-react-picker, [data-popup-toggle]')) close();
+    };
+    const onKey = (e) => e.key === 'Escape' && close();
+    document.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [popupOpen]);
+
   // Scrolls to a message and flashes it; one not loaded yet comes with the page around it.
   async function jumpTo(id) {
     const el = document.getElementById(`chat-msg-${id}`);
@@ -346,7 +368,12 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
         <span className="chat-mute">
           <button
             className="icon-btn"
-            onClick={() => setMuteMenu((v) => !v)}
+            data-popup-toggle
+            onClick={() => {
+              setMenuFor(null);
+              setPicking(null);
+              setMuteMenu((v) => !v);
+            }}
             aria-expanded={muteMenu}
             title={
               chat.muted
@@ -550,7 +577,12 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
                           <span className="chat-actions">
                             <button
                               className="link-btn"
-                              onClick={() => setPicking(picking === m.id ? null : m.id)}
+                              data-popup-toggle
+                              onClick={() => {
+                                setMenuFor(null);
+                                setMuteMenu(false);
+                                setPicking(picking === m.id ? null : m.id);
+                              }}
                               aria-expanded={picking === m.id}
                               title={tr('Thả cảm xúc')}
                               aria-label={tr('Thả cảm xúc')}
@@ -564,7 +596,12 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
                             )}
                             <button
                               className="link-btn"
-                              onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}
+                              data-popup-toggle
+                              onClick={() => {
+                                setPicking(null);
+                                setMuteMenu(false);
+                                setMenuFor(menuFor === m.id ? null : m.id);
+                              }}
                               aria-expanded={menuFor === m.id}
                               title={tr('Thêm thao tác')}
                               aria-label={tr('Thêm thao tác')}
