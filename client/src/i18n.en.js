@@ -638,8 +638,8 @@ export default {
   'Nút Sáng / Tối và VI | EN ở cuối thanh bên (và trong Hồ sơ). Ngôn ngữ được lưu theo tài khoản; tên project, task… giữ nguyên như người viết gõ.':
     'The Light / Dark and VI | EN switches are at the bottom of the sidebar (and in your Profile). The language is saved with your account; project and task names stay as their authors typed them.',
   'Gửi link cho đồng nghiệp': 'Sending a link to a colleague',
-  'Màn đang xem (kể cả bộ lọc và task đang mở) nằm trên địa chỉ trang. Tải lại trang vẫn đúng chỗ; sao chép địa chỉ để gửi cho người khác.':
-    'The screen you are on (filters and the open task included) is in the page address. Reloading keeps you there; copy the address to send it to someone.',
+  'Màn đang xem (kể cả bộ lọc và task đang mở) nằm trên địa chỉ trang. Tải lại trang vẫn đúng chỗ; sao chép địa chỉ để gửi cho người khác. Với một task, bấm 🔗 ở đầu panel task để sao chép link của nó; dán vào tin nhắn thì hiện thành thẻ tên task.':
+    'The screen you are on (filters and the open task included) is in the page address. Reloading keeps you there; copy the address to send it to someone. For a task, click 🔗 at the top of its panel to copy its link; pasted in a message, it shows as the task\'s name.',
   'Project, requirement và task': 'Projects, requirements and tasks',
   'Cách tổ chức': 'How work is organised',
   'Mỗi project gồm các requirement (đầu việc lớn), mỗi requirement gồm các task, mỗi task có thể có subtask. Task nào cũng thuộc một requirement, nên project cần có requirement trước khi thêm task.':
@@ -947,6 +947,11 @@ export default {
   'Chỉ tạo bình chọn được trong nhóm, chat project hoặc chat team': 'Polls are for group, project and team chats',
   'Thời gian tắt thông báo không hợp lệ': 'Invalid mute duration',
   'Chỉ ghim được tối đa 5 cuộc trò chuyện': 'You can pin up to 5 conversations',
+
+  // Task link (copy button in the task panel)
+  'Sao chép link task': 'Copy task link',
+  'Đã sao chép link': 'Link copied',
+  'Không sao chép được link': 'Could not copy the link',
 
   // Chat (v32): server messages
   'Không nhắn tin được cho người này': 'You cannot message this person',

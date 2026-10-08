@@ -9,6 +9,32 @@ import Subtasks from './Subtasks.jsx';
 import TaskFields from './TaskFields.jsx';
 import TaskHistory from './TaskHistory.jsx';
 
+const COPIED_MS = 2000;
+
+// Puts text on the clipboard. The Clipboard API needs a secure page (HTTPS or localhost) and may still be refused
+// (an embedded view, a browser policy); then, as on plain http (the app opened over the LAN), a hidden textarea and
+// the copy command do it instead.
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Refused: fall back below.
+    }
+  }
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.select();
+  const ok = document.execCommand('copy');
+  area.remove();
+  if (!ok) throw new Error(tr('Không sao chép được link'));
+}
+
 // Shown as a side panel (quick look) or, with `page`, as a full page with the fields in a side column.
 // onOpenPage opens the full page from the panel; onOpenProject / onOpenRequirement follow the breadcrumb;
 // onOpenTask opens another task the same way (the next occurrence of a recurring task).
@@ -26,6 +52,7 @@ export default function TaskDetail({
   const [error, setError] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [copied, setCopied] = useState(false); // the task link was just copied
   // People who can see this task, i.e. who can be tagged in its comments.
   const mentionable = useFetched(`/tasks/${taskId}/mentionable`);
 
@@ -121,6 +148,17 @@ export default function TaskDetail({
   const isAdmin = task.access === 'admin';
   const openRequirement = () => onOpenRequirement(task.project_id, task.requirement_id);
 
+  // The task's own page (#/task/12): anyone who can see the task opens it; pasted in chat it shows as the task's chip.
+  async function copyLink() {
+    try {
+      await copyText(`${window.location.origin}/#/task/${task.id}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), COPIED_MS);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   const topBar = (
     <div className="detail-top">
       {readOnly ? (
@@ -133,6 +171,14 @@ export default function TaskDetail({
         </button>
       )}
       <span className="grow" />
+      <button
+        className="icon-btn"
+        onClick={copyLink}
+        title={copied ? tr('Đã sao chép link') : tr('Sao chép link task')}
+        aria-label={copied ? tr('Đã sao chép link') : tr('Sao chép link task')}
+      >
+        {copied ? '✓' : '🔗'}
+      </button>
       {!page && (
         <button className="icon-btn" onClick={() => onOpenPage(taskId)} title={tr('Mở toàn trang')}>
           ⤢
