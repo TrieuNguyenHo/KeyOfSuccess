@@ -4,17 +4,25 @@ import { tr } from '../../i18n.js';
 export const StatusTag = ({ status }) => <span className={`tag fb-status fb-${status}`}>{FEEDBACK_STATUSES[status]}</span>;
 export const TypeTag = ({ type }) => <span className="tag fb-type">{FEEDBACK_TYPES[type]}</span>;
 
-// Feedback rows, latest activity first; withSender adds who sent each one (root's inbox).
+// Feedback rows, latest activity first; withSender adds who sent each one (root's inbox). A feedback with updates
+// the user has not seen (f.unread: their unread notifications about it) is marked; opening it reads them.
 export default function FeedbackList({ items, withSender, empty, onOpen }) {
   if (!items.length) return <p className="muted">{empty}</p>;
   return (
     <ul className="feedback-list">
       {items.map((f) => (
         <li key={f.id}>
-          <button className="feedback-row" onClick={() => onOpen(f.id)}>
+          <button className={`feedback-row ${f.unread ? 'unread' : ''}`} onClick={() => onOpen(f.id)}>
             <TypeTag type={f.type} />
             <span className="feedback-row-main">
-              <span className="ellipsis feedback-row-title">{f.title}</span>
+              <span className="ellipsis feedback-row-title">
+                {f.unread > 0 && (
+                  <span className="feedback-new" title={tr('{count} cập nhật chưa xem', { count: f.unread })}>
+                    {tr('Mới')}
+                  </span>
+                )}
+                {f.title}
+              </span>
               <span className="muted small ellipsis">
                 {withSender && `${f.user_name ?? tr('Người dùng đã xoá')} · `}
                 {tr('Cập nhật {time}', { time: formatDateTime(f.updated_at) })}

@@ -39,17 +39,30 @@ const send = async (as, body = {}) => {
   return res.body;
 };
 const notificationsOf = async (as) => (await api.get('/notifications', as)).body;
+// Feedback notifications stay out of the bell: counted on the Feedback menu and on each feedback.
+const unreadFeedback = async (as) => (await notificationsOf(as)).unreadFeedback;
+const unreadOn = async (as, id) => (await api.get('/feedback', as)).body.find((f) => f.id === id).unread;
 
-test('a user sends feedback: status sent, page and browser recorded, root notified', async () => {
-  const before = (await notificationsOf(root)).unread;
+test('a user sends feedback: status sent, page and browser recorded, root notified outside the bell', async () => {
+  const before = await notificationsOf(root);
   const feedback = await send(ann, { title: 'Không lưu được task' });
   assert.equal(`${feedback.status}/${feedback.type}/${feedback.page}/${feedback.can_edit}`, 'sent/bug/#/my/true');
   assert.ok(feedback.user_agent, 'the browser is recorded');
   assert.equal(feedback.user_name, 'ann');
   const forRoot = await notificationsOf(root);
-  assert.equal(forRoot.unread, before + 1);
-  assert.equal(`${forRoot.items[0].type}/${forRoot.items[0].feedback_title}`, 'feedback_new/Không lưu được task');
-  assert.ok(forRoot.pendingFeedback >= 1);
+  assert.equal(forRoot.unreadFeedback, before.unreadFeedback + 1);
+  assert.equal(forRoot.unread, before.unread, 'the bell holds the work only');
+  assert.ok(!forRoot.items.some((n) => n.feedback_id));
+  assert.equal(await unreadOn(root, feedback.id), 1);
+
+  // Opening the feedback reads its notifications; the bell's "read all" never touches feedback ones.
+  const other = await send(bob);
+  assert.equal((await api.post('/notifications/read', root, {})).status, 204);
+  assert.equal(await unreadOn(root, other.id), 1);
+  await api.get(`/feedback/${feedback.id}`, root);
+  assert.equal(await unreadOn(root, feedback.id), 0);
+  assert.equal(await unreadFeedback(root), before.unreadFeedback + 1);
+  await api.get(`/feedback/${other.id}`, root);
 });
 
 test('fields are checked', async () => {
@@ -90,12 +103,11 @@ test('root moves the status freely, the sender is notified, history is kept; rej
   const feedback = await send(ann);
   assert.equal((await api.patch(`/feedback/${feedback.id}/status`, ann, { status: 'done' })).status, 403);
   assert.equal((await api.patch(`/feedback/${feedback.id}/status`, root, { status: 'nope' })).status, 400);
-  const unread = (await notificationsOf(ann)).unread;
+  const unread = await unreadFeedback(ann);
   assert.equal((await api.patch(`/feedback/${feedback.id}/status`, root, { status: 'done' })).status, 200, 'skipping steps is fine');
   assert.equal((await api.patch(`/feedback/${feedback.id}/status`, root, { status: 'in_progress' })).status, 200, 'so is going back');
-  const forAnn = await notificationsOf(ann);
-  assert.equal(forAnn.unread, unread + 2);
-  assert.equal(`${forAnn.items[0].type}/${forAnn.items[0].excerpt}`, 'feedback_status/in_progress');
+  assert.equal(await unreadFeedback(ann), unread + 2);
+  assert.equal(await unreadOn(ann, feedback.id), 2);
 
   const reasonless = await api.patch(`/feedback/${feedback.id}/status`, root, { status: 'rejected' });
   assert.equal(reasonless.status, 400);
@@ -111,15 +123,13 @@ test('root moves the status freely, the sender is notified, history is kept; rej
 
 test('the thread: sender and root write, each side is notified, author edits, author or root deletes', async () => {
   const feedback = await send(ann);
-  const rootUnread = (await notificationsOf(root)).unread;
+  const rootUnread = await unreadFeedback(root);
   const question = await api.post(`/feedback/${feedback.id}/messages`, ann, { body: 'Bổ sung: lỗi trên iPad' });
   assert.equal(question.status, 201);
-  assert.equal((await notificationsOf(root)).unread, rootUnread + 1);
-  const annUnread = (await notificationsOf(ann)).unread;
+  assert.equal(await unreadFeedback(root), rootUnread + 1);
+  const annUnread = await unreadFeedback(ann);
   const answer = await api.post(`/feedback/${feedback.id}/messages`, root, { body: 'Bạn dùng iPad đời nào?' });
-  const forAnn = await notificationsOf(ann);
-  assert.equal(forAnn.unread, annUnread + 1);
-  assert.equal(`${forAnn.items[0].type}/${forAnn.items[0].excerpt}`, 'feedback_message/Bạn dùng iPad đời nào?');
+  assert.equal(await unreadFeedback(ann), annUnread + 1);
 
   assert.equal((await api.post(`/feedback/${feedback.id}/messages`, ann, { body: ' ' })).status, 400);
   assert.equal((await api.patch(`/feedback-messages/${answer.body.id}`, ann, { body: 'x' })).status, 403);

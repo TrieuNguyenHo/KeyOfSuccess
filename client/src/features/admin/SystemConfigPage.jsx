@@ -11,7 +11,6 @@ import PermissionsCard from './PermissionsCard.jsx';
 import RolesCard from './RolesCard.jsx';
 import UsersCard from './UsersCard.jsx';
 import FeedbackInbox from '../feedback/FeedbackInbox.jsx';
-import NotificationBell from '../layout/NotificationBell.jsx';
 import { ErrorBanner } from '../../components/Controls.jsx';
 import { tr } from '../../i18n.js';
 
@@ -28,7 +27,8 @@ function parseHash(hash) {
 // handle the feedback people send about the app (Feedback tab, v31). No projects, tasks or dashboards.
 export default function SystemConfigPage({ user, onLogout }) {
   const [{ tab, feedbackId }, setRoute] = useState(() => parseHash(window.location.hash));
-  const [notifications, setNotifications] = useState({ items: [], unread: 0, pendingFeedback: 0 });
+  // Root's notifications are all about feedback: their unread count shows on the Feedback tab (no bell).
+  const [unreadFeedback, setUnreadFeedback] = useState(0);
   const [users, setUsers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [error, setError] = useState('');
@@ -59,11 +59,11 @@ export default function SystemConfigPage({ user, onLogout }) {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // Notifications about feedback, pushed live like in the Workspace (polling only as a fallback).
+  // Pushed live like in the Workspace (polling only as a fallback).
   const loadNotifications = useCallback(
     () =>
       api('/notifications')
-        .then(setNotifications)
+        .then((n) => setUnreadFeedback(n.unreadFeedback))
         .catch(() => {}),
     []
   );
@@ -71,10 +71,7 @@ export default function SystemConfigPage({ user, onLogout }) {
     loadNotifications();
     const unsubscribe = subscribeEvents((name, data) => {
       if (name === 'notification') loadNotifications();
-      if (name === 'feedback') {
-        publishFeedbackChange(data);
-        loadNotifications(); // the count of feedback waiting to be taken up
-      }
+      if (name === 'feedback') publishFeedbackChange(data);
     });
     const timer = setInterval(loadNotifications, NOTIFICATION_POLL_MS);
     return () => {
@@ -83,16 +80,6 @@ export default function SystemConfigPage({ user, onLogout }) {
     };
   }, [loadNotifications]);
 
-  async function openNotification(n) {
-    if (!n.read_at) await api('/notifications/read', { method: 'POST', body: { id: n.id } }).catch(() => {});
-    loadNotifications();
-    if (n.feedback_id) setRoute({ tab: 'feedback', feedbackId: n.feedback_id });
-  }
-
-  async function readAllNotifications() {
-    await api('/notifications/read', { method: 'POST', body: {} }).catch(() => {});
-    loadNotifications();
-  }
 
   const updateUser = (u, patch) => change(() => api(`/admin/users/${u.id}`, { method: 'PATCH', body: patch }));
   const revokeInvite = (u) => change(() => api(`/admin/users/${u.id}`, { method: 'DELETE' }));
@@ -116,7 +103,6 @@ export default function SystemConfigPage({ user, onLogout }) {
                 <Brand />
                 <h1>{tr('Cấu hình hệ thống')}</h1>
                 <div className="project-header-actions">
-                  <NotificationBell data={notifications} onOpen={openNotification} onReadAll={readAllNotifications} alignRight />
                   <ThemeSwitch className="tabs" />
                   <LanguageSwitch className="tabs" />
                   <span className="muted small">{user.email} · Root</span>
@@ -142,9 +128,9 @@ export default function SystemConfigPage({ user, onLogout }) {
                   onClick={() => setRoute({ tab: 'feedback', feedbackId: null })}
                 >
                   Feedback
-                  {notifications.pendingFeedback > 0 && (
-                    <span className="badge inline" title={tr('{count} feedback chưa tiếp nhận', { count: notifications.pendingFeedback })}>
-                      {notifications.pendingFeedback}
+                  {unreadFeedback > 0 && (
+                    <span className="badge inline" title={tr('{count} cập nhật chưa xem', { count: unreadFeedback })}>
+                      {unreadFeedback}
                     </span>
                   )}
                 </button>

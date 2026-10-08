@@ -18,6 +18,12 @@
 .feedback-row:active { transform: none; }
 .feedback-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .feedback-row-title { font-weight: 600; }
+/* Updates not seen yet (the bell leaves feedback out): tinted like an unread notification, with a "new" label. */
+.feedback-row.unread { background: var(--primary-tint); }
+.feedback-new {
+  display: inline-block; margin-right: 8px; padding: 0 8px; border-radius: var(--rounded-pill);
+  background: var(--primary); color: var(--on-primary); font-size: 11px; line-height: 18px; vertical-align: 1px;
+}
 .feedback-filters { flex-wrap: wrap; }
 .feedback-filters .tabs { max-width: 100%; overflow-x: auto; }
 
@@ -48,7 +54,6 @@
 .feedback-status-form textarea, .feedback-status-form select { color: var(--ink); }
 .feedback-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 
-/* Root's screen: Configuration / Feedback tabs under the header, and the bell at the right of the header. */
+/* Root's screen: Configuration / Feedback tabs under the header. */
 .root-tabs { align-self: flex-start; margin: 0 32px 16px; }
 .root-tabs .badge { margin-left: 6px; }
-.bell-wrap.align-right .notif-panel { left: auto; right: 0; max-width: calc(100vw - 32px); }

@@ -713,7 +713,6 @@ export default {
   'Lỗi': 'Bug',
   'Đề xuất': 'Suggestion',
   'Cấu hình': 'Configuration',
-  '{count} feedback chưa tiếp nhận': '{count} feedback not yet received',
   'Feedback của tôi': 'My feedback',
   '+ Gửi feedback': '+ Send feedback',
   'Gửi feedback': 'Send feedback',
@@ -754,13 +753,11 @@ export default {
   'Tất cả': 'All',
   'Mọi loại': 'All types',
   'Không có feedback nào.': 'No feedback.',
-  'đã gửi feedback': 'sent the feedback',
-  'đã chuyển feedback': 'moved the feedback',
-  'sang': 'to',
-  'đã trả lời feedback': 'replied on the feedback',
+  '{count} cập nhật chưa xem': '{count} updates not seen yet',
+  'Mới': 'New',
 
-  'Gặp lỗi hay muốn app có thêm gì, bấm "Feedback" ở cuối thanh bên: chọn Lỗi / Đề xuất / Khác, ghi tiêu đề, nội dung, dán ảnh chụp màn hình nếu có. Chỉ bạn và quản trị hệ thống thấy feedback của bạn. Bạn sửa / xoá được khi feedback còn "Đã gửi"; quản trị hệ thống chuyển nó qua Đã tiếp nhận, Đang xử lý, Đã xử lý (hoặc Không xử lý, kèm lý do), mỗi lần đổi bạn được báo ở chuông, và hai bên trao đổi ngay dưới feedback.':
-    'Found a bug or want something in the app? Click "Feedback" at the foot of the sidebar: pick Bug / Suggestion / Other, give a title and the details, and paste a screenshot if you have one. Only you and the system administrator see your feedback. You can edit or delete it while it is "Sent"; the administrator moves it to Received, In progress, Done (or Won’t do, with a reason), the bell tells you at each step, and you talk it over right below the feedback.',
+  'Gặp lỗi hay muốn app có thêm gì, bấm "Feedback" ở cuối thanh bên: chọn Lỗi / Đề xuất / Khác, ghi tiêu đề, nội dung, dán ảnh chụp màn hình nếu có. Chỉ bạn và quản trị hệ thống thấy feedback của bạn. Bạn sửa / xoá được khi feedback còn "Đã gửi"; quản trị hệ thống chuyển nó qua Đã tiếp nhận, Đang xử lý, Đã xử lý (hoặc Không xử lý, kèm lý do) và hai bên trao đổi ngay dưới feedback. Cập nhật về feedback không vào chuông: mục "Feedback" hiện số cập nhật chưa xem và feedback đó có nhãn "Mới".':
+    'Found a bug or want something in the app? Click "Feedback" at the foot of the sidebar: pick Bug / Suggestion / Other, give a title and the details, and paste a screenshot if you have one. Only you and the system administrator see your feedback. You can edit or delete it while it is "Sent"; the administrator moves it to Received, In progress, Done (or Won’t do, with a reason), and you talk it over right below the feedback. Updates on feedback stay out of the bell: the "Feedback" menu shows how many you have not seen, and that feedback is labelled "New".',
 
   // Feedback (v31): server messages
   'Chỉ người tải lên mới xoá được file này': 'Only the uploader can delete this file',

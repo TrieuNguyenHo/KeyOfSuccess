@@ -7,8 +7,9 @@ import FeedbackList from './FeedbackList.jsx';
 import { tr } from '../../i18n.js';
 
 // "Feedback" (#/feedback, #/feedback/12) for every company user: their own feedback on the app and its answers.
-// Root handles it on the System configuration screen. fromPage is the screen the user came from (sent with a new
-// feedback); onOpen(id | null) moves between the list and one feedback.
+// Root handles it on the System configuration screen. Updates on it (root's answers, status changes) are counted on
+// the Feedback menu and marked on each feedback, never in the bell. fromPage is the screen the user came from (sent
+// with a new feedback); onOpen(id | null) moves between the list and one feedback.
 export default function FeedbackPage({ feedbackId, fromPage, onOpen }) {
   const [items, setItems] = useState(null);
   const [writing, setWriting] = useState(false);

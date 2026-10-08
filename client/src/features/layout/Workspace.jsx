@@ -43,7 +43,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
   const [openTaskId, setOpenTaskId] = useState(initialRoute.panelTaskId);
   // Bumped whenever the task panel changes something, so the page behind it reloads.
   const [refreshKey, setRefreshKey] = useState(0);
-  const [notifications, setNotifications] = useState({ items: [], unread: 0, pendingUsers: 0 });
+  const [notifications, setNotifications] = useState({ items: [], unread: 0, unreadFeedback: 0, pendingUsers: 0 });
   const [creatingProject, setCreatingProject] = useState(false);
   // On narrow screens the sidebar is a drawer behind the ☰ button; any navigation closes it.
   const [navOpen, setNavOpen] = useState(false);
@@ -170,9 +170,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
       await api('/notifications/read', { method: 'POST', body: { id: n.id } }).catch(() => {});
       loadNotifications();
     }
-    if (n.feedback_id) {
-      navigate({ type: 'feedback', id: n.feedback_id });
-    } else if (n.task_id) {
+    if (n.task_id) {
       setOpenTaskId(n.task_id);
     } else {
       // Mention in requirement feedback: open the project on that requirement.
@@ -301,7 +299,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
       <main className="main">
         <div className="mobile-bar">
           <button className="icon-btn menu-btn" onClick={() => setNavOpen(true)} aria-label={tr('Mở menu')} aria-expanded={navOpen}>
-            ☰{notifications.unread + notifications.pendingUsers > 0 && <span className="menu-dot" aria-label={tr('Có thông báo mới')} />}
+            ☰{notifications.unread + notifications.unreadFeedback + notifications.pendingUsers > 0 && <span className="menu-dot" aria-label={tr('Có thông báo mới')} />}
           </button>
           <Brand />
         </div>

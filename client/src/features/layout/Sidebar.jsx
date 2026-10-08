@@ -281,7 +281,13 @@ export default function Sidebar({
         <NavItem active={view.type === 'guide'} onClick={() => go({ type: 'guide' })} icon="guide">
           {tr('Hướng dẫn')}
         </NavItem>
-        <NavItem active={view.type === 'feedback'} onClick={() => go({ type: 'feedback' })} icon="feedback">
+        {/* Updates on the user's feedback count here, not in the bell (decided 2026-10-08). */}
+        <NavItem
+          active={view.type === 'feedback'}
+          onClick={() => go({ type: 'feedback' })}
+          icon="feedback"
+          badge={notifications.unreadFeedback}
+        >
           Feedback
         </NavItem>
       </ul>

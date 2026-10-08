@@ -3,6 +3,7 @@
 // while it is 'sent'; root deletes any. Root moves it between statuses freely (back included); 'rejected' needs a
 // reason, posted in the thread. The thread (messages, with files) is between the sender and root, at any status.
 // Notifications: root on a new feedback and on the sender's messages; the sender on a status change and root's messages.
+// They stay out of the bell: each feedback carries its count of unread ones, read when it is opened.
 import express from 'express';
 import { db, transaction } from '../db.js';
 import { FEEDBACK_STATUSES, FEEDBACK_TYPES, editable, loadFeedback, rootIds, touchFeedback } from '../lib/feedback.js';
@@ -64,10 +65,11 @@ function notify(userIds, actor, feedback, type, excerpt = null) {
   userIds.forEach((id) => insert.run(id, actor.id, feedback.id, type, excerpt));
 }
 
-// Root: every feedback (?status, ?type to filter); anyone else: their own. Latest activity first.
+// Root: every feedback (?status, ?type to filter); anyone else: their own. Latest activity first; `unread` counts
+// the user's unread notifications about each one.
 router.get('/feedback', (req, res) => {
   const where = [];
-  const params = [];
+  const params = [req.user.id];
   if (!isRoot(req.user)) {
     where.push('f.user_id = ?');
     params.push(req.user.id);
@@ -83,7 +85,8 @@ router.get('/feedback', (req, res) => {
   const items = db
     .prepare(
       `SELECT f.id, f.user_id, f.type, f.title, f.status, f.created_at, f.updated_at, u.name AS user_name,
-         (SELECT COUNT(*) FROM feedback_messages m WHERE m.feedback_id = f.id) AS message_count
+         (SELECT COUNT(*) FROM feedback_messages m WHERE m.feedback_id = f.id) AS message_count,
+         (SELECT COUNT(*) FROM notifications n WHERE n.feedback_id = f.id AND n.user_id = ? AND n.read_at IS NULL) AS unread
        FROM feedback f LEFT JOIN users u ON u.id = f.user_id
        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
        ORDER BY f.updated_at DESC, f.id DESC`
@@ -112,9 +115,15 @@ router.post('/feedback', (req, res) => {
   res.status(201).json(detail(feedback, req.user));
 });
 
+// Opening a feedback reads the user's notifications about it; their other tabs update their counts.
 router.get('/feedback/:id', (req, res) => {
   const feedback = loadFeedback(req, res, req.params.id);
-  if (feedback) res.json(detail(feedback, req.user));
+  if (!feedback) return;
+  const { changes } = db
+    .prepare("UPDATE notifications SET read_at = datetime('now') WHERE feedback_id = ? AND user_id = ? AND read_at IS NULL")
+    .run(feedback.id, req.user.id);
+  if (changes) pushNotifications([req.user.id]);
+  res.json(detail(feedback, req.user));
 });
 
 router.patch('/feedback/:id', (req, res) => {

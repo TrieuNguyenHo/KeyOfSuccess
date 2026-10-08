@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { FEEDBACK_STATUSES, formatDateTime } from '../../utils.js';
+import { formatDateTime } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { tr } from '../../i18n.js';
 
-// alignRight opens the panel leftwards, for a bell at the right of the screen (root's header).
-export default function NotificationBell({ data, onOpen, onReadAll, alignRight = false }) {
+export default function NotificationBell({ data, onOpen, onReadAll }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className={`bell-wrap ${alignRight ? 'align-right' : ''}`}>
+    <div className="bell-wrap">
       <button className="icon-btn light bell" onClick={() => setOpen((o) => !o)} title={tr('Thông báo')}>
         🔔
         {data.unread > 0 && <span className="badge">{data.unread > 99 ? '99+' : data.unread}</span>}
@@ -38,23 +37,7 @@ export default function NotificationBell({ data, onOpen, onReadAll, alignRight =
               >
                 <Avatar name={n.actor_name ?? '?'} userId={n.actor_id} small />
                 <span className="notif-text">
-                  {n.type === 'feedback_new' ? (
-                    <span>
-                      <b>{n.actor_name ?? tr('Ai đó')}</b> {tr('đã gửi feedback')} <b>{n.feedback_title}</b>
-                    </span>
-                  ) : n.type === 'feedback_status' ? (
-                    <span>
-                      <b>{n.actor_name ?? tr('Ai đó')}</b> {tr('đã chuyển feedback')} <b>{n.feedback_title}</b> {tr('sang')}{' '}
-                      <b>{FEEDBACK_STATUSES[n.excerpt] ?? n.excerpt}</b>
-                    </span>
-                  ) : n.type === 'feedback_message' ? (
-                    <>
-                      <span>
-                        <b>{n.actor_name ?? tr('Ai đó')}</b> {tr('đã trả lời feedback')} <b>{n.feedback_title}</b>
-                      </span>
-                      {n.excerpt && <span className="notif-excerpt">“{n.excerpt}”</span>}
-                    </>
-                  ) : n.type === 'assigned' ? (
+                  {n.type === 'assigned' ? (
                     <span>
                       <b>{n.actor_name ?? tr('Ai đó')}</b> {tr('đã giao cho bạn task')} <b>{n.task_title}</b>
                     </span>
@@ -72,7 +55,7 @@ export default function NotificationBell({ data, onOpen, onReadAll, alignRight =
                     </span>
                   )}
                   <span className="muted small">
-                    {n.project_name ?? 'Feedback'} · {formatDateTime(n.created_at)}
+                    {n.project_name} · {formatDateTime(n.created_at)}
                   </span>
                 </span>
               </button>
