@@ -61,7 +61,7 @@ test('a sheet with a chart gets a drawing and a native chart over its own cells'
       {
         name: "Lan's tasks",
         rows: [['Người', 'Quá hạn', 'Còn hạn'], ['Lan Anh', 1, 2], ['Minh', 0, 4]],
-        chart: { type: 'bar', grouping: 'stacked', title: 'Task đang mở', cat: 0, series: [{ col: 1, color: 'B42318' }, { col: 2, color: '8E8E93' }] },
+        chart: { type: 'bar', grouping: 'stacked', title: 'Task đang mở', cat: 0, series: [{ col: 1, color: 'B42318', label: 'FFFFFF' }, { col: 2, color: '8E8E93' }] },
       },
       { name: 'Ngày', rows: [['Ngày', 'Xong'], [day, 2]], chart: { type: 'column', title: 'Xong', cat: 0, series: [{ col: 1, color: 'D85A30' }] } },
       { name: 'Trống', rows: [['Kênh', 'Xong']], chart: { type: 'bar', title: 'x', cat: 0, series: [{ col: 1, color: 'D85A30' }] } },
@@ -82,6 +82,9 @@ test('a sheet with a chart gets a drawing and a native chart over its own cells'
   assert.match(bars, /<c:f>'Lan''s tasks'!\$C\$2:\$C\$3<\/c:f><c:numCache>.*<c:v>2<\/c:v>.*<c:v>4<\/c:v>/);
   assert.match(bars, /<a:srgbClr val="B42318"\/>/);
   assert.match(bars, /<c:legend>/);
+  // Values on the bars only for series that ask for them, zeros hidden, centred in stacked bars.
+  assert.equal(bars.match(/<c:dLbls>/g).length, 1);
+  assert.match(bars, /<c:dLbls><c:numFmt formatCode="0;;;" sourceLinked="0"\/>.*<a:srgbClr val="FFFFFF"\/>.*<c:dLblPos val="ctr"\/><c:showLegendKey val="0"\/><c:showVal val="1"\/>/);
 
   // Dates are real dates in the cells and on the axis.
   const serial = (Date.UTC(2026, 9, 8) - Date.UTC(1899, 11, 30)) / 86400000;

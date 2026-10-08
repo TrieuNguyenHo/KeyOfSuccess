@@ -4,8 +4,9 @@
 // a few dozen kilobytes.
 //
 // chart: { type: 'bar' (horizontal) | 'column', grouping: 'clustered' | 'stacked' | 'percentStacked', title,
-//          cat: column index of the labels, series: [{ col, color: 'RRGGBB' }] } over the rows below the header;
-//          each series is named by its header cell.
+//          cat: column index of the labels, series: [{ col, color: 'RRGGBB', label?: 'RRGGBB' }] } over the rows
+//          below the header; each series is named by its header cell. `label` writes each value on its bar in that
+//          color (centred in stacked bars, above columns), zeros left out.
 
 const NS = 'http://schemas.openxmlformats.org';
 const HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
@@ -92,14 +93,22 @@ const INK = '2C2C2A';
 const HAIRLINE = 'E0E0E0';
 const GRID = 'F0F0F0';
 
+// Values written on the bars; the format 0;;; shows positive numbers and hides zeros (empty segments).
+const dataLabels = (color, position) =>
+  '<c:dLbls><c:numFmt formatCode="0;;;" sourceLinked="0"/><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>' +
+  `<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="900" b="1">${fill(color)}</a:defRPr></a:pPr><a:endParaRPr lang="vi-VN"/></a:p></c:txPr>` +
+  `<c:dLblPos val="${position}"/><c:showLegendKey val="0"/><c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/>` +
+  '<c:showPercent val="0"/><c:showBubbleSize val="0"/></c:dLbls>';
+
 function chartXml(sheet, rows, { type, grouping = 'clustered', title, cat, series }) {
   const horizontal = type === 'bar';
+  const labelPos = grouping === 'clustered' ? 'outEnd' : 'ctr';
   const ser = series
     .map(
       (s, i) =>
         `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>` +
         `<c:tx><c:strRef><c:f>${sheetRef(sheet)}!$${column(s.col)}$1</c:f><c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${xml(rows[0][s.col])}</c:v></c:pt></c:strCache></c:strRef></c:tx>` +
-        `<c:spPr>${fill(s.color)}</c:spPr><c:invertIfNegative val="0"/>` +
+        `<c:spPr>${fill(s.color)}</c:spPr><c:invertIfNegative val="0"/>${s.label ? dataLabels(s.label, labelPos) : ''}` +
         `<c:cat>${rangeXml(sheet, rows, cat)}</c:cat><c:val>${rangeXml(sheet, rows, s.col)}</c:val></c:ser>`
     )
     .join('');

@@ -20,8 +20,9 @@ function infoSheet(title, scope, stats) {
 }
 
 // Chart colors match the dashboard in the light theme (client/src/styles/tokens.css): --overdue-mark,
-// --neutral-mark, --brand, and --primary-tint over white for the meter track.
-const COLORS = { overdue: 'B42318', open: '8E8E93', brand: 'D85A30', track: 'FBEFEA' };
+// --neutral-mark, --brand, and --primary-tint over white for the meter track. Numbers on the bars are white on
+// the dark fills and --ink on the light ones (white on the grey would be under 4.5:1).
+const COLORS = { overdue: 'B42318', open: '8E8E93', brand: 'D85A30', track: 'FBEFEA', white: 'FFFFFF', ink: '2C2C2A' };
 
 // Stacked bars per person, overdue then the rest of the open tasks, like the Workload card.
 function workloadSheet(people, withTeam) {
@@ -38,8 +39,8 @@ function workloadSheet(people, withTeam) {
       title: tr('Task đang mở'),
       cat: 0,
       series: [
-        { col: first + 1, color: COLORS.overdue },
-        { col: first + 2, color: COLORS.open },
+        { col: first + 1, color: COLORS.overdue, label: COLORS.white },
+        { col: first + 2, color: COLORS.open, label: COLORS.ink },
       ],
     },
   };
@@ -59,8 +60,8 @@ function progressSheet(name, label, items) {
       title: name,
       cat: 0,
       series: [
-        { col: 1, color: COLORS.brand },
-        { col: 2, color: COLORS.track },
+        { col: 1, color: COLORS.brand, label: COLORS.white },
+        { col: 2, color: COLORS.track, label: COLORS.ink },
       ],
     },
   };
@@ -74,7 +75,7 @@ function channelSheet(channels, noChannel) {
 const trendSheet = (trend) => ({
   name: tr('Hoàn thành mỗi ngày'),
   rows: [[tr('Ngày'), tr('Task hoàn thành')], ...trend.map((d) => [new Date(`${d.day}T00:00`), d.done])],
-  chart: { type: 'column', title: tr('Hoàn thành mỗi ngày'), cat: 0, series: [{ col: 1, color: COLORS.brand }] },
+  chart: { type: 'column', title: tr('Hoàn thành mỗi ngày'), cat: 0, series: [{ col: 1, color: COLORS.brand, label: COLORS.ink }] },
 });
 
 const fileName = (title) => `Dashboard - ${title.replace(/[\\/:*?"<>|]/g, ' ').trim()} - ${todayStr()}.xlsx`;
