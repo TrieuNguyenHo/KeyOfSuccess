@@ -17,6 +17,7 @@ export default function ProjectHeader({
   onDelete,
   onChangeTeams,
   onShowMembers,
+  onOpenChat,
 }) {
   const changesTeams = can(user, 'projects.change_teams');
   const canManage = project.access === 'manage';
@@ -71,6 +72,11 @@ export default function ProjectHeader({
           </span>
           {tr('{count} thành viên', { count: members.length })}
         </button>
+        {onOpenChat && (
+          <button className="members-btn" onClick={onOpenChat} title={tr('Chat của project')}>
+            <span aria-hidden="true">💬</span> Chat
+          </button>
+        )}
         {/* Two groups: the requirements and calendar views, and the List / Board layouts of the task list. */}
         <div className="tab-groups">
           <div className="tabs" role="group" aria-label={tr('Requirements và lịch')}>

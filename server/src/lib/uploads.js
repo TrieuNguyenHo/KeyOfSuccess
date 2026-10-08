@@ -88,7 +88,7 @@ export function saveAttachment(req, res, target, change) {
     );
   if (target.taskId) logEvent(findTask(target.taskId), req.user, 'file_added', { name, in_comment: Boolean(target.comment_id) });
   if (target.feedback) touchFeedback(req, target.feedback);
-  else if (target.conversation) pushChat(req, memberIds(target.conversation.id), target.conversation.id);
+  else if (target.conversation) pushChat(req, memberIds(target.conversation), target.conversation.id);
   else pushChange(req, ...change);
   res.status(201).json(db.prepare(`${ATTACHMENT_SELECT} WHERE a.id = ?`).get(lastInsertRowid));
 }

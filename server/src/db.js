@@ -233,22 +233,30 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
-  -- Chat (v32, decided 2026-10-08): one-to-one conversations between people at work. Private: only their two
-  -- members read them (nobody else, Managers, Directors and root included). direct_key is "<smaller id>:<larger id>",
-  -- so a pair has one conversation. kind is 'direct' only for now (no CHECK, so group chats need no rebuild).
+  -- Chat (v32, decided 2026-10-08). kind: 'direct' (one-to-one; direct_key is "<smaller id>:<larger id>", so a pair
+  -- has one conversation), and since v33 'group' (made by hand: title, owner_id runs it), 'project' (project_id: whoever
+  -- can open the project) and 'team' (team_id: the people of the team). Private to their members, Managers,
+  -- Directors and root included.
   CREATE TABLE IF NOT EXISTS conversations (
     id INTEGER PRIMARY KEY,
     kind TEXT NOT NULL DEFAULT 'direct',
     direct_key TEXT UNIQUE,
+    title TEXT,
+    owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     last_message_at TEXT
   );
 
-  -- last_read_id: the last message the member has seen; the unread ones are the others' messages after it.
+  -- Direct and group conversations: one row per member. Project and team ones: their members come from the rules, so
+  -- a row only keeps someone's state there. last_read_id: the last message they have seen; muted (v33): its messages
+  -- are not counted on the Messages menu, mentions of them still are. Rows go in joining order (rowid).
   CREATE TABLE IF NOT EXISTS conversation_members (
     conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     last_read_id INTEGER NOT NULL DEFAULT 0,
+    muted INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (conversation_id, user_id)
   );
 
@@ -259,6 +267,7 @@ db.exec(`
     conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     body TEXT NOT NULL,
+    reply_to_id INTEGER REFERENCES messages(id) ON DELETE SET NULL, -- the message it answers (v33)
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     edited_at TEXT,
     deleted_at TEXT
@@ -814,7 +823,27 @@ if (schemaVersion() < 32) {
   });
 }
 
+// v33: group, project and team chats, muting a conversation, answering a message (columns created above for new
+// databases). Columns only: nothing is rebuilt.
+if (schemaVersion() < 33) {
+  transaction(() => {
+    for (const [table, column, definition] of [
+      ['conversations', 'title', 'TEXT'],
+      ['conversations', 'owner_id', 'INTEGER REFERENCES users(id) ON DELETE SET NULL'],
+      ['conversations', 'project_id', 'INTEGER REFERENCES projects(id) ON DELETE CASCADE'],
+      ['conversations', 'team_id', 'INTEGER REFERENCES teams(id) ON DELETE CASCADE'],
+      ['conversation_members', 'muted', 'INTEGER NOT NULL DEFAULT 0'],
+      ['messages', 'reply_to_id', 'INTEGER REFERENCES messages(id) ON DELETE SET NULL'],
+    ]) {
+      if (!hasColumn(table, column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
+    db.exec('PRAGMA user_version = 33');
+  });
+}
+
 db.exec(`
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id) WHERE project_id IS NOT NULL;
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_team ON conversations(team_id) WHERE team_id IS NOT NULL;
   CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, id);
   CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
   CREATE INDEX IF NOT EXISTS idx_conversation_members_user ON conversation_members(user_id);

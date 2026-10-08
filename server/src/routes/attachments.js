@@ -86,7 +86,7 @@ router.delete('/attachments/:id', (req, res) => {
     logEvent(findTask(attachment.task_id), req.user, 'file_deleted', { name: attachment.name, in_comment: Boolean(attachment.comment_id) });
   }
   if (attachment.feedback) touchFeedback(req, attachment.feedback);
-  else if (attachment.conversation) pushChat(req, memberIds(attachment.conversation.id), attachment.conversation.id);
+  else if (attachment.conversation) pushChat(req, memberIds(attachment.conversation), attachment.conversation.id);
   else pushChange(req, ...attachment.change);
   res.status(204).end();
 });

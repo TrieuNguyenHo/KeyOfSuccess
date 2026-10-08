@@ -32,7 +32,7 @@ React + Vite (frontend), Node/Express + SQLite (backend), đăng nhập bằng G
 - **Sửa / xoá bình luận** (task và requirement): người viết sửa và xoá bình luận của mình (hiện "đã sửa"); Manager xoá được mọi bình luận nhưng không sửa lời người khác; tag mới thêm khi sửa thì người đó được báo
 - **File trong bình luận** (task và requirement): nút 📎, kéo thả hoặc dán ảnh (Ctrl+V) vào ô bình luận; gửi chỉ file không cần chữ; file hiện dưới bình luận, xoá bình luận thì file đi theo; chỉ người viết đính kèm vào bình luận của mình
 - **Đính kèm file** vào task và requirement (tối đa 25 MB/file, chọn file hoặc kéo thả): ai bình luận được thì đính kèm được; người tải lên hoặc người có toàn quyền task / sửa requirement thì xoá được; ảnh PNG, JPG, GIF, WebP có xem trước, file khác bấm để tải về
-- **Tin nhắn** (`#/chat`, `#/chat/4`, v32): nhắn tin 1-1 với người đang làm việc (đã tham gia, đang hoạt động, không phải root) có quyền `chat.use` (mặc định mọi vai trò). Riêng tư: chỉ hai người trong cuộc đọc được, kể cả Manager, Director và root (người khác nhận 404). Enter để gửi, Shift+Enter xuống dòng; ảnh / file qua 📎, kéo thả hoặc dán (25 MB/file); link bấm được. Người viết sửa ("đã sửa") và xoá tin của mình (còn dòng "Tin nhắn đã bị xoá", file bị xoá); "Đã xem" khi người kia đã đọc. Số tin chưa đọc hiện trên mục "Tin nhắn", không vào chuông; cập nhật trực tiếp qua `event: chat`. Người bị khoá / chưa tham gia không nhận được tin mới, tin cũ vẫn đọc được. Tin nhắn quá 6 tháng tự xoá (lúc khởi động và mỗi ngày)
+- **Tin nhắn** (`#/chat`, `#/chat/4`, v32; nhóm, chat project / team từ v33): nhắn tin 1-1 với người đang làm việc (đã tham gia, đang hoạt động, không phải root) có quyền `chat.use` (mặc định mọi vai trò). Riêng tư: chỉ hai người trong cuộc đọc được, kể cả Manager, Director và root (người khác nhận 404). Enter để gửi, Shift+Enter xuống dòng; ảnh / file qua 📎, kéo thả hoặc dán (25 MB/file); link bấm được. Người viết sửa ("đã sửa") và xoá tin của mình (còn dòng "Tin nhắn đã bị xoá", file bị xoá); "Đã xem" khi người kia đã đọc. Số tin chưa đọc hiện trên mục "Tin nhắn", không vào chuông; cập nhật trực tiếp qua `event: chat`. Người bị khoá / chưa tham gia không nhận được tin mới, tin cũ vẫn đọc được. Tin nhắn quá 6 tháng tự xoá (lúc khởi động và mỗi ngày). **Từ v33**: nhóm tự tạo (người tạo quản lý: đổi tên, bỏ người; ai trong nhóm cũng thêm người hoặc rời nhóm; người quản lý rời thì người vào sớm nhất thay), chat của project (ai mở được project, như comment; nút "Chat" trên đầu project) và chat của team (người thuộc team); hai loại sau tính thành viên theo luật lúc đọc, rời project / team là mất quyền ngay. @nhắc tên thành viên (không vào chuông; cuộc trò chuyện có dấu @), 🔕 tắt thông báo từng cuộc (vẫn đếm tin nhắc tới mình), "Trả lời" trích dẫn một tin, dán link task (trang task `#/task/12` hoặc màn đang mở panel task `…?task=12`) thì người xem được task thấy thẻ tên task (bấm để mở), người không xem được chỉ thấy link
 - **Sidebar** theo mẫu `component_styles/side_bar`: nền tối, cột icon, menu con trượt ra khi rê chuột / bấm / dùng bàn phím (Escape để đóng)
 - **iPad**: màn dưới 1024px dùng sidebar dạng ngăn kéo (nút ☰), panel task toàn màn, bảng cột hẹp; trên màn cảm ứng giữ ngón tay 0,35 giây để kéo thẻ trên Board và task trên Lịch, ô nhập chữ 16px để Safari không tự phóng to
 - **Giao diện Sáng / Tối**: chọn ở sidebar, trình duyệt nhớ lựa chọn; lần đầu theo cài đặt của máy
@@ -249,6 +249,7 @@ Test API viết bằng `node:test` (có sẵn trong Node, không cần cài thê
 | `project-roles.test.js` | Vai trò trong project (v30): theo team khi không gán, Quản lý / Thành viên project / Chỉ xem (kể cả hạ Leader), về lại theo team, ai gán được cho ai |
 | `bootstrap-emails.test.js` | `DIRECTOR_EMAILS` / `MANAGER_EMAILS` cấp vai trò một lần: đổi vai trò / khoá trong app được giữ, email thêm sau được cấp, lời mời, migration v29 |
 | `feedback.test.js` | Feedback: chỉ người gửi và root thấy, sửa / xoá khi còn "Đã gửi", root đổi trạng thái tự do, "Không xử lý" cần lý do, trao đổi và thông báo hai bên, file, sự kiện live |
+| `chat-groups.test.js` | Tin nhắn v33: nhóm (người tạo quản lý, thêm / bỏ / rời, chuyển quyền, nhóm trống bị xoá), chat project theo quyền mở project, chat team theo team, @nhắc tên chỉ thành viên, tắt thông báo, trả lời, link task chỉ hiện với người xem được |
 | `chat.test.js` | Tin nhắn (v32): mỗi cặp một cuộc trò chuyện, chỉ hai người đọc được (kể cả Manager / Director / root), chỉ nhắn người đang làm việc, quyền `chat.use`, sửa / xoá của mình, file, 50 tin mỗi lần, xoá tin quá 6 tháng, migration v32 |
 | `root.test.js` | Root: chỉ dùng API cấu hình, ẩn khỏi mọi danh sách, cấp Director, không ai sửa được root, thu hồi khi bỏ khỏi `ROOT_EMAILS`, migration v23 |
 | `custom-roles.test.js` | Vai trò tự tạo (v27): chỉ root, sao chép quyền, đổi tên vai trò có sẵn, không đổi cấp / xoá vai trò có sẵn, số team theo vai trò, không xoá vai trò còn người giữ |
@@ -276,6 +277,7 @@ SQLite, schema ở `server/src/db.js`. Phiên bản lưu trong `PRAGMA user_vers
 - **v10**: thêm `users.invited_by` (ai đã mời). Người do Leader mời chờ Manager duyệt; Leader chỉ duyệt được người tự đăng ký. Tài khoản cũ coi như tự đăng ký.
 - **v9**: Leader và Manager có thể thuộc nhiều team (bảng `user_teams`). Team ở v2 được chép sang; cột `users.team_id` giữ lại nhưng không còn dùng.
 - **v7**: bảng `requirements` và `requirement_comments`, cột `tasks.requirement_id`. Mỗi project cũ có một "Requirement chung" nhận mô tả v6, toàn bộ task và góp ý chung của project; sau đó cột `projects.description` và bảng `project_comments` bị bỏ. Xoá requirement còn task bị chặn.
+- **v33**: chat nhóm / project / team: `conversations` thêm `title`, `owner_id` (nhóm), `project_id`, `team_id` (mỗi project / team một cuộc, index unique); `conversation_members.muted`; `messages.reply_to_id`. Chỉ thêm cột, không dựng lại bảng.
 - **v32**: tin nhắn 1-1: bảng `conversations` (`kind` = `direct`, `direct_key` "<id nhỏ>:<id lớn>" để mỗi cặp một cuộc), `conversation_members` (`last_read_id`: tin cuối đã xem), `messages` (xoá mềm: `deleted_at`, nội dung rỗng). `attachments` thêm `message_id` và được dựng lại lần nữa (giữ id) cho CHECK mới. Tin quá 6 tháng bị xoá.
 - **v31**: feedback về app: bảng `feedback` (người gửi, loại `bug` / `idea` / `other`, tiêu đề, nội dung, trạng thái `sent` / `received` / `in_progress` / `done` / `rejected`, màn hình đang đứng, phiên bản app, trình duyệt), `feedback_messages` (trao đổi giữa người gửi và root), `feedback_events` (lịch sử trạng thái). `attachments` thêm `feedback_id` / `feedback_message_id` và `notifications` thêm `feedback_id`; cả hai bảng được dựng lại (giữ id) vì ràng buộc CHECK cũ bắt mỗi dòng thuộc task hoặc requirement.
 - **v30**: cột `project_members.role` (`admin` / `member` / `viewer`, NULL = theo team): vai trò gán tay trong project, thắng luật theo team. Lúc chuyển mọi dòng là NULL nên không ai đổi quyền.
@@ -322,7 +324,7 @@ server/src/routes/     REST API, mỗi tính năng một file (express.Router, g
   dashboard          Dashboard tổng và Dashboard project
   notifications      chuông thông báo, luồng sự kiện /events
   feedback           feedback về app: người dùng gửi / sửa / xoá của mình, root đổi trạng thái; trao đổi và file
-  chat               tin nhắn 1-1: danh sách, người nhắn được, tin nhắn (gửi / sửa / xoá / đã đọc), file trong tin
+  chat               tin nhắn: 1-1, nhóm, chat project / team; thành viên nhóm, tắt thông báo; tin nhắn (gửi / trả lời / sửa / xoá / đã đọc), file
   permissions        /roles (mọi người), thêm / sửa / xoá vai trò /admin/roles và bảng quyền /admin/permissions (root)
 server/src/lib/        luật và helper dùng chung giữa các route
   access             quyền project / task (projectAccess, taskAccess, isTaskAdmin, canBeAssigned, taskScope…)
@@ -330,7 +332,7 @@ server/src/lib/        luật và helper dùng chung giữa các route
   roles              isRoot
   users, requirements, statuses, history, channels, recurrence, mentions, notifications
   feedback           loadFeedback (chỉ người gửi và root), rootIds, touchFeedback; version: phiên bản đã deploy
-  chat               loadConversation (chỉ thành viên), canChatWith, purgeMessages (6 tháng)
+  chat               ai ở trong cuộc nào (memberUsers, isMember, loadConversation), số chưa đọc (totalUnread), link task (taskLinks), purgeMessages (6 tháng)
   live               Server-Sent Events (pushChange, pushNotifications, pushFeedbackChange, pushChat)
   backup             sao lưu hằng ngày database + uploads
   uploads            lưu file, sweepUploads; comments: COMMENT_KINDS dùng chung cho comment task / requirement
@@ -423,11 +425,18 @@ client/src/features/   các màn, mỗi tính năng một thư mục
 | POST | `/api/feedback/:id/messages` | người gửi hoặc root: `{ body, with_files }`; báo bên kia |
 | PATCH, DELETE | `/api/feedback-messages/:id` | PATCH người viết; DELETE người viết hoặc root |
 | POST | `/api/feedback/:id/attachments`, `/api/feedback-messages/:id/attachments` | file của feedback (người gửi, khi còn `sent`) / của tin nhắn (người viết); như các upload khác |
+| GET | `/api/chats/rooms` | `{ projects, teams }`: project mình mở được và team của mình, để mở chat của chúng |
+| POST | `/api/chats/group` | `{ title, user_ids }`: tạo nhóm, mình là người quản lý |
+| POST | `/api/chats/project/:projectId`, `/api/chats/team/:teamId` | chat của project (ai mở được project) / team (người thuộc team), tạo khi chưa có; người khác 404 |
+| PATCH | `/api/chats/:id` | `{ title }`: người quản lý nhóm đổi tên |
+| POST | `/api/chats/:id/mute` | `{ muted }`: tắt / bật thông báo cuộc này cho mình |
+| POST | `/api/chats/:id/members` | `{ user_ids }`: thêm người vào nhóm (ai trong nhóm cũng được) |
+| DELETE | `/api/chats/:id/members/:userId` | rời nhóm (chính mình) hoặc bỏ người (người quản lý); người quản lý rời thì người vào sớm nhất thay; người cuối rời thì nhóm bị xoá |
 | GET | `/api/chats/people` | người nhắn được: đang làm việc, có `chat.use`, trừ mình (id, tên, vai trò, team) |
-| GET | `/api/chats` | cuộc trò chuyện của mình đã có tin, mới nhất trước: `other`, `last_message`, `unread`, `last_read_id`, `other_last_read_id`, `can_send`. Mọi route `/chats`, `/chat-messages` cần `chat.use` (403); root 403 |
+| GET | `/api/chats` | cuộc trò chuyện của mình đã có tin (và mọi nhóm mình ở trong), mới nhất trước: `kind` (`direct` / `group` / `project` / `team`), `title`, `other` (1-1), `project` / `team`, `last_message` (có `user_name`), `unread`, `mentioned`, `muted`, `last_read_id`, `other_last_read_id`, `can_send`. `GET /api/chats/:id` thêm `members`. Mọi route `/chats`, `/chat-messages` cần `chat.use` (403); root 403 |
 | POST | `/api/chats/direct` | `{ user_id }`: cuộc trò chuyện với người đó (tạo khi chưa có; 400 nếu không nhắn được) |
 | GET | `/api/chats/:id` | chỉ hai thành viên (người khác 404) |
-| GET, POST | `/api/chats/:id/messages` | GET 50 tin mới nhất (cũ trước), `?before=<id>` để xem cũ hơn, `has_more`; POST `{ body, with_files }` (tối đa 4000 ký tự; 400 khi người kia không còn nhận được tin) |
+| GET, POST | `/api/chats/:id/messages` | GET 50 tin mới nhất (cũ trước), `?before=<id>` để xem cũ hơn, `has_more`; mỗi tin có `reply` (tin được trả lời) và `tasks` (task được link mà người đọc xem được). POST `{ body, with_files, reply_to_id }`; @nhắc tên người ngoài cuộc thành chữ thường (tối đa 4000 ký tự; 400 khi người kia không còn nhận được tin) |
 | POST | `/api/chats/:id/read` | đã xem tới tin cuối |
 | PATCH, DELETE | `/api/chat-messages/:id` | chỉ người viết; DELETE giữ dòng (`deleted_at`), xoá nội dung và file |
 | POST | `/api/chat-messages/:id/attachments` | file của tin nhắn (người viết); như các upload khác |
