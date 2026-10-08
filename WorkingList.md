@@ -5,7 +5,7 @@ File này được nạp tự động qua `.claude/CLAUDE.md`.
 
 **Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
 
-_Cập nhật lần cuối: 2026-10-07 · Schema database: v30 · Test: `npm test`, 280/280 pass (khoảng 5 giây)_
+_Cập nhật lần cuối: 2026-10-08 · Schema database: v30 · Test: `npm test`, 282/282 pass (khoảng 5 giây)_
 
 ---
 
@@ -86,6 +86,11 @@ _Cập nhật lần cuối: 2026-10-07 · Schema database: v30 · Test: `npm tes
 ### Gộp bản đã deploy `v1.0` vào nhánh chính (2026-10-07, schema v28)
 - Hai nhánh cùng lấy số v26: nhánh chính (v26 Manager theo team, v27 vai trò) và PR #1 đã deploy lên VPS với tag `v1.0` (v26 = 4 trạng thái cố định Planned / In-Progress / Completed / Pending, chuẩn bị deploy, backup hằng ngày). Khi gộp, trạng thái cố định thành **v28** (migration chạy lại an toàn); database của VPS (v26 + bảng `sections` đã có `pending`) được nhận ra và chạy bù bước "Manager chỉ quản lý team mình" (`managerToOwnTeams()` trong `db.js`), rồi v27, v28. Database dev: v27 → v28. Đã thử trên bản sao của cả hai loại database và chạy đủ test trước khi đưa về `main`.
 - Chữ trong hướng dẫn task lặp lại (Completed / Planned) chuyển sang `RecurrenceField.jsx` (file tách từ `TaskDetail`).
+
+### Xuất Excel từ Dashboard (2026-10-08, không đổi schema / API)
+- Người dùng yêu cầu. Nút "Xuất Excel" trên header của Dashboard tổng quan và Dashboard project: tải về đúng số liệu đang xem (theo phạm vi / team đang chọn, nên không lộ thêm gì ngoài màn hình), mỗi thẻ một sheet. Tổng quan: Tổng quan (phạm vi, giờ xuất, các ô số liệu), Workload, Theo project, Hoàn thành mỗi ngày, Theo kênh. Project: Tổng quan (thêm % hoàn thành, tổng số task), Theo requirement, Theo kênh, Workload, Hoàn thành mỗi ngày, Theo trạng thái. Tên file `Dashboard - <phạm vi hoặc project> - <ngày>.xlsx`; chữ theo ngôn ngữ của người dùng.
+- Tạo file ngay trong trình duyệt, không thêm thư viện: `client/src/xlsx.js` (`buildXlsx()` / `downloadXlsx()`, zip không nén, dòng đầu in đậm và cố định, số là số, độ rộng cột theo nội dung, tên sheet ≤ 31 ký tự và không trùng). Bảng dữ liệu trong `features/dashboard/dashboardExport.js`. Thêm câu về nút này vào mục Dashboard của Hướng dẫn.
+- Test `xlsx.test.js` (2 test: đọc lại zip, kiểm tra CRC, ô số / chữ, escape, tên sheet). Đã mở file bằng openpyxl (đọc được, header in đậm, cố định dòng 1). Đã thử trên trình duyệt bằng Demo User ở Dashboard Website Redesign: file đủ 6 sheet, số khớp màn hình, không lỗi console. Chưa bấm thử ở Dashboard tổng quan (không có tài khoản test Manager; Trieu đăng nhập thành root ở dev).
 
 ### Vai trò trong project (2026-10-07, schema v30)
 - Người dùng hỏi Jira phân quyền thế nào (theo project, không theo team), rồi chốt thêm quyền theo project cho cả 4 trường hợp: điều phối viên project, người team khác làm việc, người chỉ xem, giới hạn bớt quyền. Cách áp: **vai trò gán tay thắng luật theo team ở cả hai chiều, không gán thì theo team**; người quản lý project gán.
@@ -217,7 +222,7 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 ## Đề xuất tiếp theo
 
 1. **Kiểm tra VPS sau khi lên `beta_v1.2`**: `/api/health` (schema 28), `bash deploy/rollback.sh --list`, quyền Manager trong bảng quyền của root (giờ là "Team của mình"); đồng bộ `server/data/backups` ra ngoài VPS (rclone / Google Drive) vì bản sao lưu đang cùng ổ đĩa; database trên VPS chuyển v26 → v28 và Manager chuyển sang "Team của mình". Kiểm tra lại quyền Manager trong bảng quyền của root sau khi cập nhật.
-2. **Deploy vai trò trong project** (schema v30, chỉ thêm một cột, mọi dòng NULL nên không ai đổi quyền) lên VPS cùng các thay đổi Quản trị / Hướng dẫn; sau đó thử gán vai trò với người thật.
+2. **Deploy vai trò trong project** (schema v30, chỉ thêm một cột, mọi dòng NULL nên không ai đổi quyền) lên VPS cùng các thay đổi Quản trị / Hướng dẫn / Xuất Excel; thử nút Xuất Excel ở Dashboard tổng quan bằng tài khoản Manager / Director; sau đó thử gán vai trò với người thật.
 3. **Thông báo comment mới trên requirement** cho owner / Leader (mục Tính năng).
 4. **Thử trên iPad thật** (sau khi deploy thì dùng được cả đăng nhập Google qua HTTPS) và báo lại chỗ vướng.
 
@@ -230,7 +235,7 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 - **Cấu trúc server** (từ 2026-10-06): endpoint mới vào `server/src/routes/<tính năng>.js`, luật dùng chung vào `server/src/lib/`; không thêm code vào `index.js`. README mục "Cấu trúc" liệt kê từng file.
 - **Vite** đôi khi giữ bản trung gian của file khi sửa nhiều lần liên tiếp, gây lỗi giả trong console. `touch` file đó để Vite đọc lại.
 - **Script shell**: đừng nhúng code JS có backtick hoặc `$(…)` vào lệnh `node -e "…"`; bash sẽ tự mở rộng chúng (từng lỡ chạy lệnh `code` của VS Code). Dùng công cụ sửa file trực tiếp.
-- **Dev server chạy nhiều bản**: phiên 2026-10-05 tìm thấy 3 bản `npm run dev` chạy song song (2 bản kẹt vì trùng cổng nhưng vẫn `--watch`). Trước khi đổi schema, kiểm tra hết tiến trình node của project, không chỉ cổng 3001 / 5173. Dev server hiện được chạy từ pane xem trước của app (`.claude/launch.json`, tên `taskflow`).
+- **Dev server chạy nhiều bản**: phiên 2026-10-05 tìm thấy 3 bản `npm run dev` chạy song song (2 bản kẹt vì trùng cổng nhưng vẫn `--watch`). Trước khi đổi schema, kiểm tra hết tiến trình node của project, không chỉ cổng 3001 / 5173. Dev server hiện được chạy từ pane xem trước của app (`.claude/launch.json`, tên `taskflow`). Người dùng cũng chạy dev server nền bằng pm2 (2026-10-08): `pm2 start ecosystem.config.cjs` (file ở thư mục gốc, chạy thẳng `npm-cli.js` vì pm2 trên Windows không chạy được `npm.cmd`), tắt bằng `pm2 stop keyofsuccess-dev`; nhớ tắt trước khi đổi schema và đừng chạy thêm `npm run dev`.
 - **Test**: chạy `npm test` sau mỗi thay đổi ở server; tính năng hoặc luật mới thì thêm test vào file tương ứng trong `server/test/`. Không viết script curl tạm nữa.
 - **Test chập chờn** (2026-10-06): hai lần `npm test` báo fail cả một file (`multi-team`, rồi `project-permissions`) vì server của file đó không lên kịp 10 giây, cả hai lần ngay sau khi sửa `server/src/index.js` (dev server `--watch` khởi động lại cùng lúc với ~23 server test). Đã tăng `START_TIMEOUT_MS` lên 30 giây trong `server/test/helpers.js`. Nếu vẫn gặp: chờ vài giây sau khi lưu file server rồi mới chạy test.
 - **Trieu đăng nhập thành root ở dev** (thấy 2026-10-07): email của Trieu nằm trong cả `ROOT_EMAILS` lẫn `DIRECTOR_EMAILS` của `server/.env`, nên tài khoản vào màn Cấu hình hệ thống. Muốn dùng như Director thì bỏ email đó khỏi `ROOT_EMAILS` (root nên là email riêng, vd. `ks.admin@gmail.com` như trước).
