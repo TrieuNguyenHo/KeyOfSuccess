@@ -17,6 +17,8 @@ export function shiftDay(day, n) {
   d.setDate(d.getDate() + n);
   return toDateStr(d);
 }
+// A week from its Monday (weekly reports): 05/10 – 11/10/2026.
+export const weekLabel = (monday) => `${formatDate(monday).slice(0, 5)} – ${formatDate(shiftDay(monday, 6))}`;
 export const daysBetween = (from, to) => Math.round((new Date(`${to}T00:00`) - new Date(`${from}T00:00`)) / 86400000);
 // A new due date for a task dragged on a calendar; a start date (v40) moves with it, keeping the task's length.
 export const movedTo = (task, dueDate) =>

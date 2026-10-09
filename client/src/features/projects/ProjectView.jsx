@@ -11,6 +11,7 @@ import TaskFilterBar, { matchesFilters } from './TaskFilterBar.jsx';
 import RequirementsPanel from '../requirements/RequirementsPanel.jsx';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
 import { ErrorBanner } from '../../components/Controls.jsx';
+import SavedFilters from '../../components/SavedFilters.jsx';
 import { useAllTeams, useChannels } from '../../components/hooks.js';
 import { tr } from '../../i18n.js';
 
@@ -217,6 +218,7 @@ export default function ProjectView({
         </>
       ) : (
         <>
+          <SavedFilters screen="project" projectId={project.id} />
           <TaskFilterBar
             filters={filters}
             setFilters={setFilters}

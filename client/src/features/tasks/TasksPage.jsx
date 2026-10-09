@@ -6,6 +6,7 @@ import { Avatar } from '../../components/Avatar.jsx';
 import { CheckButton, DueDate, PriorityTag, TaskTags } from '../../components/TaskParts.jsx';
 import { useAllTeams, useChannels, useFetched } from '../../components/hooks.js';
 import { ErrorBanner } from '../../components/Controls.jsx';
+import SavedFilters from '../../components/SavedFilters.jsx';
 import { tr } from '../../i18n.js';
 
 const BUCKETS = [
@@ -137,6 +138,8 @@ export default function TasksPage({
           </select>
         )}
       </header>
+
+      <SavedFilters screen={mode === 'my' ? 'my' : 'team'} />
 
       <div className="toolbar stats">
         <span className="stat overdue-stat">

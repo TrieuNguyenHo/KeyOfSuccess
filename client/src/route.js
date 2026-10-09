@@ -1,5 +1,6 @@
 // The current screen lives in the URL hash, so a reload (F5) stays on it and a link can be sent to a colleague:
 //   #/my  #/dashboard  #/dashboard/3  #/team  #/team/user:5  #/admin  #/myteams  #/profile  #/guide
+//   #/report  #/report/2026-10-05 (the weekly report of the week starting that Monday)
 //   #/feedback  #/feedback/12 (the user's feedback 12)  #/chat  #/chat/4 (conversation 4)  #/chat/4?message=9 (at message 9)
 //   #/project/3/board  #/project/3/list  #/project/3/calendar  #/project/3/requirements/7 (requirement 7 selected)
 //   #/project/3/timeline?group=status (Timeline rows grouped by status or assignee; by requirement without it)
@@ -40,6 +41,9 @@ export function formatRoute(view, { tab, filters, scope, layout, channel, group 
       if (shownTab === 'timeline' && GROUPS.includes(shownGroup)) query.set('group', shownGroup);
       break;
     }
+    case 'report':
+      path = view.week ? `report/${view.week}` : 'report';
+      break;
     case 'task':
       path = `task/${view.id}`;
       break;
@@ -72,6 +76,7 @@ export function parseRoute(hash, user) {
   if (type === 'dashboard' && id(a)) view = { type, projectId: id(a) };
   else if (type === 'dashboard' && !a && watcher) view = { type };
   else if (type === 'team' && watcher) view = { type, ...(a && { scope: decodeURIComponent(a) }) };
+  else if (type === 'report' && watcher) view = { type, ...(/^\d{4}-\d{2}-\d{2}$/.test(a ?? '') && { week: a }) };
   else if (type === 'admin' && canAdminister(user)) view = { type };
   else if (type === 'profile' || type === 'guide') view = { type };
   else if (type === 'feedback') view = { type, ...(id(a) && { id: id(a) }) };

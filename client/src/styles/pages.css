@@ -207,6 +207,12 @@ img.avatar { object-fit: cover; }
 .workload-head { cursor: default; color: var(--muted); font-size: 12px; letter-spacing: -0.12px; font-weight: 600; min-height: 0; border-bottom-color: var(--hairline); }
 .workload-head:hover { background: none; }
 .workload-row.static { cursor: default; }
+/* Weekly report tables (ReportPage.jsx): a name, then five counts. */
+.workload-row.report-grid { grid-template-columns: minmax(160px, 1fr) repeat(5, 72px); }
+.overload-tag { flex-shrink: 0; color: var(--danger); background: var(--primary-tint); }
+.report-delta { display: block; margin-top: 4px; }
+.report-thresholds { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.report-threshold input { width: 120px; }
 .workload-row.static:hover { background: none; }
 .bar-cell { display: flex; align-items: center; min-width: 0; }
 .workload-bar { display: flex; gap: 2px; height: 10px; min-width: 6px; }

@@ -140,6 +140,7 @@ function makeApi(url) {
     get: (path, as) => request('GET', path, as),
     post: (path, as, body = {}) => request('POST', path, as, body),
     patch: (path, as, body = {}) => request('PATCH', path, as, body),
+    put: (path, as, body = {}) => request('PUT', path, as, body),
     delete: (path, as) => request('DELETE', path, as),
 
     // Dev sign-in for name@t.test (creates the account on first use). Returns the raw response.
