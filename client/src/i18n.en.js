@@ -155,6 +155,7 @@ export default {
   'Thang thời gian': 'Time scale',
   'Tuần': 'Week',
   'Tháng': 'Month',
+  'bản dev': 'dev build',
   'Không có task nào khớp bộ lọc.': 'No task matches the filters.',
   'Kéo trên dòng này để đặt ngày': 'Drag along this row to set dates',
   'Task đầu tiên đến hạn {first}, task cuối cùng {last}.': 'The first task is due {first}, the last one {last}.',
