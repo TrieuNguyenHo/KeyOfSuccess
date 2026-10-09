@@ -26,7 +26,7 @@ function sections(user) {
       title: tr('Project, requirement và task'),
       items: [
         ['model', tr('Cách tổ chức'), tr('Mỗi project gồm các requirement (đầu việc lớn), mỗi requirement gồm các task, mỗi task có thể có subtask. Task nào cũng thuộc một requirement, nên project cần có requirement trước khi thêm task.')],
-        ['views', tr('Các cách xem'), tr('Trong project: Requirements (tiến độ từng requirement và comments), Lịch (task theo hạn chót), List (bảng) và Board (cột theo trạng thái). Bộ lọc theo requirement, người làm, team, kênh, trạng thái, hạn chót và ô tìm task dùng chung cho List, Board và Lịch.')],
+        ['views', tr('Các cách xem'), tr('Trong project: Requirements (tiến độ từng requirement và comments), Lịch (task theo hạn chót), Timeline (thanh từ ngày bắt đầu tới hạn chót), List (bảng) và Board (cột theo trạng thái). Bộ lọc theo requirement, người làm, team, kênh, trạng thái, hạn chót và ô tìm task dùng chung cho List, Board, Lịch và Timeline.')],
         ['statuses', tr('4 trạng thái cố định'), tr('Planned, In-Progress, Completed, Pending có ở mọi project, không đổi tên hay xoá được. Đánh dấu ✓ xong thì task tự sang Completed; kéo task vào Completed cũng là đánh dấu xong.')],
         taskAdmin
           ? ['rights', tr('Quyền của bạn với task'), tr('Ở project có team của bạn, bạn tạo, sửa, giao và xoá task, thêm trạng thái. Bạn giao task cho mình và người trong team của bạn tham gia project. Ở project khác bạn chỉ xem và comment.')]
@@ -38,7 +38,8 @@ function sections(user) {
       id: 'tasks',
       title: tr('Làm việc với task'),
       items: [
-        ['open', tr('Mở task'), tr('Bấm vào task để mở panel bên phải; bấm ⤢ để mở trang đầy đủ. Ở đó có mô tả, subtask, người làm, hạn chót, ưu tiên, requirement, kênh, file đính kèm và comments.')],
+        ['open', tr('Mở task'), tr('Bấm vào task để mở panel bên phải; bấm ⤢ để mở trang đầy đủ. Ở đó có mô tả, subtask, người làm, ngày bắt đầu, hạn chót, ưu tiên, requirement, kênh, file đính kèm và comments.')],
+        ['timeline', 'Timeline', tr('Tab Timeline của project vẽ mỗi task một thanh từ ngày bắt đầu tới hạn chót, nhóm theo requirement, trạng thái hoặc người làm; Ngày / Tuần / Tháng để đổi thang, "Hôm nay" để quay về hôm nay. Task quá hạn có ⚠, task xong màu xám. Ai sửa được task thì kéo cả thanh để dời ngày, kéo một đầu để đổi ngày bắt đầu hoặc hạn chót, kéo dọc dòng của task chưa có ngày để đặt ngày (iPad: giữ rồi kéo). Kéo task trên Lịch thì ngày bắt đầu dời theo.')],
         ['drag', tr('Kéo thả'), tr('Kéo thẻ giữa các cột trên Board để đổi trạng thái, kéo task sang ngày khác trên Lịch để đổi hạn chót. Trên iPad: giữ ngón tay khoảng nửa giây rồi kéo.')],
         ['recurring', tr('Task lặp lại'), tr('Ô "Lặp lại" (hằng ngày, hằng tuần, mỗi 2 tuần, hằng tháng): xong task này thì app tự tạo bản kế tiếp ở Planned với hạn chót mới. Bấm "?" cạnh ô để xem chi tiết.')],
         ['channels', tr('Kênh'), tr('Gắn task với kênh (Facebook, TikTok…) để lọc và xem số liệu theo kênh trên Dashboard.')],

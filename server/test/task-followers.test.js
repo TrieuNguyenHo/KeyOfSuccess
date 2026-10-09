@@ -184,7 +184,7 @@ test('the v38 migration lets the people a task already has follow it and keeps t
     const notifications = db.prepare('SELECT COUNT(*) AS n FROM notifications').get().n;
     db.close();
     const migrated = new DatabaseSync(old.dbPath);
-    assert.equal(migrated.prepare('PRAGMA user_version').get().user_version, 39);
+    assert.equal(migrated.prepare('PRAGMA user_version').get().user_version, 40);
     assert.equal(migrated.prepare('SELECT COUNT(*) AS n FROM notifications').get().n, notifications);
     const followerNames = migrated
       .prepare('SELECT u.name FROM task_followers f JOIN users u ON u.id = f.user_id WHERE f.task_id = ? ORDER BY u.name')

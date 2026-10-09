@@ -35,6 +35,7 @@
 .list-row:hover { background: var(--pearl); }
 .list-row.personal { grid-template-columns: minmax(200px, 1fr) 180px 120px 110px; }
 .list-row.with-assignee { grid-template-columns: minmax(200px, 1fr) 160px 160px 110px 100px; }
+.list-row.with-start { grid-template-columns: minmax(200px, 1fr) 180px 110px 120px 110px; }
 .list-head { color: var(--muted); font-size: 12px; letter-spacing: -0.12px; cursor: default; font-weight: 600; min-height: 0; border-bottom-color: var(--hairline); }
 .list-head:hover { background: none; }
 .list-section { margin: 20px 0 8px; }

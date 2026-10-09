@@ -1,8 +1,8 @@
 // Project templates (v39, decided 2026-10-08): "Lưu làm mẫu" takes a snapshot of a project, and a new project can start
 // from one. The snapshot keeps the statuses (the added ones), requirements, top-level tasks and subtasks with their
-// description, priority, channels, assignee and repeat rule; due dates become day offsets from the earliest one, so a
-// new project places them from the day its creator picks as the start or as the launch (the last due date). Comments,
-// files, history, members and the done ticks are not kept. Shared by everyone who may create projects.
+// description, priority, channels, assignee and repeat rule; start (v40) and due dates become day offsets from the
+// earliest one, so a new project places them from the day its creator picks as the start or as the launch (the last
+// date). Comments, files, history, members and the done ticks are not kept. Shared by everyone who may create projects.
 import { db } from '../db.js';
 import { canBeAssigned, findProject } from './access.js';
 import { logEvent } from './history.js';
@@ -31,7 +31,9 @@ export function snapshotProject(projectId) {
   const channelsOf = db.prepare('SELECT channel_id FROM task_channels WHERE task_id = ? ORDER BY channel_id');
   const subtasks = new Map(tasks.map((t) => [t.id, subtasksOf.all(t.id)]));
 
-  const dates = [...tasks, ...[...subtasks.values()].flat()].map((t) => t.due_date).filter(Boolean).sort();
+  const dates = [...tasks.map((t) => t.start_date), ...[...tasks, ...[...subtasks.values()].flat()].map((t) => t.due_date)]
+    .filter(Boolean)
+    .sort();
   const first = dates[0] ?? null;
   const offset = (day) => (day && first ? daysBetween(first, day) : null);
   const sectionIndex = new Map(sections.map((s, i) => [s.id, i]));
@@ -52,6 +54,7 @@ export function snapshotProject(projectId) {
       const section = sections[sectionIndex.get(t.section_id)];
       return {
         ...fields(t),
+        start_offset: offset(t.start_date),
         section: section.kind === 'done' && todo >= 0 ? todo : sectionIndex.get(t.section_id),
         requirement: requirementIndex.get(t.requirement_id),
         recurrence: t.recurrence ?? null,
@@ -113,8 +116,8 @@ export function fillFromTemplate(projectId, data, start, actor) {
   const dueOf = (offset) => (offset == null || !start ? null : addDays(start, offset));
   const insertTask = db.prepare(
     `INSERT INTO tasks (project_id, section_id, requirement_id, parent_id, title, description, assignee_id, due_date,
-       priority, position, created_by, recurrence)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       priority, position, created_by, recurrence, start_date)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const insertChannel = db.prepare('INSERT INTO task_channels (task_id, channel_id) VALUES (?, ?)');
 
@@ -134,12 +137,13 @@ export function fillFromTemplate(projectId, data, start, actor) {
         t.priority,
         i + 1,
         actor.id,
-        t.recurrence
+        t.recurrence,
+        dueOf(t.start_offset)
       ).lastInsertRowid
     );
     t.channel_ids.filter((c) => channels.has(c)).forEach((c) => insertChannel.run(id, c));
     t.subtasks.forEach((s, j) => {
-      insertTask.run(projectId, null, null, id, s.title, s.description, assigneeOf(s.assignee_id), dueOf(s.offset), s.priority, j + 1, actor.id, null);
+      insertTask.run(projectId, null, null, id, s.title, s.description, assigneeOf(s.assignee_id), dueOf(s.offset), s.priority, j + 1, actor.id, null, null);
     });
     logEvent({ id, parent_id: null }, actor, 'created', { title: t.title });
     follow(id, actor.id);

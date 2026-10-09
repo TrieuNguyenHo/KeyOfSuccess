@@ -11,6 +11,19 @@ export function daysFromToday(n) {
   return toDateStr(d);
 }
 
+// Calendar days (YYYY-MM-DD) n days later, and the days from one to another.
+export function shiftDay(day, n) {
+  const d = new Date(`${day}T00:00`);
+  d.setDate(d.getDate() + n);
+  return toDateStr(d);
+}
+export const daysBetween = (from, to) => Math.round((new Date(`${to}T00:00`) - new Date(`${from}T00:00`)) / 86400000);
+// A new due date for a task dragged on a calendar; a start date (v40) moves with it, keeping the task's length.
+export const movedTo = (task, dueDate) =>
+  task.start_date && task.due_date
+    ? { due_date: dueDate, start_date: shiftDay(task.start_date, daysBetween(task.due_date, dueDate)) }
+    : { due_date: dueDate };
+
 export const isOverdue = (task) => !task.completed && task.due_date && task.due_date < todayStr();
 
 export const formatDate = (s) =>

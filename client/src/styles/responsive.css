@@ -23,7 +23,7 @@
   .project-header { padding: 16px 20px 12px; }
   .project-header h1 { font-size: 28px; }
   .toolbar { padding: 4px 20px 12px; }
-  .board, .list, .calendar { padding-left: 20px; padding-right: 20px; }
+  .board, .list, .calendar, .timeline-wrap { padding-left: 20px; padding-right: 20px; }
   .root-tabs { margin-left: 20px; margin-right: 20px; }
   .requirements-tab { padding: 16px 20px 24px; }
   .task-page { padding: 16px 20px 32px; }
@@ -33,6 +33,7 @@
 @media (max-width: 1279px) {
   .list-row.personal { grid-template-columns: minmax(140px, 1fr) 150px 100px 90px; }
   .list-row.with-assignee { grid-template-columns: minmax(140px, 1fr) 130px 130px 96px 84px; }
+  .list-row.with-start { grid-template-columns: minmax(140px, 1fr) 140px 96px 100px 84px; }
   .admin-card { padding: 16px; }
   .workload-row { gap: 8px; grid-template-columns: minmax(120px, 1.2fr) minmax(80px, 2fr) repeat(5, 52px); }
   .workload-row.with-team { grid-template-columns: minmax(120px, 1.2fr) 80px minmax(80px, 2fr) repeat(5, 52px); }
@@ -67,6 +68,7 @@
 @media (max-width: 420px) { .brand.dark { --brand-size: 14px; } }
 /* Phones: the task's top bar keeps one line, the follow button shows its bell only (its title says the rest). */
 @media (max-width: 480px) {
+  .timeline { --tl-label: 128px; }
   .follow-label { display: none; }
   .follow-btn { padding: 4px 8px; }
   .complete-btn { white-space: nowrap; padding: 6px 12px; }

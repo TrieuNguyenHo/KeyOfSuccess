@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { daysFromToday, myTeamsLabel, todayStr, watchesAll } from '../../utils.js';
+import { daysFromToday, movedTo, myTeamsLabel, todayStr, watchesAll } from '../../utils.js';
 import CalendarView from '../projects/CalendarView.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { CheckButton, DueDate, PriorityTag, TaskTags } from '../../components/TaskParts.jsx';
@@ -199,9 +199,10 @@ export default function TasksPage({
           canEditTask={(t) => Boolean(t.can_edit)}
           onOpen={onOpenTask}
           onMoveDate={async (task, dueDate) => {
-            setTasks((list) => list.map((t) => (t.id === task.id ? { ...t, due_date: dueDate } : t)));
+            const dates = movedTo(task, dueDate);
+            setTasks((list) => list.map((t) => (t.id === task.id ? { ...t, ...dates } : t)));
             try {
-              await api(`/tasks/${task.id}`, { method: 'PATCH', body: { due_date: dueDate } });
+              await api(`/tasks/${task.id}`, { method: 'PATCH', body: dates });
             } catch (e) {
               setError(e.message);
             }

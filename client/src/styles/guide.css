@@ -151,6 +151,11 @@
 @keyframes ga-press { 0%, 18%, 30%, 100% { transform: none; } 24% { transform: scale(0.8); } }
 .ga-a-modal { animation-name: ga-modal; transform-origin: center; }
 @keyframes ga-modal { 0%, 26% { opacity: 0; transform: scale(0.88); } 38%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.ga-divider { stroke: var(--hairline); }
+.ga-mute { fill: var(--neutral-mark); }
+.ga-today { stroke: var(--brand); stroke-width: 1.5; }
+.ga-a-slide { animation-name: ga-slide; }
+@keyframes ga-slide { 0%, 20% { transform: translate(-28px, 0); } 60%, 90% { transform: none; } 100% { transform: translate(-28px, 0); } }
 .ga-a-copy { animation-name: ga-copy; }
 @keyframes ga-copy { 0%, 14% { opacity: 0; transform: translate(-112px, 0); } 24% { opacity: 1; } 50%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; transform: none; } }
 .ga-a-date { animation-name: ga-date; }

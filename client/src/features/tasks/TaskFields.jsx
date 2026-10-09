@@ -127,11 +127,33 @@ export default function TaskFields({
         </select>
       )}
 
+      {/* A start date (v40) for top-level tasks, shown on the project's Timeline; never after the due date. */}
+      {!task.parent_id && (
+        <>
+          <label>{tr('Ngày bắt đầu')}</label>
+          {readOnly ? (
+            <span>{formatDate(task.start_date) || <span className="muted">{tr('Không có')}</span>}</span>
+          ) : (
+            <input
+              type="date"
+              value={task.start_date ?? ''}
+              max={task.due_date ?? undefined}
+              onChange={(e) => update({ start_date: e.target.value || null })}
+            />
+          )}
+        </>
+      )}
+
       <label>{tr('Hạn chót')}</label>
       {readOnly ? (
         <span>{formatDate(task.due_date) || <span className="muted">{tr('Không có')}</span>}</span>
       ) : (
-        <input type="date" value={task.due_date ?? ''} onChange={(e) => update({ due_date: e.target.value || null })} />
+        <input
+          type="date"
+          value={task.due_date ?? ''}
+          min={task.start_date ?? undefined}
+          onChange={(e) => update({ due_date: e.target.value || null })}
+        />
       )}
 
       <label>{tr('Ưu tiên')}</label>

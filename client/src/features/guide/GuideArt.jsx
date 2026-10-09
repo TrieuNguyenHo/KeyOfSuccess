@@ -460,6 +460,27 @@ const ARTS = {
       </g>
     </>
   ),
+  // The Timeline: task names on the left, bars from start to due date; one bar is dragged two days later.
+  timeline: () => (
+    <>
+      <Win />
+      <rect className="ga-field" x="16" y="16" width="208" height="118" rx="8" />
+      <line className="ga-divider" x1="74" y1="16" x2="74" y2="134" />
+      {[34, 58, 82, 106].map((y, i) => (
+        <g key={y}>
+          <Line x={24} y={y + 4} w={[38, 30, 42, 26][i]} h={5} />
+          {i !== 2 && <rect className={i === 3 ? 'ga-mute' : 'ga-brand'} x={[84, 112, 0, 150][i]} y={y} width={[52, 60, 0, 48][i]} height="12" rx="6" />}
+        </g>
+      ))}
+      <line className="ga-today" x1="140" y1="22" x2="140" y2="128" />
+      <g className="ga-a-slide">
+        <rect className="ga-brand" x="122" y="82" width="56" height="12" rx="6" />
+        <g transform="translate(150 88)">
+          <Cursor />
+        </g>
+      </g>
+    </>
+  ),
   // A project template: the board on the left is copied into a new project, which gets its start date.
   template: () => (
     <>
