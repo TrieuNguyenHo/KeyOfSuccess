@@ -11,6 +11,7 @@ import { CurrentUser } from '../../components/CurrentUser.js';
 import { useCloseDetailsOutside } from '../../components/hooks.js';
 import CreateProjectModal from '../projects/CreateProjectModal.jsx';
 import DashboardPage from '../dashboard/DashboardPage.jsx';
+import ReportPage from '../dashboard/ReportPage.jsx';
 import { DialogHost } from '../../components/Dialog.jsx';
 import { Brand } from '../../components/Brand.jsx';
 import MyTeamsPage from '../admin/MyTeamsPage.jsx';
@@ -220,6 +221,8 @@ export default function Workspace({ user, onLogout, onUserChange }) {
     }
     if (n.type === 'due_digest') {
       navigate({ type: 'my' });
+    } else if (n.type === 'weekly_report') {
+      navigate({ type: 'report', week: n.excerpt });
     } else if (n.task_id) {
       setOpenTaskId(n.task_id);
     } else {
@@ -321,6 +324,15 @@ export default function Workspace({ user, onLogout, onUserChange }) {
         projectId={view.projectId}
         onOpenProject={openProject}
         onOpenRequirement={openRequirementPage}
+      />
+    );
+  } else if (view.type === 'report') {
+    content = (
+      <ReportPage
+        key={view.week ?? ''}
+        week={view.week}
+        onSelectWeek={(week) => navigate({ type: 'report', week })}
+        onOpenPerson={(id) => navigate({ type: 'team', scope: `user:${id}` })}
       />
     );
   } else if (view.type === 'dashboard') {

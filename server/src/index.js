@@ -9,6 +9,7 @@ import { purgeMessages } from './lib/chat.js';
 import { purgeTaskEvents } from './lib/history.js';
 import { seedPermissions } from './lib/permissions.js';
 import { scheduleDueDigests } from './lib/reminders.js';
+import { scheduleWeeklyReports } from './lib/reports.js';
 import { MAX_UPLOAD_MB, sweepUploads } from './lib/uploads.js';
 import admin from './routes/admin.js';
 import attachments from './routes/attachments.js';
@@ -23,6 +24,8 @@ import me from './routes/me.js';
 import notifications from './routes/notifications.js';
 import permissions from './routes/permissions.js';
 import projects from './routes/projects.js';
+import reports from './routes/reports.js';
+import savedFilters from './routes/savedFilters.js';
 import requirements from './routes/requirements.js';
 import sections from './routes/sections.js';
 import tasks from './routes/tasks.js';
@@ -40,7 +43,7 @@ app.use(express.json());
 app.use('/api', health, auth);
 // Every route mounted below requires a valid token.
 app.use('/api', requireUser);
-for (const router of [me, teams, channels, admin, permissions, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications, feedback, chat, templates]) {
+for (const router of [me, teams, channels, admin, permissions, projects, sections, requirements, tasks, comments, attachments, dashboard, notifications, feedback, chat, templates, savedFilters, reports]) {
   app.use('/api', router);
 }
 
@@ -77,5 +80,6 @@ housekeeping();
 setInterval(housekeeping, 24 * 60 * 60 * 1000).unref();
 scheduleBackups();
 scheduleDueDigests();
+scheduleWeeklyReports();
 
 app.listen(PORT, HOST, () => console.log(`API đang chạy tại http://${HOST ?? 'localhost'}:${PORT}`));

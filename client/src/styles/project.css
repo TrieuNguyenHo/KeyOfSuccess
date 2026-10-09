@@ -35,6 +35,17 @@
 .list-row:hover { background: var(--pearl); }
 .list-row.personal { grid-template-columns: minmax(200px, 1fr) 180px 120px 110px; }
 .list-row.with-assignee { grid-template-columns: minmax(200px, 1fr) 160px 160px 110px 100px; }
+/* Saved filters (v41): the person's quick views above a screen's filters. */
+.saved-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 32px 8px; }
+.saved-filter {
+  display: inline-flex; align-items: center; border: 1px solid var(--hairline); border-radius: var(--rounded-pill);
+  background: var(--canvas); font-size: 13px;
+}
+.saved-filter.active { border-color: var(--primary); background: var(--primary-tint); }
+.saved-filter-name { border: none; background: none; padding: 4px 4px 4px 12px; color: inherit; cursor: pointer; font: inherit; }
+.saved-filter.active .saved-filter-name { color: var(--primary-text); font-weight: 600; }
+.saved-filter-remove { border: none; background: none; padding: 4px 10px 4px 4px; color: var(--muted); cursor: pointer; font-size: 11px; }
+.saved-filter-remove:hover { color: var(--danger); }
 .list-row.with-start { grid-template-columns: minmax(200px, 1fr) 180px 110px 120px 110px; }
 .list-head { color: var(--muted); font-size: 12px; letter-spacing: -0.12px; cursor: default; font-weight: 600; min-height: 0; border-bottom-color: var(--hairline); }
 .list-head:hover { background: none; }

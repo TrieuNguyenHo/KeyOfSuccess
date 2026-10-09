@@ -31,7 +31,7 @@ const sectionsTable = (name) => `
 // Shared by the schema below and the v2 migration, which rebuilds the table.
 // Shared by the schema below and the v8 and v31 migrations, which rebuild the table.
 // A notification points at a task, a requirement (mentions in requirement feedback) or, since v31, a feedback; the
-// morning reminder of due dates (v38, due_digest) points at nothing and opens My tasks.
+// morning reminder of due dates (v38, due_digest) and the weekly report (v41, weekly_report) point at nothing.
 const notificationsTable = (name) => `
   CREATE TABLE IF NOT EXISTS ${name} (
     id INTEGER PRIMARY KEY,
@@ -41,14 +41,15 @@ const notificationsTable = (name) => `
     requirement_id INTEGER REFERENCES requirements(id) ON DELETE CASCADE,
     feedback_id INTEGER REFERENCES feedback(id) ON DELETE CASCADE,
     -- task_completed | mention | assigned | feedback_new | feedback_status | feedback_message; v38: due_digest and,
-    -- for a task's followers, comment | task_due | task_assignee | task_status | task_done | task_reopened
+    -- for a task's followers, comment | task_due | task_assignee | task_status | task_done | task_reopened;
+    -- v41: weekly_report (excerpt = the week's Monday)
     type TEXT NOT NULL,
     -- start of the comment or message; the new status for feedback_status and task_status; the new date or
     -- assignee's name for task_due / task_assignee; the counts (JSON) for due_digest
     excerpt TEXT,
     read_at TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    CHECK (task_id IS NOT NULL OR requirement_id IS NOT NULL OR feedback_id IS NOT NULL OR type = 'due_digest')
+    CHECK (task_id IS NOT NULL OR requirement_id IS NOT NULL OR feedback_id IS NOT NULL OR type IN ('due_digest', 'weekly_report'))
   );`;
 
 // Files attached to a task, a requirement or (v31) a feedback, or sent in a chat message (v32); the bytes are
@@ -351,6 +352,25 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Saved filters (v41): a person's own quick views, each the screen's URL hash with its filters (#/project/3/board?…,
+  -- #/my?…, #/team/…?…). project_id ties a project's ones to it, so they go with it.
+  CREATE TABLE IF NOT EXISTS saved_filters (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    screen TEXT NOT NULL, -- project | my | team
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Weekly reports (v41): taken at 8:00 on Monday for the week before (lib/reports.js), kept as they were then.
+  CREATE TABLE IF NOT EXISTS weekly_reports (
+    week_start TEXT PRIMARY KEY, -- the Monday, YYYY-MM-DD
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
   -- Small facts the server keeps between restarts (v38), e.g. the day the due date reminders last went out.
@@ -1004,6 +1024,25 @@ if (schemaVersion() < 40) {
   });
 }
 
+// v41: saved filters and weekly reports (tables created above); notifications rebuilt (ids kept) so the weekly report,
+// which points at nothing, passes its CHECK.
+if (schemaVersion() < 41) {
+  transaction(() => {
+    const sql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'notifications'").get().sql;
+    if (!sql.includes('weekly_report')) {
+      const columns = 'id, user_id, actor_id, task_id, requirement_id, feedback_id, type, excerpt, read_at, created_at';
+      db.exec(`
+        ${notificationsTable('notifications_v41')}
+        INSERT INTO notifications_v41 (${columns}) SELECT ${columns} FROM notifications;
+        DROP TABLE notifications;
+        ALTER TABLE notifications_v41 RENAME TO notifications;
+        CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read_at);
+      `);
+    }
+    db.exec('PRAGMA user_version = 41');
+  });
+}
+
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_poll_options_message ON poll_options(message_id);
   CREATE INDEX IF NOT EXISTS idx_messages_pinned ON messages(conversation_id, pinned_at) WHERE pinned_at IS NOT NULL;
@@ -1021,6 +1060,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_attachments_comment ON attachments(comment_id);
   CREATE INDEX IF NOT EXISTS idx_attachments_requirement_comment ON attachments(requirement_comment_id);
   CREATE INDEX IF NOT EXISTS idx_task_channels_channel ON task_channels(channel_id);
+  CREATE INDEX IF NOT EXISTS idx_saved_filters_user ON saved_filters(user_id);
 `);
 
 // Turns the account with this email (if any) into an active root account outside every team.

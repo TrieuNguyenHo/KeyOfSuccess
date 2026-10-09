@@ -150,7 +150,7 @@ export default function Sidebar({
           // Sub-menu: the department / team overview (not for Members), then one dashboard per project.
           <li {...flyoutProps('dashboard')}>
             <button
-              className={`main-button ${view.type === 'dashboard' ? 'active' : ''}`}
+              className={`main-button ${['dashboard', 'report'].includes(view.type) ? 'active' : ''}`}
               aria-expanded={openKey === 'dashboard'}
               onClick={() => toggle('dashboard')}
             >
@@ -172,6 +172,16 @@ export default function Sidebar({
                       onClick={() => go({ type: 'dashboard' }, 'dashboard')}
                     >
                       <span className="ellipsis grow">{watchesAll(user) ? tr('Tổng quan phòng') : tr('Tổng quan {p0}', { p0: myTeamsLabel(user) })}</span>
+                    </button>
+                  </li>
+                )}
+                {can(user, 'people.watch') && (
+                  <li>
+                    <button
+                      className={`flyout-link ${view.type === 'report' ? 'active' : ''}`}
+                      onClick={() => go({ type: 'report' }, 'dashboard')}
+                    >
+                      <span className="ellipsis grow">{tr('Báo cáo tuần')}</span>
                     </button>
                   </li>
                 )}

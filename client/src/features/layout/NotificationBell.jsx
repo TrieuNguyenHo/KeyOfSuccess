@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatDate, formatDateTime } from '../../utils.js';
+import { formatDate, formatDateTime, weekLabel } from '../../utils.js';
 import { Avatar } from '../../components/Avatar.jsx';
 import { tr } from '../../i18n.js';
 
@@ -25,6 +25,12 @@ function NotificationText({ n }) {
       return (
         <span>
           <b>{tr('Nhắc hạn chót')}</b>: {digestText(JSON.parse(n.excerpt))}
+        </span>
+      );
+    case 'weekly_report':
+      return (
+        <span>
+          <b>{tr('Báo cáo tuần')}</b> {tr('{range} đã sẵn sàng', { range: weekLabel(n.excerpt) })}
         </span>
       );
     case 'assigned':
@@ -124,9 +130,9 @@ export default function NotificationBell({ data, onOpen, onReadAll }) {
                   onOpen(n);
                 }}
               >
-                {n.type === 'due_digest' ? (
+                {['due_digest', 'weekly_report'].includes(n.type) ? (
                   <span className="notif-icon" aria-hidden="true">
-                    ⏰
+                    {n.type === 'due_digest' ? '⏰' : '📊'}
                   </span>
                 ) : (
                   <Avatar name={n.actor_name ?? '?'} userId={n.actor_id} small />

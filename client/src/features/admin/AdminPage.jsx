@@ -3,6 +3,7 @@ import { api } from '../../api.js';
 import { PROJECT_COLORS, can, coversTeams, scopeOf } from '../../utils.js';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
 import InviteUserCard from './InviteUserCard.jsx';
+import ReportSettingsCard from './ReportSettingsCard.jsx';
 import TeamModal from './TeamModal.jsx';
 import UsersCard from './UsersCard.jsx';
 import { ErrorBanner } from '../../components/Controls.jsx';
@@ -230,6 +231,8 @@ export default function AdminPage({ user, onChanged, onUserChange }) {
             />
           </>
         )}
+
+        {scopeOf(user, 'users.manage') === 'all' && <ReportSettingsCard />}
       </div>
 
       {editingTeam && (

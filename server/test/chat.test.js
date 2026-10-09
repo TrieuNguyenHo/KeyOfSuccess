@@ -242,7 +242,7 @@ test('the migrations from v32 on keep every file of a v31 database', async () =>
   try {
     const db = new DatabaseSync(old.dbPath);
     try {
-      assert.equal(db.prepare('PRAGMA user_version').get().user_version, 40);
+      assert.equal(db.prepare('PRAGMA user_version').get().user_version, 41);
       const row = db.prepare('SELECT * FROM attachments WHERE id = ?').get(file.id);
       assert.equal(`${row.task_id}/${row.name}/${row.message_id}`, `${task}/shot.png/null`);
       assert.equal(db.prepare('PRAGMA foreign_key_check').all().length, 0);

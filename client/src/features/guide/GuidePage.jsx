@@ -27,6 +27,7 @@ function sections(user) {
       items: [
         ['model', tr('Cách tổ chức'), tr('Mỗi project gồm các requirement (đầu việc lớn), mỗi requirement gồm các task, mỗi task có thể có subtask. Task nào cũng thuộc một requirement, nên project cần có requirement trước khi thêm task.')],
         ['views', tr('Các cách xem'), tr('Trong project: Requirements (tiến độ từng requirement và comments), Lịch (task theo hạn chót), Timeline (thanh từ ngày bắt đầu tới hạn chót), List (bảng) và Board (cột theo trạng thái). Bộ lọc theo requirement, người làm, team, kênh, trạng thái, hạn chót và ô tìm task dùng chung cho List, Board, Lịch và Timeline.')],
+        ['views', tr('Bộ lọc đã lưu'), tr('Bấm "☆ Lưu bộ lọc" trên project, Task của tôi hoặc Theo dõi để lưu bộ lọc và cách xem đang dùng (vd. "Facebook tuần này của Team Content") thành một nút bấm nhanh ngay trên thanh lọc; bấm ✕ trên nút để xoá. Bộ lọc đã lưu chỉ mình bạn thấy, theo tài khoản nên mở máy khác vẫn còn.')],
         ['statuses', tr('4 trạng thái cố định'), tr('Planned, In-Progress, Completed, Pending có ở mọi project, không đổi tên hay xoá được. Đánh dấu ✓ xong thì task tự sang Completed; kéo task vào Completed cũng là đánh dấu xong.')],
         taskAdmin
           ? ['rights', tr('Quyền của bạn với task'), tr('Ở project có team của bạn, bạn tạo, sửa, giao và xoá task, thêm trạng thái. Bạn giao task cho mình và người trong team của bạn tham gia project. Ở project khác bạn chỉ xem và comment.')]
@@ -72,6 +73,7 @@ function sections(user) {
       title: tr('Theo dõi công việc'),
       items: [
         ['watch', tr('Theo team hoặc theo người'), tr('Màn theo dõi liệt kê task của các team bạn phụ trách; chọn một team hoặc một người để xem riêng, đổi sang Lịch để xem theo hạn chót.')],
+        ['dashboard', tr('Báo cáo tuần'), tr('8:00 sáng thứ Hai, app chốt báo cáo của tuần trước và báo trong chuông: số task xong (so với tuần trước), xong trễ hạn, quá hạn và đến hạn 7 ngày tới lúc chốt, ai đang quá tải. Mở bằng Dashboard › Báo cáo tuần; các tuần cũ vẫn xem lại được, đúng như lúc chốt.')],
       ],
     },
     can(user, 'projects.create') && {
