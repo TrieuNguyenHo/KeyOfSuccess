@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { can, canAdminister, myTeamsLabel, roleLabel, watchesAll } from '../../utils.js';
 import NotificationBell from './NotificationBell.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
-import { Brand } from '../../components/Brand.jsx';
+import { AppVersion, Brand } from '../../components/Brand.jsx';
 import { LanguageSwitch, ThemeSwitch } from '../../components/Preferences.jsx';
 import { tr } from '../../i18n.js';
 
@@ -129,7 +129,10 @@ export default function Sidebar({
     // `open`: shown as a drawer on narrow screens (iPad portrait), see .sidebar in styles.css.
     <aside className={`sidebar ${open ? 'open' : ''}`}>
       <div className="sidebar-top">
-        <Brand />
+        <div className="sidebar-brand">
+          <Brand />
+          <AppVersion />
+        </div>
         <NotificationBell data={notifications} onOpen={onOpenNotification} onReadAll={onReadAllNotifications} />
       </div>
 

@@ -21,6 +21,9 @@
 .sidebar .link-btn:hover { color: var(--sb-text); }
 .sidebar-top { display: flex; align-items: center; justify-content: space-between; padding: 0 12px 0 var(--sb-rail); margin-bottom: 20px; }
 .sidebar .brand { color: var(--sb-text); padding: 0; }
+/* The deployed version under the app's name (AppVersion in Brand.jsx). */
+.sidebar-brand { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.app-version { color: var(--sb-muted); font-size: 11px; letter-spacing: 0.2px; }
 
 .sidebar-title {
   display: flex; align-items: center; justify-content: space-between; margin: 20px 0 4px; padding: 0 12px 0 var(--sb-rail);

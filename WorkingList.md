@@ -5,7 +5,7 @@ File này được nạp tự động qua `.claude/CLAUDE.md`.
 
 **Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
 
-_Cập nhật lần cuối: 2026-10-08 · Schema database: v40 · Test: `npm test`, 364/364 pass (khoảng 9 giây)_
+_Cập nhật lần cuối: 2026-10-09 · Schema database: v40 · Test: `npm test`, 364/364 pass (khoảng 9 giây)_
 
 ---
 
@@ -94,6 +94,10 @@ _Cập nhật lần cuối: 2026-10-08 · Schema database: v40 · Test: `npm tes
 - Migration thử trên bản sao database dev trước (2 file, 20 thông báo giữ nguyên từng cột, không lỗi khoá ngoại, `integrity_check` ok, chạy lại không lỗi); sao lưu `app.backup-before-feedback.db` (v30). Database dev đã ở v31. Test `feedback.test.js` (9 test), tổng 292/292, `vite build` chạy được.
 - Đã thử trên trình duyệt bằng một server riêng (cổng 3002, bản sao database, email root test `root.test@t.test`, không đụng tài khoản thật): Demo User gửi feedback (màn hình ghi đúng `#/project/1/board`), root thấy số 1 ở tab Feedback, chuyển "Đã tiếp nhận" kèm ghi chú → Demo User nhận thông báo, bấm vào mở đúng feedback, nút Sửa / Xoá và thêm file đã ẩn. Ở 375px không cuộn ngang (danh sách, form, chi tiết, màn root). Sửa kèm: màn root chưa đổi tab khi dán link vào thanh địa chỉ (thêm listener `hashchange`).
 - Tách thông báo feedback khỏi chuông (cùng ngày, người dùng yêu cầu: thông báo của root nhiều quá đè lên thông báo công việc). Ban đầu định làm 2 tab Công việc / Feedback trong chuông; người dùng chốt đưa hẳn vào mục Feedback. Chuông chỉ còn thông báo công việc (`GET /api/notifications` lọc `feedback_id IS NULL`, "Đánh dấu đã đọc hết" không đụng feedback); `unreadFeedback` hiện thành số trên mục "Feedback" ở sidebar (và chấm ☰ trên iPad); mỗi feedback trong danh sách có `unread`, dòng có nhãn "Mới" và nền nhạt; mở feedback (`GET /api/feedback/:id`) là đã xem, các tab khác cập nhật số ngay. Root bỏ chuông, số trên tab Feedback là số cập nhật chưa xem (thay số feedback chưa tiếp nhận; lọc "Đã gửi" để xem cái đó). Câu Hướng dẫn sửa theo. Test `feedback.test.js` viết lại phần thông báo. Đã thử trên server riêng: Demo User thấy số 2 ở mục Feedback, chuông không có feedback, mở feedback thì số mất; root không có chuông, tab Feedback hiện 1 khi người gửi nhắn.
+
+### Phiên bản dưới tên app (2026-10-09, không đổi schema / API)
+- Người dùng yêu cầu. Dưới chữ KeyOfSuccess ở sidebar có dòng phiên bản nhỏ (`AppVersion` trong `components/Brand.jsx`, màu `--sb-muted`): tag git mà `deploy/update.sh` ghi vào `client/dist/version.json` khi deploy (vd. `beta_v1.13`; có commit sau tag thì dạng `beta_v1.13-2-gabc1234`), đọc một lần từ `GET /api/health`; rê chuột thấy commit và schema. Chạy dev / không deploy bằng script thì ghi "bản dev". Thanh trên cùng của iPad dọc / điện thoại không hiện (thanh ngang, thêm dòng sẽ cao hơn).
+- Đã thử trên trình duyệt (server riêng phục vụ bản build, `version.json` tạm): hiện "beta_v1.13", tooltip "commit fd4764f · schema 40". 364/364 test pass, `vite build` chạy được.
 
 ### Ngày bắt đầu và Timeline (2026-10-08, schema v40)
 - Người dùng chốt theo đề xuất: Timeline nhóm **chuyển được** requirement / trạng thái / người làm; **kéo thanh để dời, kéo hai đầu để đổi ngày**; **phụ thuộc giữa task để đợt sau**; Timeline là **tab trong project** (không thêm ở Task của tôi / Theo dõi).
