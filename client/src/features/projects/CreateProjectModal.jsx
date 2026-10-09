@@ -4,15 +4,8 @@ import { TeamPills } from '../../components/Controls.jsx';
 import { CurrentUser } from '../../components/CurrentUser.js';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
 import { useAllTeams } from '../../components/hooks.js';
-import { formatDate, scopeOf, toDateStr } from '../../utils.js';
+import { formatDate, scopeOf, shiftDay } from '../../utils.js';
 import { tr } from '../../i18n.js';
-
-// The day `n` days after a YYYY-MM-DD day.
-function shiftDay(day, n) {
-  const d = new Date(`${day}T00:00`);
-  d.setDate(d.getDate() + n);
-  return toDateStr(d);
-}
 
 // Only Managers create projects; they pick any number of owning teams (none = department-wide). With
 // projects.change_teams 'team' they pick among their own teams, at least one. A project may start from a template

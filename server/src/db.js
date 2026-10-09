@@ -192,7 +192,8 @@ db.exec(`
     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     recurrence TEXT, -- v18: repeat rule (JSON) of a recurring top-level task
-    next_task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL -- v18: the occurrence this one spawned
+    next_task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL, -- v18: the occurrence this one spawned
+    start_date TEXT -- v40: when a top-level task starts (the Timeline bar runs from it to due_date)
   );
 
   CREATE TABLE IF NOT EXISTS comments (
@@ -994,6 +995,14 @@ if (schemaVersion() < 38) {
 
 // v39: project templates (table created above).
 if (schemaVersion() < 39) db.exec('PRAGMA user_version = 39');
+
+// v40: a start date on top-level tasks, for the Timeline (column created above for new databases).
+if (schemaVersion() < 40) {
+  transaction(() => {
+    if (!hasColumn('tasks', 'start_date')) db.exec('ALTER TABLE tasks ADD COLUMN start_date TEXT');
+    db.exec('PRAGMA user_version = 40');
+  });
+}
 
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_poll_options_message ON poll_options(message_id);

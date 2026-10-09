@@ -72,13 +72,16 @@ export function spawnNextOccurrence(task, actor) {
   if (!section) return [];
   const today = localDate(new Date());
   const due = nextOccurrence(JSON.parse(task.recurrence), task.due_date ?? today, { notBefore: today });
+  // A start date (v40) keeps the same lead time before the due date.
+  const lead = task.start_date && task.due_date ? (parseDay(task.due_date) - parseDay(task.start_date)) / DAY_MS : null;
+  const start = lead == null ? null : formatDay(addDays(parseDay(due), -lead));
   const active = task.assignee_id && db.prepare("SELECT 1 FROM users WHERE id = ? AND status = 'active'").get(task.assignee_id);
   const assignee = active && canBeAssigned(task.assignee_id, findProject(task.project_id)) ? task.assignee_id : null;
   const { lastInsertRowid: id } = db
     .prepare(
       `INSERT INTO tasks (project_id, section_id, requirement_id, title, description, assignee_id, due_date, priority,
-         position, created_by, recurrence)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         position, created_by, recurrence, start_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       task.project_id,
@@ -91,7 +94,8 @@ export function spawnNextOccurrence(task, actor) {
       task.priority ?? null,
       endOfStatus(section.id),
       actor.id,
-      task.recurrence
+      task.recurrence,
+      start
     );
   db.prepare('INSERT INTO task_channels (task_id, channel_id) SELECT ?, channel_id FROM task_channels WHERE task_id = ?').run(
     id,

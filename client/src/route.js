@@ -2,6 +2,7 @@
 //   #/my  #/dashboard  #/dashboard/3  #/team  #/team/user:5  #/admin  #/myteams  #/profile  #/guide
 //   #/feedback  #/feedback/12 (the user's feedback 12)  #/chat  #/chat/4 (conversation 4)  #/chat/4?message=9 (at message 9)
 //   #/project/3/board  #/project/3/list  #/project/3/calendar  #/project/3/requirements/7 (requirement 7 selected)
+//   #/project/3/timeline?group=status (Timeline rows grouped by status or assignee; by requirement without it)
 //   #/task/12  #/requirement/3/7 (project 3, requirement 7)
 // ?layout=calendar on #/my and #/team shows the calendar instead of the list; ?channel=2 keeps the tasks on channel 2.
 // Project filters go in the query, only when set: ?requirement=7&assignee=5&status=s8&due=week&q=banner
@@ -9,11 +10,12 @@
 import { EMPTY_FILTERS, can, canAdminister } from './utils.js';
 
 const id = (s) => (/^\d+$/.test(s ?? '') ? Number(s) : null);
-const TABS = ['board', 'list', 'requirements', 'calendar'];
+const TABS = ['board', 'list', 'requirements', 'calendar', 'timeline'];
+const GROUPS = ['status', 'assignee']; // the Timeline's other groupings (requirement is the default)
 const DUE_VALUES = ['all', 'overdue', 'week', 'none'];
 
 // view as in Workspace; tab + filters / scope are what the project or task page currently shows.
-export function formatRoute(view, { tab, filters, scope, layout, channel } = {}, panelTaskId = null) {
+export function formatRoute(view, { tab, filters, scope, layout, channel, group } = {}, panelTaskId = null) {
   let path;
   const query = new URLSearchParams();
   switch (view.type) {
@@ -34,6 +36,8 @@ export function formatRoute(view, { tab, filters, scope, layout, channel } = {},
       for (const [key, value] of Object.entries(filters ?? {})) {
         if (value.trim() && value !== EMPTY_FILTERS[key]) query.set(key, value);
       }
+      const shownGroup = group ?? view.group;
+      if (shownTab === 'timeline' && GROUPS.includes(shownGroup)) query.set('group', shownGroup);
       break;
     }
     case 'task':
@@ -78,6 +82,7 @@ export function parseRoute(hash, user) {
   else if (type === 'project' && id(a)) {
     const tab = TABS.includes(b) ? b : 'board';
     view = { type, id: id(a), tab, filters: parseFilters(query) };
+    if (GROUPS.includes(query.get('group'))) view.group = query.get('group');
     if (tab === 'requirements' && id(c)) view.requirementId = id(c);
   } else if (type === 'task' && id(a)) view = { type, id: id(a) };
   else if (type === 'requirement' && id(a) && id(b)) view = { type, projectId: id(a), id: id(b) };

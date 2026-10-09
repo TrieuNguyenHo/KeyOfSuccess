@@ -38,11 +38,17 @@ import { localDate, nextPosition, nowStamp, placeholders, replaceLinks } from '.
 const router = express.Router();
 
 const PRIORITIES = ['low', 'medium', 'high'];
+// A real calendar day, YYYY-MM-DD.
+function isDay(value) {
+  const d = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && new Date(`${value}T00:00:00Z`);
+  return Boolean(d) && !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
 const TASK_FIELDS = [
   'title',
   'description',
   'assignee_id',
   'due_date',
+  'start_date',
   'priority',
   'completed',
   'section_id',
@@ -209,6 +215,17 @@ router.patch('/tasks/:id', (req, res) => {
     newAssignee != null ? assignableBy(req.user, findProject(task.project_id)).find((u) => u.id === Number(newAssignee)) : null;
   if (newAssignee != null && !assignee && Number(newAssignee) !== task.assignee_id) {
     return badRequest(res, 'Chỉ giao task được cho bạn hoặc người trong team của bạn tham gia project này');
+  }
+  // start_date (v40): top-level tasks only, never after the due date (moving a Timeline bar sends both).
+  for (const key of ['start_date', 'due_date']) {
+    if (body[key] != null && body[key] !== '' && !isDay(body[key])) {
+      return badRequest(res, key === 'start_date' ? 'Ngày bắt đầu không hợp lệ' : 'Hạn chót không hợp lệ');
+    }
+  }
+  if (body.start_date && task.parent_id) return badRequest(res, 'Subtask không có ngày bắt đầu riêng');
+  const finalOf = (key) => (body[key] === undefined ? task[key] ?? null : body[key] || null);
+  if (finalOf('start_date') && finalOf('due_date') && finalOf('start_date') > finalOf('due_date')) {
+    return badRequest(res, 'Ngày bắt đầu phải trước hoặc cùng ngày với hạn chót');
   }
   // channel_ids replaces a top-level task's channels (an empty list clears them).
   let channelIds = null;

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
-import { EMPTY_FILTERS } from '../../utils.js';
+import { EMPTY_FILTERS, movedTo } from '../../utils.js';
 import BoardView from './BoardView.jsx';
 import CalendarView from './CalendarView.jsx';
 import ListView from './ListView.jsx';
+import TimelineView from './TimelineView.jsx';
 import MembersPanel from './MembersPanel.jsx';
 import ProjectHeader from './ProjectHeader.jsx';
 import TaskFilterBar, { matchesFilters } from './TaskFilterBar.jsx';
@@ -15,7 +16,8 @@ import { tr } from '../../i18n.js';
 
 // initialTab / initialRequirementId let a notification open a requirement directly; with the board tab,
 // initialRequirementId filters the board to that requirement instead. initialFilters come from the URL.
-// onShownChange({ tab, filters }) reports what is shown, so the URL keeps it.
+// initialGroup: how the Timeline groups its rows. onShownChange({ tab, filters, group }) reports what is shown, so the
+// URL keeps it.
 export default function ProjectView({
   projectId,
   user,
@@ -23,6 +25,7 @@ export default function ProjectView({
   initialTab = 'board',
   initialRequirementId,
   initialFilters,
+  initialGroup = 'requirement',
   onOpenTask,
   onShownChange,
   onOpenRequirementPage,
@@ -36,6 +39,7 @@ export default function ProjectView({
     initialFilters ??
       (initialTab === 'board' && initialRequirementId ? { ...EMPTY_FILTERS, requirement: String(initialRequirementId) } : EMPTY_FILTERS)
   );
+  const [group, setGroup] = useState(initialGroup);
   const [showMembers, setShowMembers] = useState(false);
   const [error, setError] = useState('');
 
@@ -44,9 +48,9 @@ export default function ProjectView({
   const channels = useChannels();
 
   useEffect(() => {
-    onShownChange({ tab: view, filters });
+    onShownChange({ tab: view, filters, group });
     // Only changes of what is shown matter, not a new callback identity.
-  }, [view, filters]);
+  }, [view, filters, group]);
 
   const reload = useCallback(
     () =>
@@ -105,10 +109,12 @@ export default function ProjectView({
       });
       if (ok) act(() => api(`/sections/${section.id}`, { method: 'DELETE' }));
     },
-    // Calendar drag: shows the new date at once, then saves it.
-    onMoveDate: (task, dueDate) => {
-      setData((d) => ({ ...d, tasks: d.tasks.map((t) => (t.id === task.id ? { ...t, due_date: dueDate } : t)) }));
-      act(() => api(`/tasks/${task.id}`, { method: 'PATCH', body: { due_date: dueDate } }));
+    // Calendar drag: shows the new date at once (the start date moving with it), then saves it.
+    onMoveDate: (task, dueDate) => actions.onSetDates(task, movedTo(task, dueDate)),
+    // Timeline drag: { start_date, due_date }, either or both.
+    onSetDates: (task, dates) => {
+      setData((d) => ({ ...d, tasks: d.tasks.map((t) => (t.id === task.id ? { ...t, ...dates } : t)) }));
+      act(() => api(`/tasks/${task.id}`, { method: 'PATCH', body: dates }));
     },
     // Fractional positions: a moved task lands halfway between its new neighbours.
     onMove: (taskId, sectionId, beforeId) => {
@@ -235,7 +241,18 @@ export default function ProjectView({
             )
           )}
 
-          {view === 'calendar' ? (
+          {view === 'timeline' ? (
+            <TimelineView
+              tasks={visibleTasks.filter((t) => !t.parent_id)}
+              requirements={requirements}
+              sections={sections}
+              group={group}
+              onGroup={setGroup}
+              canEditTask={canEditTask}
+              onOpen={onOpenTask}
+              onSetDates={actions.onSetDates}
+            />
+          ) : view === 'calendar' ? (
             <CalendarView
               tasks={visibleTasks.filter((t) => !t.parent_id)}
               canEditTask={canEditTask}

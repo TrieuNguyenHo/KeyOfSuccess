@@ -25,6 +25,7 @@ const HISTORY_FIELDS = {
   description: (v) => v,
   assignee_id: nameOfUser,
   due_date: (v) => v,
+  start_date: (v) => v,
   priority: (v) => v,
   section_id: nameOfSection,
   completed: (v) => Boolean(v),

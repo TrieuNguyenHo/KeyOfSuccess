@@ -1,6 +1,7 @@
 import { AddTaskInline, CheckButton, DueDate, PriorityTag, SectionHeader, TaskTags } from '../../components/TaskParts.jsx';
 import { Avatar } from '../../components/Avatar.jsx';
 import { tr } from '../../i18n.js';
+import { formatDate } from '../../utils.js';
 
 export default function ListView({
   sections,
@@ -20,9 +21,10 @@ export default function ListView({
 }) {
   return (
     <div className="list">
-      <div className="list-row list-head">
+      <div className="list-row with-start list-head">
         <span>{tr('Tên task')}</span>
         <span>{tr('Người làm')}</span>
+        <span>{tr('Ngày bắt đầu')}</span>
         <span>{tr('Hạn chót')}</span>
         <span>{tr('Ưu tiên')}</span>
       </div>
@@ -38,7 +40,7 @@ export default function ListView({
               readOnly={!canManageSections}
             />
             {rows.map((task) => (
-              <div key={task.id} className="list-row" onClick={() => onOpen(task.id)}>
+              <div key={task.id} className="list-row with-start" onClick={() => onOpen(task.id)}>
                 <span className={`list-title ${task.completed ? 'done' : ''}`}>
                   <CheckButton checked={Boolean(task.completed)} disabled={!canEditTask(task)} onClick={() => onToggle(task)} />
                   <span className="ellipsis">{task.title}</span>
@@ -60,6 +62,7 @@ export default function ListView({
                     <span className="muted">—</span>
                   )}
                 </span>
+                <span>{task.start_date ? formatDate(task.start_date) : <span className="muted">—</span>}</span>
                 <span>
                   <DueDate task={task} empty="—" />
                 </span>

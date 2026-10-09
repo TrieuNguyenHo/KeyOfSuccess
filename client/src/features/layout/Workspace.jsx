@@ -182,7 +182,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
   // The current view with what its page shows now (tab, filters, scope), so coming back restores it.
   const currentView = () => ({
     ...view,
-    ...(shown.tab && { tab: shown.tab, filters: shown.filters }),
+    ...(shown.tab && { tab: shown.tab, filters: shown.filters, group: shown.group }),
     ...(shown.scope && { scope: shown.scope }),
     ...(shown.layout && { layout: shown.layout }),
     ...(shown.channel !== undefined && { channel: shown.channel }),
@@ -269,6 +269,7 @@ export default function Workspace({ user, onLogout, onUserChange }) {
         initialTab={view.tab}
         initialRequirementId={view.requirementId}
         initialFilters={view.filters}
+        initialGroup={view.group}
         user={user}
         refreshKey={refreshKey}
         onOpenTask={setOpenTaskId}

@@ -57,6 +57,8 @@ function describe(e) {
           return { text: tr('{prefix}đổi người làm: {from} → {to}', { prefix, from: e.from, to: e.to }) };
         case 'due_date':
           return { text: prefix + changed(tr('hạn chót'), e, showDate) };
+        case 'start_date':
+          return { text: prefix + changed(tr('ngày bắt đầu'), e, showDate) };
         case 'priority':
           return { text: prefix + changed(tr('ưu tiên'), e, showPriority) };
         case 'section_id':

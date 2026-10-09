@@ -63,6 +63,67 @@
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 
+/* Timeline (v40, project tab): one row per task, a bar from its start date to its due date. A single scroll box holds
+   the date scale (sticky on top) and the task names (sticky on the left); --px is the width of a day. Bars are large
+   marks: the brand color, crimson when overdue (its name carries ⚠), gray when done. */
+.timeline-wrap { flex: 1; min-height: 420px; display: flex; flex-direction: column; padding: 0 32px 32px; gap: 12px; }
+/* On a short screen (a phone, where the header and filters wrap) the page scrolls so the Timeline keeps its height. */
+.project:has(.timeline-wrap) { overflow-y: auto; }
+.timeline-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.timeline-empty { margin: 0; }
+.timeline {
+  --tl-label: 240px; --tl-row: 36px;
+  flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--hairline); border-radius: var(--rounded-lg);
+  background: var(--canvas);
+}
+.timeline-grid { position: relative; width: calc(var(--tl-label) + var(--days) * var(--px)); }
+.tl-row { display: flex; height: var(--tl-row); border-bottom: 1px solid var(--divider-soft); }
+.tl-label {
+  position: sticky; left: 0; z-index: 2; flex: 0 0 var(--tl-label); width: var(--tl-label); box-sizing: border-box;
+  display: flex; align-items: center; gap: 6px; padding: 0 12px; background: var(--canvas);
+  border-right: 1px solid var(--hairline); min-width: 0;
+}
+.tl-task { border: none; border-right: 1px solid var(--hairline); border-radius: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.tl-task:hover { background: var(--pearl); }
+.tl-task:active { transform: none; }
+.tl-task.done .ellipsis { text-decoration: line-through; color: var(--muted); }
+.tl-warn { color: var(--danger); flex-shrink: 0; }
+.tl-track { position: relative; flex: 0 0 calc(var(--days) * var(--px)); }
+/* Saturday and Sunday shaded (the range starts on a Monday); not at the month scale, where days are a few pixels. */
+.zoom-day .tl-track, .zoom-week .tl-track {
+  background-image: linear-gradient(to right, transparent calc(5 * var(--px)), var(--pearl) calc(5 * var(--px)));
+  background-size: calc(7 * var(--px)) 100%;
+}
+.tl-track.drawable { cursor: crosshair; touch-action: pan-y; }
+.tl-head { position: sticky; top: 0; z-index: 3; height: 44px; background: var(--canvas); border-bottom-color: var(--hairline); }
+.tl-head .tl-label { z-index: 4; color: var(--muted); font-size: 12px; font-weight: 600; }
+.tl-head .tl-track { background: var(--canvas); }
+.tl-month {
+  position: absolute; top: 4px; padding-left: 6px; border-left: 1px solid var(--hairline);
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.tl-tick { position: absolute; bottom: 4px; padding-left: 4px; font-size: 11px; color: var(--muted); white-space: nowrap; box-sizing: border-box; }
+.zoom-day .tl-tick { padding-left: 0; text-align: center; }
+.tl-group { background: var(--pearl); }
+.tl-group .tl-label { background: var(--pearl); }
+.tl-group .tl-track { background: var(--pearl); }
+.tl-today { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--brand); z-index: 1; pointer-events: none; }
+.tl-bar {
+  position: absolute; top: 9px; height: 18px; border-radius: 9px; background: var(--brand); cursor: pointer;
+  min-width: 6px; box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: pan-y;
+}
+.tl-bar.overdue { background: var(--overdue-mark); }
+.tl-bar.done { background: var(--neutral-mark); }
+.tl-bar.editable { cursor: grab; }
+.tl-bar.dragging { cursor: grabbing; outline: 2px solid var(--ink); outline-offset: 1px; }
+.tl-handle { position: absolute; top: 0; bottom: 0; width: 8px; cursor: ew-resize; }
+.tl-handle.start { left: 0; }
+.tl-handle.end { right: 0; }
+.tl-drag-dates {
+  position: absolute; top: 8px; padding: 1px 8px; border-radius: var(--rounded-pill); white-space: nowrap;
+  font-size: 12px; background: var(--canvas); border: 1px solid var(--hairline); pointer-events: none; z-index: 1;
+}
+
 /* Calendar: month grid of tasks by due date (project tab "Lịch", Task của tôi / Theo dõi) */
 .calendar { flex: 1; overflow-y: auto; padding: 0 32px 32px; }
 .calendar-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }

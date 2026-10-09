@@ -150,6 +150,13 @@ export default {
   'Đặt hạn chót theo': 'Set due dates from the',
   'Ngày bắt đầu': 'Start date',
   'Ngày ra mắt': 'Launch date',
+  'ngày bắt đầu': 'start date',
+  'Nhóm theo': 'Group by',
+  'Thang thời gian': 'Time scale',
+  'Tuần': 'Week',
+  'Tháng': 'Month',
+  'Không có task nào khớp bộ lọc.': 'No task matches the filters.',
+  'Kéo trên dòng này để đặt ngày': 'Drag along this row to set dates',
   'Task đầu tiên đến hạn {first}, task cuối cùng {last}.': 'The first task is due {first}, the last one {last}.',
   'Task có hạn sớm nhất rơi vào ngày này, các task khác giữ khoảng cách như trong mẫu.':
     'The earliest due date falls on this day; the other tasks keep the gaps they have in the template.',
@@ -592,6 +599,10 @@ export default {
   'Không thể tự hạ quyền hoặc khoá chính mình': 'You cannot demote or lock yourself',
   'Cần nhập tên project': 'Enter a project name',
   'Cần nhập tên mẫu': 'Enter a template name',
+  'Ngày bắt đầu không hợp lệ': 'Invalid start date',
+  'Hạn chót không hợp lệ': 'Invalid due date',
+  'Subtask không có ngày bắt đầu riêng': 'Subtasks have no start date of their own',
+  'Ngày bắt đầu phải trước hoặc cùng ngày với hạn chót': 'The start date must be on or before the due date',
   'Không tìm thấy mẫu': 'Template not found',
   'Cần chọn ngày để đặt hạn chót cho các task': 'Pick a date to set the due dates of the tasks',
   'Danh sách team không hợp lệ': 'Invalid team list',
@@ -697,8 +708,8 @@ export default {
   'Mỗi project gồm các requirement (đầu việc lớn), mỗi requirement gồm các task, mỗi task có thể có subtask. Task nào cũng thuộc một requirement, nên project cần có requirement trước khi thêm task.':
     'A project holds requirements (the big pieces of work), each requirement holds tasks, and a task may have subtasks. Every task belongs to a requirement, so a project needs a requirement before tasks can be added.',
   'Các cách xem': 'Views',
-  'Trong project: Requirements (tiến độ từng requirement và comments), Lịch (task theo hạn chót), List (bảng) và Board (cột theo trạng thái). Bộ lọc theo requirement, người làm, team, kênh, trạng thái, hạn chót và ô tìm task dùng chung cho List, Board và Lịch.':
-    'In a project: Requirements (each requirement\'s progress and comments), Calendar (tasks by due date), List (a table) and Board (columns by status). The filters by requirement, assignee, team, channel, status, due date and the task search apply to List, Board and Calendar alike.',
+  'Trong project: Requirements (tiến độ từng requirement và comments), Lịch (task theo hạn chót), Timeline (thanh từ ngày bắt đầu tới hạn chót), List (bảng) và Board (cột theo trạng thái). Bộ lọc theo requirement, người làm, team, kênh, trạng thái, hạn chót và ô tìm task dùng chung cho List, Board, Lịch và Timeline.':
+    'In a project: Requirements (each requirement\'s progress and comments), Calendar (tasks by due date), Timeline (a bar from the start date to the due date), List (a table) and Board (columns by status). The filters by requirement, assignee, team, channel, status, due date and the task search are shared by List, Board, Calendar and Timeline.',
   '4 trạng thái cố định': 'The 4 fixed statuses',
   'Planned, In-Progress, Completed, Pending có ở mọi project, không đổi tên hay xoá được. Đánh dấu ✓ xong thì task tự sang Completed; kéo task vào Completed cũng là đánh dấu xong.':
     'Planned, In-Progress, Completed and Pending exist in every project and cannot be renamed or deleted. Ticking ✓ moves a task to Completed; dragging a task into Completed ticks it too.',
@@ -709,8 +720,10 @@ export default {
     'You create tasks for yourself and edit the tasks assigned to you. You can view and comment on other people\'s tasks. In projects outside your teams you view and comment only.',
   'Làm việc với task': 'Working on a task',
   'Mở task': 'Opening a task',
-  'Bấm vào task để mở panel bên phải; bấm ⤢ để mở trang đầy đủ. Ở đó có mô tả, subtask, người làm, hạn chót, ưu tiên, requirement, kênh, file đính kèm và comments.':
-    'Click a task to open it in the right panel; click ⤢ for the full page. There you find the description, subtasks, assignee, due date, priority, requirement, channels, attachments and comments.',
+  'Bấm vào task để mở panel bên phải; bấm ⤢ để mở trang đầy đủ. Ở đó có mô tả, subtask, người làm, ngày bắt đầu, hạn chót, ưu tiên, requirement, kênh, file đính kèm và comments.':
+    'Click a task to open it in the right panel; click ⤢ for the full page. There you find the description, subtasks, assignee, start date, due date, priority, requirement, channels, attachments and comments.',
+  'Tab Timeline của project vẽ mỗi task một thanh từ ngày bắt đầu tới hạn chót, nhóm theo requirement, trạng thái hoặc người làm; Ngày / Tuần / Tháng để đổi thang, "Hôm nay" để quay về hôm nay. Task quá hạn có ⚠, task xong màu xám. Ai sửa được task thì kéo cả thanh để dời ngày, kéo một đầu để đổi ngày bắt đầu hoặc hạn chót, kéo dọc dòng của task chưa có ngày để đặt ngày (iPad: giữ rồi kéo). Kéo task trên Lịch thì ngày bắt đầu dời theo.':
+    'The project\'s Timeline tab draws each task as a bar from its start date to its due date, grouped by requirement, status or assignee; Day / Week / Month change the scale, "Today" goes back to today. Overdue tasks carry ⚠, done ones are gray. Whoever can edit a task drags the whole bar to move its dates, one end to change the start or due date, or along the row of a task without dates to set them (iPad: hold, then drag). Dragging a task on the Calendar moves its start date along.',
   'Kéo thả': 'Drag and drop',
   'Kéo thẻ giữa các cột trên Board để đổi trạng thái, kéo task sang ngày khác trên Lịch để đổi hạn chót. Trên iPad: giữ ngón tay khoảng nửa giây rồi kéo.':
     'Drag a card between Board columns to change its status, or a task to another day on the Calendar to change its due date. On an iPad: hold your finger for about half a second, then drag.',

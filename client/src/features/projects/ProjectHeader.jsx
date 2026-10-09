@@ -94,6 +94,9 @@ export default function ProjectHeader({
             <button className={view === 'calendar' ? 'active' : ''} onClick={() => onView('calendar')}>
               {tr('Lịch')}
             </button>
+            <button className={view === 'timeline' ? 'active' : ''} onClick={() => onView('timeline')}>
+              Timeline
+            </button>
           </div>
           <div className="tabs" role="group" aria-label={tr('Kiểu xem task')}>
             <button className={view === 'list' ? 'active' : ''} onClick={() => onView('list')}>
