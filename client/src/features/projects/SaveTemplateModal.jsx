@@ -45,7 +45,7 @@ export default function SaveTemplateModal({ project, onClose }) {
         {saved ? (
           <>
             <p>
-              {tr('Đã lưu mẫu "{name}": {requirements} project, {tasks} task. Chọn mẫu này khi tạo hoạt động mới.', {
+              {tr('Đã lưu mẫu "{name}": {requirements} dự án, {tasks} task. Chọn mẫu này khi tạo hoạt động mới.', {
                 name: saved.name,
                 requirements: saved.requirements,
                 tasks: saved.tasks,
@@ -61,7 +61,7 @@ export default function SaveTemplateModal({ project, onClose }) {
           <>
             <p className="muted small">
               {tr(
-                'Mẫu giữ trạng thái, project, task, subtask (mô tả, ưu tiên, kênh, người làm, lặp lại) và khoảng cách giữa các hạn chót. Không giữ comment, file, lịch sử. Sửa hoạt động sau này không đổi mẫu, trừ khi lưu đè.'
+                'Mẫu giữ trạng thái, dự án, task, subtask (mô tả, ưu tiên, kênh, người làm, lặp lại) và khoảng cách giữa các hạn chót. Không giữ comment, file, lịch sử. Sửa hoạt động sau này không đổi mẫu, trừ khi lưu đè.'
               )}
             </p>
             {templates.length > 0 && (

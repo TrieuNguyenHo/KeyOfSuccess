@@ -3,7 +3,7 @@
 //   #/report (this week)  #/report/week/2026-10-05  #/report/month/2026-10  #/report/range/2026-09-01/2026-09-20
 //   #/report/2026-10-05 (the weekly report kept for the week starting that Monday)
 //   #/feedback  #/feedback/12 (the user's feedback 12)  #/chat  #/chat/4 (conversation 4)  #/chat/4?message=9 (at message 9)
-//   #/activity/3/board  #/activity/3/list  #/activity/3/calendar  #/activity/3/projects/7 (requirement 7 selected)
+//   #/activity/3/projects (its projects as cards, the default)  #/activity/3/board  #/activity/3/list  #/activity/3/calendar
 //   #/activity/3/timeline?group=status (Timeline rows grouped by status or assignee; by requirement without it)
 //   #/task/12  #/activity/3/project/7 (project 3, requirement 7)
 // On screen a project is called "Hoạt động" (activity) and a requirement "Project" since 2026-10-10, and the URLs say
@@ -47,10 +47,9 @@ export function formatRoute(view, { tab, filters, scope, layout, channel, group 
       if (channel ?? view.channel) query.set('channel', channel ?? view.channel);
       break;
     case 'project': {
-      const shownTab = tab ?? view.tab ?? 'board';
-      // The requirement selected on arrival (a notification, "Quay lại" from its page) until the tab changes.
-      const selected = shownTab === 'requirements' && shownTab === (view.tab ?? 'board') && view.requirementId;
-      path = `activity/${view.id}/${urlTab(shownTab)}${selected ? `/${selected}` : ''}`;
+      // An activity opens on its projects as cards (2026-10-10).
+      const shownTab = tab ?? view.tab ?? 'requirements';
+      path = `activity/${view.id}/${urlTab(shownTab)}`;
       for (const [key, value] of Object.entries(filters ?? {})) {
         if (value.trim() && value !== EMPTY_FILTERS[key]) query.set(key === 'requirement' ? 'project' : key, value);
       }
@@ -105,12 +104,12 @@ export function parseRoute(hash, user) {
     view = { type, ...(id(a) && { id: id(a) }), ...(id(a) && id(query.get('message')) && { messageId: id(query.get('message')) }) };
   }
   else if (type === 'myteams' && can(user, 'teams.members') && !can(user, 'users.manage')) view = { type };
-  else if (type === 'activity' && id(a) && b === 'project' && id(c)) view = { type: 'requirement', projectId: id(a), id: id(c) };
+  // A project's page; #/activity/3/projects/7 (one selected in the old list tab) opens it too.
+  else if (type === 'activity' && id(a) && ['project', 'projects'].includes(b) && id(c)) view = { type: 'requirement', projectId: id(a), id: id(c) };
   else if (type === 'activity' && id(a)) {
-    const tab = b === 'projects' ? 'requirements' : TABS.includes(b) ? b : 'board';
+    const tab = b === 'projects' ? 'requirements' : TABS.includes(b) ? b : 'requirements';
     view = { type: 'project', id: id(a), tab, filters: parseFilters(query) };
     if (GROUPS.includes(query.get('group'))) view.group = query.get('group');
-    if (tab === 'requirements' && id(c)) view.requirementId = id(c);
   } else if (type === 'task' && id(a)) view = { type, id: id(a) };
   view ||= { type: 'my' };
   if (['my', 'team'].includes(view.type) && query.get('layout') === 'calendar') view.layout = 'calendar';

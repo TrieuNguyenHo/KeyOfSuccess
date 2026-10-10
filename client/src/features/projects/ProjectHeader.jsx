@@ -87,9 +87,9 @@ export default function ProjectHeader({
         )}
         {/* Two groups: the requirements and calendar views, and the List / Board layouts of the task list. */}
         <div className="tab-groups">
-          <div className="tabs" role="group" aria-label={tr('Projects và lịch')}>
+          <div className="tabs" role="group" aria-label={tr('Dự án và lịch')}>
             <button className={view === 'requirements' ? 'active' : ''} onClick={() => onView('requirements')}>
-              {tr('Projects')}<span className="tab-count">{requirementCount}</span>
+              {tr('Các dự án')}<span className="tab-count">{requirementCount}</span>
             </button>
             <button className={view === 'calendar' ? 'active' : ''} onClick={() => onView('calendar')}>
               {tr('Lịch')}

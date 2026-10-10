@@ -21,7 +21,7 @@ const PERMISSION_TEXT = {
     return [tr('Toàn quyền task'), tr('Tạo, sửa, giao, xoá task và quản lý trạng thái. Không có quyền này: chỉ tạo task cho mình và sửa task giao cho mình.')];
   },
   get 'requirements.manage'() {
-    return [tr('Quản lý project'), tr('Tạo, sửa, xoá project (người quản lý hoạt động luôn làm được).')];
+    return [tr('Quản lý dự án'), tr('Tạo, sửa, xoá dự án (người quản lý hoạt động luôn làm được).')];
   },
   get 'people.watch'() {
     return [tr('Theo dõi công việc'), tr('Xem task của người khác, màn Theo dõi và Dashboard tổng.')];

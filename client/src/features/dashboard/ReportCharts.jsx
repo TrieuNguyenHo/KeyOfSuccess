@@ -137,13 +137,13 @@ export default function ReportCharts({ breakdown }) {
             {tr('Hoạt động')}
           </button>
           <button className={by === 'projects' ? 'active' : ''} onClick={() => setBy('projects')}>
-            {tr('Project')}
+            {tr('Dự án')}
           </button>
         </div>
       </div>
       <p className="muted small">{tr('Task có làm trong kỳ: tạo trước ngày cuối kỳ và chưa xong trước ngày đầu kỳ. Trạng thái tính tại ngày cuối kỳ.')}</p>
       <div className="report-pies">
-        <Pie title={by === 'activities' ? tr('Theo hoạt động') : tr('Theo project')} slices={fold(groups, (x, i) => CATEGORY[i])} />
+        <Pie title={by === 'activities' ? tr('Theo hoạt động') : tr('Theo dự án')} slices={fold(groups, (x, i) => CATEGORY[i])} />
         <Pie title={tr('Theo độ ưu tiên')} slices={priorities} />
         <Pie title={tr('Theo trạng thái')} slices={statuses} />
       </div>

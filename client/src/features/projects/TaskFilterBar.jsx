@@ -27,8 +27,8 @@ export default function TaskFilterBar({ filters, setFilters, requirements, teams
   const filtering = JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
   return (
     <div className="toolbar">
-      <select value={filters.requirement} onChange={setFilter('requirement')} aria-label={tr('Lọc theo project')}>
-        <option value="">{tr('Mọi project')}</option>
+      <select value={filters.requirement} onChange={setFilter('requirement')} aria-label={tr('Lọc theo dự án')}>
+        <option value="">{tr('Mọi dự án')}</option>
         {requirements.map((r) => (
           <option key={r.id} value={r.id}>
             {r.title}

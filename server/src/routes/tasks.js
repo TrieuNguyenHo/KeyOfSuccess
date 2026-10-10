@@ -107,7 +107,7 @@ router.post('/tasks', (req, res) => {
     }
     const requirement = findRequirement(requirement_id);
     if (!requirement || requirement.project_id !== section.project_id) {
-      return badRequest(res, 'Task phải thuộc một project của hoạt động');
+      return badRequest(res, 'Task phải thuộc một dự án của hoạt động');
     }
     projectId = section.project_id;
     sectionId = section.id;
@@ -204,7 +204,7 @@ router.patch('/tasks/:id', (req, res) => {
   if (body.requirement_id !== undefined) {
     const requirement = findRequirement(body.requirement_id);
     if (task.parent_id || !requirement || requirement.project_id !== task.project_id) {
-      return badRequest(res, 'Project không hợp lệ');
+      return badRequest(res, 'Dự án không hợp lệ');
     }
   }
   const newAssignee = body.assignee_id === '' ? null : body.assignee_id;

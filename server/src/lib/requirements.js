@@ -22,7 +22,7 @@ export const titleOfRequirement = (id) =>
 
 // Who writes requirements lives with the other project rules (it follows project roles).
 export { canEditRequirements } from './access.js';
-export const REQUIREMENT_EDITORS = 'Chỉ owner, Leader của team phụ trách hoặc Manager mới quản lý được project';
+export const REQUIREMENT_EDITORS = 'Chỉ owner, Leader của team phụ trách hoặc Manager mới quản lý được dự án';
 
 // Loads a requirement whose project the user can at least view; `edit` also demands requirement rights.
 export function loadRequirement(req, res, requirementId, { edit = false } = {}) {

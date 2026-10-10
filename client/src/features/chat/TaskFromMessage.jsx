@@ -75,12 +75,12 @@ export default function TaskFromMessage({ message, conversationId, onCreated, on
           </select>
         </label>
         {detail && !canAdd && <p className="muted small">{tr('Bạn không thêm task được ở hoạt động này.')}</p>}
-        {detail && canAdd && detail.requirements.length === 0 && <p className="muted small">{tr('Hoạt động chưa có project nào, cần tạo project trước khi thêm task.')}</p>}
+        {detail && canAdd && detail.requirements.length === 0 && <p className="muted small">{tr('Hoạt động chưa có dự án nào, cần tạo dự án trước khi thêm task.')}</p>}
         {detail && canAdd && detail.requirements.length > 0 && (
           <label className="form-field">
-            <span>{tr('Project')}</span>
+            <span>{tr('Dự án')}</span>
             <select value={requirementId} onChange={(e) => setRequirementId(e.target.value)} required>
-              <option value="">{tr('Chọn project')}</option>
+              <option value="">{tr('Chọn dự án')}</option>
               {detail.requirements.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.title}

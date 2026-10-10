@@ -225,7 +225,7 @@ export default function TaskDetail({
       {task.requirement_id && (
         <>
           <span aria-hidden="true">›</span>
-          <button className="crumb" onClick={openRequirement} title={tr('Mở trang chi tiết project')}>
+          <button className="crumb" onClick={openRequirement} title={tr('Mở trang chi tiết dự án')}>
             {task.requirement_title}
           </button>
         </>

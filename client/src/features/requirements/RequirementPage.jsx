@@ -41,7 +41,7 @@ export default function RequirementPage({ projectId, requirementId, refreshKey, 
     return (
       <div className="task-page">
         {back}
-        <p className="muted">{tr('Project này không còn tồn tại.')}</p>
+        <p className="muted">{tr('Dự án này không còn tồn tại.')}</p>
       </div>
     );
   }
@@ -56,7 +56,7 @@ export default function RequirementPage({ projectId, requirementId, refreshKey, 
             {project.name}
           </button>
           <span aria-hidden="true">›</span>
-          <span>{tr('Project')}</span>
+          <span>{tr('Dự án')}</span>
         </div>
       </div>
       <div className="requirement-page">

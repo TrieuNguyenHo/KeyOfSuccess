@@ -125,7 +125,7 @@ export default function CreateProjectModal({ onCreate, onClose }) {
             </div>
             {template && (
               <span className="muted small">
-                {tr('{requirements} project, {tasks} task, {subtasks} subtask', {
+                {tr('{requirements} dự án, {tasks} task, {subtasks} subtask', {
                   requirements: template.requirements,
                   tasks: template.tasks,
                   subtasks: template.subtasks,

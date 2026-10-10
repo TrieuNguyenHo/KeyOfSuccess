@@ -25,7 +25,8 @@
   .toolbar { padding: 4px 20px 12px; }
   .board, .list, .calendar, .timeline-wrap, .saved-filters, .report-period { padding-left: 20px; padding-right: 20px; }
   .root-tabs { margin-left: 20px; margin-right: 20px; }
-  .requirements-tab { padding: 16px 20px 24px; }
+  .req-cards-page { padding: 16px 20px 24px; }
+  .project-focus { padding-left: 20px; padding-right: 20px; }
   .task-page { padding: 16px 20px 32px; }
 }
 /* Tables get narrower columns whenever the content area is under ~1000px: iPad portrait (drawer sidebar)
