@@ -196,7 +196,7 @@ export default function ChatPage({ conversationId, focusMessageId, onOpen, onRea
               onError={setError}
             />
           ) : (
-            <p className="muted chat-empty">{tr('Chọn một cuộc trò chuyện, hoặc bấm "+ Tin nhắn mới" để nhắn cho đồng nghiệp, tạo nhóm hay mở chat của project / team.')}</p>
+            <p className="muted chat-empty">{tr('Chọn một cuộc trò chuyện, hoặc bấm "+ Tin nhắn mới" để nhắn cho đồng nghiệp, tạo nhóm hay mở chat của hoạt động / team.')}</p>
           )}
         </section>
       </div>

@@ -98,6 +98,65 @@ test('each reader sees their scope: a Leader or a team Manager their teams, the 
   assert.equal((await api.get('/reports/2020-01-06', chief)).status, 404);
 });
 
+test('a report of any range is worked out when asked, as things stood on its last day', () => {
+  db.prepare("UPDATE tasks SET created_at = '2026-09-01 00:00:00'").run();
+  // The same week as the report kept, asked on Monday: the same figures.
+  const week = reports.liveReport('2026-10-05', '2026-10-11', '2026-10-12');
+  const c = week.people[memC.id];
+  assert.deepEqual([c.done, c.done_late, c.open, c.overdue, c.due_soon], [2, 1, 4, 3, 1]);
+  assert.equal(`${week.as_of}|${week.previous.from}|${week.previous.to}|${week.previous.all}`, '2026-10-11|2026-09-28|2026-10-04|1');
+  // The week before, asked later: the two tasks done on 07/10 and 09/10 were still open on 04/10.
+  const before = reports.liveReport('2026-09-28', '2026-10-04', '2026-10-12').people[memC.id];
+  assert.deepEqual([before.done, before.done_late, before.open, before.overdue, before.due_soon], [1, 1, 6, 1, 4]);
+  // A range that is not over counts what is open today.
+  const now = reports.liveReport('2026-10-01', '2026-10-31', '2026-10-12');
+  assert.equal(`${now.as_of}|${now.people[memC.id].done}|${now.people[memC.id].overdue}`, '2026-10-12|3|3');
+  // Tasks created after the last day were not open then.
+  db.prepare("UPDATE tasks SET created_at = '2026-10-06 00:00:00' WHERE due_date = '2026-10-15'").run();
+  assert.equal(reports.liveReport('2026-09-28', '2026-10-04', '2026-10-12').people[memC.id].open, 5);
+});
+
+test('the range before: the month before a month, else as many days just before', () => {
+  assert.deepEqual(reports.previousRange('2026-10-01', '2026-10-31'), { from: '2026-09-01', to: '2026-09-30' });
+  assert.deepEqual(reports.previousRange('2026-03-01', '2026-03-31'), { from: '2026-02-01', to: '2026-02-28' });
+  assert.deepEqual(reports.previousRange('2026-09-11', '2026-09-20'), { from: '2026-09-01', to: '2026-09-10' });
+  assert.deepEqual(reports.previousRange('2026-10-05', '2026-10-05'), { from: '2026-10-04', to: '2026-10-04' });
+});
+
+test('a range report is read within the people.watch scope, and only for a real range up to a year', async () => {
+  const r = (await api.get('/reports/range?from=2026-10-05&to=2026-10-11', leadC)).body;
+  assert.equal(`${r.from}|${r.to}|${r.all}|${r.previous.all}`, '2026-10-05|2026-10-11|null|null');
+  assert.deepEqual(r.teams.map((t) => t.name), ['Content']);
+  assert.deepEqual(Object.keys(r.previous.teams).map(Number), [r.teams[0].id]);
+  assert.ok(!r.people[memD.id]);
+  const all = (await api.get('/reports/range?from=2026-10-05&to=2026-10-11', chief)).body;
+  assert.equal(all.teams.length, 2);
+  assert.equal(typeof all.previous.all, 'number');
+  assert.equal((await api.get('/reports/range?from=2026-10-05&to=2026-10-11', memC)).status, 403);
+  for (const q of ['from=2026-10-11&to=2026-10-05', 'from=2026-02-30&to=2026-03-02', 'from=2025-01-01&to=2026-01-02', 'from=x&to=2026-01-02', '']) {
+    assert.equal((await api.get(`/reports/range?${q}`, chief)).status, 400, q);
+  }
+  assert.equal((await api.get('/reports/range?from=2025-01-01&to=2026-01-01', chief)).status, 200);
+});
+
+test('the charts count the tasks worked on in the range by activity, project, priority and status, within the scope', async () => {
+  const counts = (list) => Object.fromEntries(list.map((x) => [x.name, x.count]));
+  const all = (await api.get('/reports/range?from=2026-10-05&to=2026-10-11', chief)).body.breakdown;
+  // memC: 2 done that week + 4 open (the one done on 02/10 is left out); memD: 1 open.
+  assert.deepEqual(counts(all.activities), { Tet: 7 });
+  assert.deepEqual(counts(all.projects), { R: 7 });
+  assert.deepEqual(all.priorities, { high: 0, medium: 0, low: 0, none: 7 });
+  assert.deepEqual(counts(all.statuses), { Planned: 5, Completed: 2 });
+  assert.deepEqual(all.statuses.map((s) => s.key), ['todo', 'done']);
+  const team = (await api.get('/reports/range?from=2026-10-05&to=2026-10-11', leadC)).body.breakdown;
+  assert.deepEqual(counts(team.activities), { Tet: 6 });
+  // As of 06/10, the task done on 09/10 was still open: in Completed today, so counted In-Progress then.
+  const early = (await api.get('/reports/range?from=2026-10-01&to=2026-10-06', chief)).body.breakdown;
+  assert.deepEqual(counts(early.statuses), { Planned: 5, 'In-Progress': 2, Completed: 1 });
+  // A kept weekly report gets its charts worked out for its week.
+  assert.equal((await api.get('/reports/2026-10-05', chief)).body.breakdown.activities[0].count, 7);
+});
+
 test('the thresholds are set with users.manage over the department and apply from the next report', async () => {
   assert.deepEqual((await api.get('/report-settings', leadC)).body, { overdue: 3, due_soon: 8 });
   assert.equal((await api.put('/report-settings', boss, { overdue: 2, due_soon: 5 })).status, 403);

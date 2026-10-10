@@ -49,7 +49,7 @@ export default function RequirementsPanel({
       <section className="admin-card req-list">
         <div className="section-header">
           <h2>
-            Requirements <span className="muted">{requirements.length}</span>
+            {tr('Projects')} <span className="muted">{requirements.length}</span>
           </h2>
           <span className="grow" />
           {canEdit && !adding && (
@@ -68,7 +68,7 @@ export default function RequirementsPanel({
             <input
               autoFocus
               value={newTitle}
-              placeholder={tr('Tiêu đề requirement')}
+              placeholder={tr('Tiêu đề project')}
               onChange={(e) => setNewTitle(e.target.value)}
               onKeyDown={(e) => e.key === 'Escape' && setAdding(false)}
             />
@@ -78,8 +78,8 @@ export default function RequirementsPanel({
         {requirements.length === 0 && !adding && (
           <p className="muted">
             {canEdit
-              ? tr('Project chưa có requirement. Tạo requirement đầu tiên rồi mới thêm được task.')
-              : tr('Project chưa có requirement. Owner, Leader của team phụ trách hoặc Manager sẽ tạo requirement.')}
+              ? tr('Hoạt động chưa có project. Tạo project đầu tiên rồi mới thêm được task.')
+              : tr('Hoạt động chưa có project. Owner, Leader của team phụ trách hoặc Manager sẽ tạo project.')}
           </p>
         )}
         <ul className="req-items">

@@ -59,12 +59,12 @@ export default function ProjectHeader({
         )}
         {canManage && (
           <>
-            <button className="icon-btn" onClick={onRename} title={tr('Đổi tên project')}>
+            <button className="icon-btn" onClick={onRename} title={tr('Đổi tên hoạt động')}>
               ✎
             </button>
             {/* The project role 'admin' manages the project but does not delete it. */}
             {project.role !== 'admin' && (
-              <button className="icon-btn danger" onClick={onDelete} title={tr('Xoá project')}>
+              <button className="icon-btn danger" onClick={onDelete} title={tr('Xoá hoạt động')}>
                 🗑
               </button>
             )}
@@ -81,15 +81,15 @@ export default function ProjectHeader({
           {tr('{count} thành viên', { count: members.length })}
         </button>
         {onOpenChat && (
-          <button className="members-btn" onClick={onOpenChat} title={tr('Chat của project')}>
+          <button className="members-btn" onClick={onOpenChat} title={tr('Chat của hoạt động')}>
             <span aria-hidden="true">💬</span> Chat
           </button>
         )}
         {/* Two groups: the requirements and calendar views, and the List / Board layouts of the task list. */}
         <div className="tab-groups">
-          <div className="tabs" role="group" aria-label={tr('Requirements và lịch')}>
+          <div className="tabs" role="group" aria-label={tr('Projects và lịch')}>
             <button className={view === 'requirements' ? 'active' : ''} onClick={() => onView('requirements')}>
-              Requirements<span className="tab-count">{requirementCount}</span>
+              {tr('Projects')}<span className="tab-count">{requirementCount}</span>
             </button>
             <button className={view === 'calendar' ? 'active' : ''} onClick={() => onView('calendar')}>
               {tr('Lịch')}

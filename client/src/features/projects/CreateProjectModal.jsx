@@ -52,7 +52,7 @@ export default function CreateProjectModal({ onCreate, onClose }) {
   async function deleteTemplate() {
     const ok = await askConfirm({
       title: tr('Xoá mẫu "{name}"?', { name: template.name }),
-      message: tr('Các project đã tạo từ mẫu này không bị ảnh hưởng.'),
+      message: tr('Các hoạt động đã tạo từ mẫu này không bị ảnh hưởng.'),
       confirmLabel: tr('Xoá'),
       danger: true,
     });
@@ -88,7 +88,7 @@ export default function CreateProjectModal({ onCreate, onClose }) {
     <div className="modal-backdrop" onClick={onClose}>
       <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <div className="modal-header">
-          <h2>{tr('Tạo project')}</h2>
+          <h2>{tr('Tạo hoạt động')}</h2>
           <span className="grow" />
           <button type="button" className="icon-btn" onClick={onClose} title={tr('Đóng')}>
             ✕
@@ -96,7 +96,7 @@ export default function CreateProjectModal({ onCreate, onClose }) {
         </div>
 
         <label className="form-field">
-          <span>{tr('Tên project')}</span>
+          <span>{tr('Tên hoạt động')}</span>
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={tr('Ví dụ: Campaign Tết 2027')} />
         </label>
 
@@ -105,7 +105,7 @@ export default function CreateProjectModal({ onCreate, onClose }) {
             <span>{tr('Bắt đầu từ')}</span>
             <div className="template-pick">
               <select value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
-                <option value="">{tr('Project trống')}</option>
+                <option value="">{tr('Hoạt động trống')}</option>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
                     {tr('Mẫu: {name}', { name: t.name })}
@@ -125,7 +125,7 @@ export default function CreateProjectModal({ onCreate, onClose }) {
             </div>
             {template && (
               <span className="muted small">
-                {tr('{requirements} requirement, {tasks} task, {subtasks} subtask', {
+                {tr('{requirements} project, {tasks} task, {subtasks} subtask', {
                   requirements: template.requirements,
                   tasks: template.tasks,
                   subtasks: template.subtasks,
@@ -171,7 +171,7 @@ export default function CreateProjectModal({ onCreate, onClose }) {
         {teamIds.length > 0 && (
           <label className="checkbox">
             <input type="checkbox" checked={addTeams} onChange={(e) => setAddTeams(e.target.checked)} />
-            {teamIds.length > 1 ? tr('Thêm mọi người trong các team đã chọn vào project') : tr('Thêm cả team vào project')}
+            {teamIds.length > 1 ? tr('Thêm mọi người trong các team đã chọn vào hoạt động') : tr('Thêm cả team vào hoạt động')}
           </label>
         )}
 
@@ -185,7 +185,7 @@ export default function CreateProjectModal({ onCreate, onClose }) {
             className="btn primary"
             disabled={busy || !name.trim() || (ownTeamsOnly && teamIds.length === 0) || (needsDate && !anchorDate)}
           >
-            {tr('Tạo project')}
+            {tr('Tạo hoạt động')}
           </button>
         </div>
       </form>

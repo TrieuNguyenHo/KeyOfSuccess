@@ -64,7 +64,7 @@ function describe(e) {
         case 'section_id':
           return { text: tr('{prefix}chuyển trạng thái: {p1} → {p2}', { prefix, p1: e.from ?? empty(), p2: e.to ?? empty() }) };
         case 'requirement_id':
-          return { text: tr('{prefix}chuyển requirement: {p1} → {p2}', { prefix, p1: e.from ?? empty(), p2: e.to ?? empty() }) };
+          return { text: tr('{prefix}chuyển project: {p1} → {p2}', { prefix, p1: e.from ?? empty(), p2: e.to ?? empty() }) };
         case 'channels':
           return { text: prefix + changed(tr('kênh'), e) };
         case 'recurrence':

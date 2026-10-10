@@ -115,7 +115,7 @@ export function loadTask(req, res, taskId, need) {
     return null;
   }
   if (need === 'admin' && access !== 'admin') {
-    forbidden(res, 'Chỉ Manager hoặc Leader của team tham gia project mới làm được việc này');
+    forbidden(res, 'Chỉ Manager hoặc Leader của team tham gia hoạt động mới làm được việc này');
     return null;
   }
   return { ...task, access };
@@ -133,7 +133,7 @@ export function loadProject(req, res, projectId, need = 'view') {
   if (ACCESS_RANK[access] < ACCESS_RANK[need]) {
     forbidden(
       res,
-      need === 'manage' ? 'Chỉ owner hoặc Leader của team mới làm được việc này' : 'Bạn chỉ có quyền xem project này'
+      need === 'manage' ? 'Chỉ owner hoặc Leader của team mới làm được việc này' : 'Bạn chỉ có quyền xem hoạt động này'
     );
     return null;
   }

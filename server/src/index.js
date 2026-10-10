@@ -1,4 +1,4 @@
-// KeyOfSuccess API. Routes live in routes/ (one file per feature), shared rules and helpers in lib/.
+// K.S Management API (KeyOfSuccess before 2026-10-10). Routes live in routes/ (one file per feature), shared rules and helpers in lib/.
 // When the frontend is built (client/dist), it is served here too, so production is a single process.
 import express from 'express';
 import { existsSync } from 'node:fs';

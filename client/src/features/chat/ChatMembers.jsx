@@ -68,7 +68,7 @@ export default function ChatMembers({ chat, act, onLeft, onError }) {
 
   return (
     <div className="chat-members">
-      {chat.kind === 'project' && <p className="muted small">{tr('Ai mở được project này đều ở trong chat; ai không còn mở được project thì không đọc được nữa.')}</p>}
+      {chat.kind === 'project' && <p className="muted small">{tr('Ai mở được hoạt động này đều ở trong chat; ai không còn mở được hoạt động thì không đọc được nữa.')}</p>}
       {chat.kind === 'team' && <p className="muted small">{tr('Mọi người thuộc team đều ở trong chat; ai rời team thì không đọc được nữa.')}</p>}
       {group && (
         <div className="chat-members-actions">

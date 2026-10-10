@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { askConfirm, askText } from './Dialog.jsx';
 import { tr } from '../i18n.js';
+import { upgradeHash } from '../route.js';
 
 // Saved filters (v41): the person's own quick views of this screen (a project, My tasks or Work tracking), as chips
 // above its filters. Each keeps the screen's URL hash, so picking one opens the screen as it was saved; "☆ Lưu bộ lọc"
-// saves what is shown now. The open task panel (?task=) is not part of a view.
+// saves what is shown now. The open task panel (?task=) is not part of a view. Ones saved before the 2026-10-10 renaming
+// (#/project/3/…) are read in today's words (upgradeHash()).
 const currentHash = () => {
   const [path, search = ''] = window.location.hash.split('?');
   const query = new URLSearchParams(search);
@@ -27,7 +29,9 @@ export default function SavedFilters({ screen, projectId = null }) {
     const timer = setInterval(() => setHash(currentHash()), 400);
     return () => clearInterval(timer);
   }, []);
-  const mine = all.filter((f) => f.screen === screen && (f.project_id ?? null) === projectId);
+  const mine = all
+    .filter((f) => f.screen === screen && (f.project_id ?? null) === projectId)
+    .map((f) => ({ ...f, hash: upgradeHash(f.hash) }));
 
   const update = (list) => {
     cache = Promise.resolve(list);

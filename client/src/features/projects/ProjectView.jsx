@@ -146,7 +146,7 @@ export default function ProjectView({
   };
 
   async function renameProject() {
-    const name = await askText({ title: tr('Đổi tên project'), label: tr('Tên project'), initial: project.name });
+    const name = await askText({ title: tr('Đổi tên hoạt động'), label: tr('Tên hoạt động'), initial: project.name });
     if (!name) return;
     await act(() => api(`/projects/${projectId}`, { method: 'PATCH', body: { name } }));
     onProjectChanged();
@@ -159,9 +159,9 @@ export default function ProjectView({
 
   async function deleteProject() {
     const ok = await askConfirm({
-      title: tr('Xoá project "{name}"?', { name: project.name }),
-      message: tr('Toàn bộ requirement, trạng thái và task của project sẽ bị xoá. Không hoàn tác được.'),
-      confirmLabel: tr('Xoá project'),
+      title: tr('Xoá hoạt động "{name}"?', { name: project.name }),
+      message: tr('Toàn bộ project, trạng thái và task của hoạt động sẽ bị xoá. Không hoàn tác được.'),
+      confirmLabel: tr('Xoá hoạt động'),
       danger: true,
     });
     if (!ok) return;
@@ -232,13 +232,13 @@ export default function ProjectView({
           <ErrorBanner error={error} onClose={() => setError('')} />
 
           {readOnly ? (
-            <div className="readonly-banner">{tr('Bạn đang xem project này ở chế độ chỉ xem. Mở một task để comment.')}</div>
+            <div className="readonly-banner">{tr('Bạn đang xem hoạt động này ở chế độ chỉ xem. Mở một task để comment.')}</div>
           ) : (
             !taskAdmin && (
               <div className="readonly-banner">
                 {project.can_add_tasks
                   ? tr('Bạn thêm được task cho mình và sửa task được giao cho bạn. Giao việc, xoá task và sửa trạng thái do Manager hoặc Leader của team phụ trách làm.')
-                  : tr('Bạn không thuộc team phụ trách project nên chỉ xem và comment; task chỉ giao cho người của team phụ trách. Cần làm việc ở đây thì nhờ Manager thêm team của bạn vào project.')}
+                  : tr('Bạn không thuộc team phụ trách hoạt động nên chỉ xem và comment; task chỉ giao cho người của team phụ trách. Cần làm việc ở đây thì nhờ Manager thêm team của bạn vào hoạt động.')}
               </div>
             )
           )}

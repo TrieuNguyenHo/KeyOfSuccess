@@ -15,7 +15,7 @@ export function RecurrenceHint() {
           {tr('Khi task được đánh dấu xong (tick hoặc kéo vào Completed), app tự tạo')} <b>{tr('bản kế tiếp')}</b> {tr('ở trạng thái Planned, hạn chót là lần kế tiếp theo chu kỳ.')}
         </li>
         <li>
-          {tr('Bản mới chép tên, mô tả, người làm, requirement, kênh, ưu tiên và subtask (chưa tick). Comments và file không được chép.')}
+          {tr('Bản mới chép tên, mô tả, người làm, project, kênh, ưu tiên và subtask (chưa tick). Comments và file không được chép.')}
         </li>
         <li>{tr('Xong trễ thì bản mới lấy lần gần nhất từ hôm nay, không tạo task quá hạn sẵn.')}</li>
         <li>{tr('Task hằng ngày xong không báo cho Leader / Manager.')}</li>

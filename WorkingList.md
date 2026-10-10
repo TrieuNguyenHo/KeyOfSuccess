@@ -1,11 +1,11 @@
-# KeyOfSuccess — Working List
+# K.S Management (KeyOfSuccess) — Working List
 
 Tiến độ dự án, để mỗi phiên làm việc mới nắm được đã làm gì, đang dở gì và nên làm gì tiếp.
 File này được nạp tự động qua `.claude/CLAUDE.md`.
 
 **Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
 
-_Cập nhật lần cuối: 2026-10-09 · Schema database: v41 · Test: `npm test`, 375/375 pass (khoảng 9 giây)_
+_Cập nhật lần cuối: 2026-10-10 · Schema database: v41 · Test: `npm test`, 379/379 pass (khoảng 9 giây)_
 
 ---
 
@@ -94,6 +94,27 @@ _Cập nhật lần cuối: 2026-10-09 · Schema database: v41 · Test: `npm tes
 - Migration thử trên bản sao database dev trước (2 file, 20 thông báo giữ nguyên từng cột, không lỗi khoá ngoại, `integrity_check` ok, chạy lại không lỗi); sao lưu `app.backup-before-feedback.db` (v30). Database dev đã ở v31. Test `feedback.test.js` (9 test), tổng 292/292, `vite build` chạy được.
 - Đã thử trên trình duyệt bằng một server riêng (cổng 3002, bản sao database, email root test `root.test@t.test`, không đụng tài khoản thật): Demo User gửi feedback (màn hình ghi đúng `#/project/1/board`), root thấy số 1 ở tab Feedback, chuyển "Đã tiếp nhận" kèm ghi chú → Demo User nhận thông báo, bấm vào mở đúng feedback, nút Sửa / Xoá và thêm file đã ẩn. Ở 375px không cuộn ngang (danh sách, form, chi tiết, màn root). Sửa kèm: màn root chưa đổi tab khi dán link vào thanh địa chỉ (thêm listener `hashchange`).
 - Tách thông báo feedback khỏi chuông (cùng ngày, người dùng yêu cầu: thông báo của root nhiều quá đè lên thông báo công việc). Ban đầu định làm 2 tab Công việc / Feedback trong chuông; người dùng chốt đưa hẳn vào mục Feedback. Chuông chỉ còn thông báo công việc (`GET /api/notifications` lọc `feedback_id IS NULL`, "Đánh dấu đã đọc hết" không đụng feedback); `unreadFeedback` hiện thành số trên mục "Feedback" ở sidebar (và chấm ☰ trên iPad); mỗi feedback trong danh sách có `unread`, dòng có nhãn "Mới" và nền nhạt; mở feedback (`GET /api/feedback/:id`) là đã xem, các tab khác cập nhật số ngay. Root bỏ chuông, số trên tab Feedback là số cập nhật chưa xem (thay số feedback chưa tiếp nhận; lọc "Đã gửi" để xem cái đó). Câu Hướng dẫn sửa theo. Test `feedback.test.js` viết lại phần thông báo. Đã thử trên server riêng: Demo User thấy số 2 ở mục Feedback, chuông không có feedback, mở feedback thì số mất; root không có chuông, tab Feedback hiện 1 khi người gửi nhắn.
+
+### Đổi tên app thành K.S Management (2026-10-10, không đổi schema / API)
+- Người dùng yêu cầu. `Brand.jsx`: cả tên cùng một cỡ, chữ K và S màu đỏ thương hiệu (bản đầu K, S to gấp 4 như tên cũ; người dùng chốt lại cùng cỡ ngay sau đó): 20px ở thanh bên và thanh trên cùng, 32px trên thẻ đăng nhập (26px trên điện thoại); trình đọc màn hình đọc một nhãn "K.S Management". Tên tab trình duyệt (`index.html`, kéo theo số chưa đọc "(3) K.S Management"), câu trên màn chờ duyệt (VI + EN). Tên nội bộ giữ "keyofsuccess" (thư mục `/opt/keyofsuccess`, service và user systemd, pm2 `keyofsuccess-dev`, repo) để không hỏng deploy; tài liệu deploy vẫn gọi theo tên đó.
+- Đã xem trên trình duyệt: thẻ đăng nhập và sidebar (vừa cạnh chuông, không tràn). `vite build` chạy được, `i18n.test.js` pass.
+
+### Báo cáo thành mục riêng trên thanh bên (2026-10-10, không đổi schema / API)
+- Người dùng yêu cầu: "Báo cáo" không còn nằm trong menu con của Dashboard mà là một mục ngang hàng, ngay dưới Dashboard (icon biểu đồ tròn), cho người có quyền Theo dõi (people.watch). Dashboard chỉ còn Tổng quan + dashboard từng hoạt động. Câu Hướng dẫn và README sửa theo.
+
+### Biểu đồ tròn ở đầu báo cáo (2026-10-10, không đổi schema)
+- Người dùng yêu cầu 3 biểu đồ tròn, chọn theo Hoạt động hoặc Project, lọc theo kỳ của trang; chốt theo đề xuất: đếm **task có làm trong kỳ** (tạo trước ngày cuối kỳ, chưa xong trước ngày đầu kỳ), trạng thái **tại ngày cuối kỳ** (xong trước đó = Completed; chưa xong lúc đó thì lấy trạng thái hôm nay, đang ở Completed mà xong sau ngày cuối kỳ thì tính In-Progress), **phạm vi như phần còn lại của báo cáo** (Director: toàn phòng kể cả task chưa giao; người khác: task của người trong team mình), nhiều mục thì gộp vào "Khác".
+- Server: `breakdownFor()` trong `lib/reports.js`, trả `breakdown` (`activities`, `projects` kèm tên hoạt động, `priorities`, `statuses`: 4 trạng thái cố định đứng đầu theo thứ tự cột, trạng thái tự thêm gộp theo tên) ở `/api/reports/range` và cả bản chốt `/api/reports/:week` (tính cho tuần đó, tại Chủ nhật).
+- Client: `ReportCharts.jsx`, thẻ "Task trong kỳ" trên đầu báo cáo, nút Hoạt động | Project (chỉ đổi biểu đồ thứ nhất), 3 vòng tròn kèm chú thích (số task, %), rê chuột vào lát hoặc dòng chú thích thì tô đậm và hiện tooltip (lát "Khác" liệt kê các mục bị gộp). Tối đa 6 lát: theo skill dataviz một biểu đồ tròn không nên quá 6 phần, nên là 5 mục lớn nhất + "Khác" (người dùng chọn 8 + Khác, mình rút xuống). Màu `--cat-1…6` (6 màu phân loại) và thang xanh `--prio-low/medium/high` cho độ ưu tiên, "Khác" / "Chưa đặt" màu `--neutral-mark`; đã chạy script kiểm tra màu cho cả Sáng và Tối (qua hết, 3 màu ở giao diện Sáng dưới 3:1 nên luôn có chú thích kèm số). Trạng thái giữ màu cố định (Planned / In-Progress / Completed / Pending = màu 1–4). Câu Hướng dẫn mục "Báo cáo" thêm ý này.
+- Test thêm 1 vào `weekly-reports.test.js`; tổng 379/379, `vite build` chạy được. Đã thử trên trình duyệt với dữ liệu demo (Lê Hoàng Nam, Leader Design, tháng 9/2026): 3 biểu đồ một hàng ở màn rộng, xếp dọc ở 375px không tràn, chuyển sang Project ra 5 mục + "Khác (3)", tooltip lật sang trái ở nửa phải để không tràn khỏi thẻ.
+
+### Đổi tên Project → Hoạt động, Requirement → Project; báo cáo bất kỳ lúc nào (2026-10-10, không đổi schema)
+- Người dùng yêu cầu, chốt: đổi **cả chữ lẫn URL**; tiếng Anh **Activity / Project**; báo cáo **tính ngay khi xem** theo Tuần / Tháng / Khoảng ngày, giữ bản chốt 8:00 thứ Hai; **so với kỳ liền trước cùng độ dài** (cả tháng thì so tháng trước).
+- Đổi tên: script Babel đổi mọi khoá `tr()` có "project" / "requirement" (130 chỗ), khoá và bản tiếng Anh trong `i18n.en.js`, 28 thông báo lỗi của server (VI "Hoạt động" / "project", tab "Projects"; EN "Activity" / "Project", sửa "a activity" → "an activity"). 9 chữ "Project" / "Requirement" chưa qua `tr()` được bọc lại. Code, API, database giữ tên cũ. Lưu ý: script lỡ đổi cả câu SQL tạo bảng trong `db.js` (chuỗi có dấu tiếng Việt trong comment SQL), đã trả lại ngay; pm2 lúc đó không chạy nên database không bị đụng.
+- URL: `#/activity/3/board`, tab `#/activity/3/projects/7`, trang requirement `#/activity/3/project/7`, lọc `?project=7`. Link cũ (`#/project/…`, `#/requirement/3/7`, `?requirement=`) mở được nhờ `upgradeHash()` trong `route.js`; bộ lọc đã lưu dạng cũ vẫn tô đúng chip, server nhận cả `#/activity/…` và `#/project/…`.
+- Báo cáo: `GET /api/reports/range?from=&to=` (tối đa 366 ngày, 400 khi ngày sai / ngược / quá dài), `liveReport()` / `previousRange()` / `checkRange()` trong `lib/reports.js`; đang mở / quá hạn / đến hạn 7 ngày tới tính tại ngày cuối kỳ (hôm nay nếu kỳ chưa hết): task tạo trước ngày đó và chưa xong tới ngày đó. Người, team và người làm tính theo hiện tại. Màn "Báo cáo" (menu Dashboard, đổi tên từ "Báo cáo tuần"): Tuần ‹ › (mặc định tuần này), Tháng ‹ ›, Khoảng ngày (hai ô ngày + Xem), Bản chốt thứ Hai (danh sách cũ); URL `#/report/week/…`, `#/report/month/2026-10`, `#/report/range/…/…`, `#/report/<thứ Hai>` giữ cho bản chốt. Hướng dẫn mục "Báo cáo" viết lại.
+- Test thêm 3 vào `weekly-reports.test.js` (tính lại tuần đã chốt ra đúng số, tuần trước tính tại ngày cuối, kỳ chưa hết, task tạo sau kỳ; kỳ trước; phạm vi và kiểm tra ngày qua API), `saved-filters.test.js` dùng URL mới. Tổng 378/378, `vite build` chạy được.
+- Đã thử trên trình duyệt (server riêng cổng 3002, bản sao database, Demo User nâng lên Director chỉ trong bản sao, VI + EN): link cũ `#/project/3/requirements?requirement=5` tự thành `#/activity/3/projects?project=5`, sidebar "Hoạt động theo team" / "Activities by team", tab "Projects", "Open page" mở `#/activity/3/project/3`; báo cáo tuần này, tháng 10, tháng 9 (tính tại 30/09), khoảng 25/09 – 10/10; 375px không tràn ngang. Sửa kèm: tên tháng viết hoa đầu ("Tháng 10 năm 2026"), dòng mô tả báo cáo bị che 8px đầu.
 
 ### Bộ lọc đã lưu và báo cáo tuần (2026-10-09, schema v41)
 - Người dùng chốt theo đề xuất: bộ lọc đã lưu ở **project + Task của tôi + Theo dõi**, **của riêng từng người**; báo cáo tuần **8:00 thứ Hai, có trang lưu từng tuần**; quá tải theo **ngưỡng cố định, Manager chỉnh được** (mặc định từ 3 task quá hạn hoặc từ 8 task đến hạn trong 7 ngày tới).
@@ -340,7 +361,7 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 
 ## Đề xuất tiếp theo
 
-1. **Deploy lên VPS** (schema → v41; `update.sh` sao lưu trước) rồi kiểm tra: `/api/health` (schema 41), sáng thứ Hai 8:00 có báo cáo tuần, sáng 8:00 có nhắc hạn, lưu một project làm mẫu và tạo thử project từ mẫu bằng tài khoản Manager / Director thật.
+1. **Deploy lên VPS** (schema → v41; `update.sh` sao lưu trước) rồi kiểm tra: `/api/health` (schema 41), chữ Hoạt động / Project và link cũ gửi trong chat vẫn mở đúng, mục Báo cáo (thanh bên) theo tuần / tháng / khoảng ngày, sáng thứ Hai 8:00 có báo cáo tuần, sáng 8:00 có nhắc hạn, lưu một project làm mẫu và tạo thử project từ mẫu bằng tài khoản Manager / Director thật.
 2. **Thông báo comment mới trên requirement** cho owner / Leader (mục Tính năng).
 3. Các đề xuất còn lại từ danh sách ngày 2026-10-08: thao tác hàng loạt ở List view, trường riêng cho task marketing (link bài đăng, chỉ số); phụ thuộc giữa task (để sau Timeline, người dùng chốt 2026-10-08).
 4. **Thử trên iPad thật** và đồng bộ `server/data/backups` ra ngoài VPS.
@@ -361,5 +382,6 @@ Xếp theo mức ưu tiên đề xuất. Dấu ⭐ là nên làm sớm.
 
 ### Dữ liệu trong database dev
 - Người dùng thật (do người dùng tạo): **Trieu** (Director từ v22, tài khoản Gmail của Trieu), **Nhi Trần** (Leader, Team Social), team **Team Social**.
+- **Dữ liệu demo** (2026-10-10, `npm run seed:demo`, script `server/scripts/seed-demo.js`): 12 người `demo1…demo12@demo.test` (Leader: demo1 Content, demo4 Design, demo9 Marketing; còn lại Member ở Content / Design / Social / Marketing / Brand), 6 hoạt động `[Demo] …`, mỗi hoạt động 3–4 project, 136 task (hạn từ 20/07 tới giữa tháng 12, khoảng một nửa đã xong, có trễ hạn, quá hạn, ngày bắt đầu, kênh, subtask, comment). Ghi thẳng vào database nên không ai nhận thông báo. Xoá sạch: `npm run seed:demo -- --remove`. Sao lưu trước khi thêm: `app.backup-before-demo-data.db` (v41).
 - Tài khoản test: Demo User (Member, Design), Lan Anh (Leader, Content), Minh Content (Member, Content), Pending Test (`pending.test@t.test`, đã khoá, dùng để thử màn chờ duyệt).
 - Project: Website Redesign (Content + Design), Social Q4 (Content), Campaign Tết 2027 (Content + Design, có requirement "Landing page Tết" và các bình luận / tag test).

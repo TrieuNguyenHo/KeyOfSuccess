@@ -45,9 +45,9 @@ export default function RequirementDetail({
 
   async function remove() {
     const ok = await askConfirm({
-      title: tr('Xoá requirement "{title}"?', { title: requirement.title }),
-      message: tr('Comments của requirement này cũng sẽ bị xoá.'),
-      confirmLabel: tr('Xoá requirement'),
+      title: tr('Xoá project "{title}"?', { title: requirement.title }),
+      message: tr('Comments của project này cũng sẽ bị xoá.'),
+      confirmLabel: tr('Xoá project'),
       danger: true,
     });
     if (!ok) return;
@@ -69,7 +69,7 @@ export default function RequirementDetail({
             className="detail-title"
             value={draft.title}
             onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-            aria-label={tr('Tiêu đề requirement')}
+            aria-label={tr('Tiêu đề project')}
           />
           <textarea
             autoFocus
@@ -93,7 +93,7 @@ export default function RequirementDetail({
             <h2 className="req-title">{requirement.title}</h2>
             <span className="grow" />
             {onOpenPage && (
-              <button className="link-btn" onClick={() => onOpenPage(requirement.id)} title={tr('Mở trang chi tiết requirement')}>
+              <button className="link-btn" onClick={() => onOpenPage(requirement.id)} title={tr('Mở trang chi tiết project')}>
                 {tr('Mở trang ↗')}
               </button>
             )}
@@ -112,7 +112,7 @@ export default function RequirementDetail({
                   className="link-btn danger"
                   onClick={remove}
                   disabled={requirement.task_count > 0}
-                  title={requirement.task_count > 0 ? tr('Chuyển hoặc xoá hết task của requirement này trước khi xoá') : tr('Xoá requirement')}
+                  title={requirement.task_count > 0 ? tr('Chuyển hoặc xoá hết task của project này trước khi xoá') : tr('Xoá project')}
                 >
                   {tr('Xoá')}
                 </button>

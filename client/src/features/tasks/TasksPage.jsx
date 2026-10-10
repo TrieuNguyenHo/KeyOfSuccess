@@ -221,7 +221,7 @@ export default function TasksPage({
           <>
             <div className={`list-row list-head ${showAssignee ? 'with-assignee' : 'personal'}`}>
               <span>{tr('Tên task')}</span>
-              <span>Project</span>
+              <span>{tr('Hoạt động')}</span>
               {showAssignee && <span>{tr('Người làm')}</span>}
               <span>{tr('Hạn chót')}</span>
               <span>{tr('Ưu tiên')}</span>

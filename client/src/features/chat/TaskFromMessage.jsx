@@ -64,9 +64,9 @@ export default function TaskFromMessage({ message, conversationId, onCreated, on
           </button>
         </div>
         <label className="form-field">
-          <span>Project</span>
+          <span>{tr('Hoạt động')}</span>
           <select value={projectId} onChange={(e) => setProjectId(e.target.value)} required>
-            <option value="">{tr('Chọn project')}</option>
+            <option value="">{tr('Chọn hoạt động')}</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -74,13 +74,13 @@ export default function TaskFromMessage({ message, conversationId, onCreated, on
             ))}
           </select>
         </label>
-        {detail && !canAdd && <p className="muted small">{tr('Bạn không thêm task được ở project này.')}</p>}
-        {detail && canAdd && detail.requirements.length === 0 && <p className="muted small">{tr('Project chưa có requirement nào, cần tạo requirement trước khi thêm task.')}</p>}
+        {detail && !canAdd && <p className="muted small">{tr('Bạn không thêm task được ở hoạt động này.')}</p>}
+        {detail && canAdd && detail.requirements.length === 0 && <p className="muted small">{tr('Hoạt động chưa có project nào, cần tạo project trước khi thêm task.')}</p>}
         {detail && canAdd && detail.requirements.length > 0 && (
           <label className="form-field">
-            <span>Requirement</span>
+            <span>{tr('Project')}</span>
             <select value={requirementId} onChange={(e) => setRequirementId(e.target.value)} required>
-              <option value="">{tr('Chọn requirement')}</option>
+              <option value="">{tr('Chọn project')}</option>
               {detail.requirements.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.title}

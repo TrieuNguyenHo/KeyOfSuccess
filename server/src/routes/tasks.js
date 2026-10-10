@@ -101,13 +101,13 @@ router.post('/tasks', (req, res) => {
     }
     if (!admin) {
       if (!canBeAssigned(req.user.id, project)) {
-        return forbidden(res, 'Bạn không thuộc team phụ trách project nên không tự thêm task được; nhờ Manager hoặc Leader giao việc');
+        return forbidden(res, 'Bạn không thuộc team phụ trách hoạt động nên không tự thêm task được; nhờ Manager hoặc Leader giao việc');
       }
       assigneeId = req.user.id;
     }
     const requirement = findRequirement(requirement_id);
     if (!requirement || requirement.project_id !== section.project_id) {
-      return badRequest(res, 'Task phải thuộc một requirement của project');
+      return badRequest(res, 'Task phải thuộc một project của hoạt động');
     }
     projectId = section.project_id;
     sectionId = section.id;
@@ -204,17 +204,17 @@ router.patch('/tasks/:id', (req, res) => {
   if (body.requirement_id !== undefined) {
     const requirement = findRequirement(body.requirement_id);
     if (task.parent_id || !requirement || requirement.project_id !== task.project_id) {
-      return badRequest(res, 'Requirement không hợp lệ');
+      return badRequest(res, 'Project không hợp lệ');
     }
   }
   const newAssignee = body.assignee_id === '' ? null : body.assignee_id;
   if (body.assignee_id !== undefined && (newAssignee == null ? null : Number(newAssignee)) !== task.assignee_id) {
-    if (task.access !== 'admin') return forbidden(res, 'Chỉ Manager hoặc Leader của team tham gia project mới giao được task');
+    if (task.access !== 'admin') return forbidden(res, 'Chỉ Manager hoặc Leader của team tham gia hoạt động mới giao được task');
   }
   const assignee =
     newAssignee != null ? assignableBy(req.user, findProject(task.project_id)).find((u) => u.id === Number(newAssignee)) : null;
   if (newAssignee != null && !assignee && Number(newAssignee) !== task.assignee_id) {
-    return badRequest(res, 'Chỉ giao task được cho bạn hoặc người trong team của bạn tham gia project này');
+    return badRequest(res, 'Chỉ giao task được cho bạn hoặc người trong team của bạn tham gia hoạt động này');
   }
   // start_date (v40): top-level tasks only, never after the due date (moving a Timeline bar sends both).
   for (const key of ['start_date', 'due_date']) {

@@ -12,6 +12,7 @@ import { tr } from '../../i18n.js';
 const ICON_PATHS = {
   tasks: 'M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
   dashboard: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  report: 'M21.2 15.9A10 10 0 1 1 8 2.8M22 12A10 10 0 0 0 12 2v10z',
   team: 'M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 19v-1a4 4 0 0 0-3-3.87M16 2.13a4 4 0 0 1 0 7.75',
   admin: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
   guide: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01',
@@ -47,7 +48,7 @@ function NavItem({ active, onClick, icon, badge, children }) {
 function groupByTeam(projects, user) {
   const own = [...user.teams].sort((a, b) => a.name.localeCompare(b.name, 'vi'));
   const groups = own.map((t) => ({ key: t.id, label: `Team ${t.name}`, projects: [] }));
-  const other = { key: 'other', label: tr('Project khác'), projects: [] };
+  const other = { key: 'other', label: tr('Hoạt động khác'), projects: [] };
   const wide = { key: 'none', label: tr('Chung toàn phòng'), projects: [] };
   for (const p of projects) {
     const homes = groups.filter((g) => p.teams.some((t) => t.id === g.key));
@@ -150,7 +151,7 @@ export default function Sidebar({
           // Sub-menu: the department / team overview (not for Members), then one dashboard per project.
           <li {...flyoutProps('dashboard')}>
             <button
-              className={`main-button ${['dashboard', 'report'].includes(view.type) ? 'active' : ''}`}
+              className={`main-button ${view.type === 'dashboard' ? 'active' : ''}`}
               aria-expanded={openKey === 'dashboard'}
               onClick={() => toggle('dashboard')}
             >
@@ -175,16 +176,6 @@ export default function Sidebar({
                     </button>
                   </li>
                 )}
-                {can(user, 'people.watch') && (
-                  <li>
-                    <button
-                      className={`flyout-link ${view.type === 'report' ? 'active' : ''}`}
-                      onClick={() => go({ type: 'report' }, 'dashboard')}
-                    >
-                      <span className="ellipsis grow">{tr('Báo cáo tuần')}</span>
-                    </button>
-                  </li>
-                )}
                 {projects.map((p) => {
                   const active = view.type === 'dashboard' && view.projectId === p.id;
                   return (
@@ -203,6 +194,12 @@ export default function Sidebar({
               </ul>
             </div>
           </li>
+        )}
+        {can(user, 'people.watch') && (
+          // Reports: a week, a month or any range (their own item since 2026-10-10; before, under Dashboard).
+          <NavItem active={view.type === 'report'} onClick={() => go({ type: 'report' })} icon="report">
+            {tr('Báo cáo')}
+          </NavItem>
         )}
         {can(user, 'people.watch') && (
           <NavItem active={view.type === 'team'} onClick={() => go({ type: 'team' })} icon="team">
@@ -232,9 +229,9 @@ export default function Sidebar({
       </ul>
 
       <div className="sidebar-title">
-        <span>{tr('Projects theo team')}</span>
+        <span>{tr('Hoạt động theo team')}</span>
         {can(user, 'projects.create') && (
-          <button className="icon-btn light" onClick={onNewProject} title={tr('Tạo project')} aria-label={tr('Tạo project')}>
+          <button className="icon-btn light" onClick={onNewProject} title={tr('Tạo hoạt động')} aria-label={tr('Tạo hoạt động')}>
             +
           </button>
         )}
@@ -243,7 +240,7 @@ export default function Sidebar({
       <ul className="main-buttons project-groups">
         {projects.length === 0 && (
           <li className="sidebar-empty">
-            {can(user, 'projects.create') ? tr('Chưa có project nào. Bấm + để tạo.') : tr('Bạn chưa tham gia project nào.')}
+            {can(user, 'projects.create') ? tr('Chưa có hoạt động nào. Bấm + để tạo.') : tr('Bạn chưa tham gia hoạt động nào.')}
           </li>
         )}
         {projects.length > 0 &&
@@ -271,7 +268,7 @@ export default function Sidebar({
                     </button>
                   </div>
                   <ul>
-                    {group.projects.length === 0 && <li className="sidebar-empty">{tr('Team chưa có project nào.')}</li>}
+                    {group.projects.length === 0 && <li className="sidebar-empty">{tr('Team chưa có hoạt động nào.')}</li>}
                     {group.projects.map((p) => (
                       <li key={p.id}>
                         <button
