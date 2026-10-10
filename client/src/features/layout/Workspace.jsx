@@ -226,8 +226,8 @@ export default function Workspace({ user, onLogout, onUserChange }) {
     } else if (n.task_id) {
       setOpenTaskId(n.task_id);
     } else {
-      // Mention in requirement feedback: open the project on that requirement.
-      navigate({ type: 'project', id: n.project_id, tab: 'requirements', requirementId: n.requirement_id });
+      // Mention in requirement feedback: open that requirement's page, where its comments are.
+      navigate({ type: 'requirement', projectId: n.project_id, id: n.requirement_id });
     }
   }
 
@@ -277,10 +277,8 @@ export default function Workspace({ user, onLogout, onUserChange }) {
         refreshKey={refreshKey}
         onOpenTask={setOpenTaskId}
         onShownChange={setShown}
-        // Back from the requirement page lands on the Requirements tab with it selected.
-        onOpenRequirementPage={(id) =>
-          openPage({ type: 'requirement', projectId: view.id, id }, { ...currentView(), tab: 'requirements', requirementId: id })
-        }
+        // Back from the requirement page lands where the user was (the cards, or a Board filtered to it).
+        onOpenRequirementPage={(id) => openPage({ type: 'requirement', projectId: view.id, id }, currentView())}
         onProjectChanged={loadProjects}
         onProjectDeleted={async () => {
           await loadProjects();

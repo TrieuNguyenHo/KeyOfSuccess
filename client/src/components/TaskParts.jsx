@@ -94,7 +94,7 @@ export function AddTaskInline({ onAdd, label = tr('+ Thêm task'), requirements,
   if (requirements && requirements.length === 0) {
     return (
       <button type="button" className="add-task" onClick={onOpenRequirements}>
-        {tr('+ Tạo project trước khi thêm task')}
+        {tr('+ Tạo dự án trước khi thêm task')}
       </button>
     );
   }
@@ -127,7 +127,7 @@ export function AddTaskInline({ onAdd, label = tr('+ Thêm task'), requirements,
         <select
           value={requirementId ?? ''}
           onChange={(e) => setRequirementId(Number(e.target.value))}
-          aria-label={tr('Project của task')}
+          aria-label={tr('Dự án của task')}
         >
           {requirements.map((r) => (
             <option key={r.id} value={r.id}>

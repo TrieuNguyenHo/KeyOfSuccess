@@ -13,7 +13,7 @@ const EDGE_PX = 8; // the grab zone of a bar's ends
 
 export const TIMELINE_GROUPS = ['requirement', 'status', 'assignee'];
 const GROUP_LABELS = {
-  requirement: () => tr('Project'),
+  requirement: () => tr('Dự án'),
   status: () => tr('Trạng thái'),
   assignee: () => tr('Người làm'),
 };

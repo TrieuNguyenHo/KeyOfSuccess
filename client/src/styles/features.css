@@ -1,21 +1,37 @@
-/* Feature pieces: requirements tab, task / requirement tags, @-mentions, calendar, comments and files,
+/* Feature pieces: project cards and the project in focus, task / requirement tags, @-mentions, calendar, comments and files,
    channels, recurring tasks, help notes, task history. */
 
-/* Requirements tab: list on the left, the selected requirement on the right */
-.requirements-tab {
-  flex: 1; overflow-y: auto; padding: 16px 32px 32px; border-top: 1px solid var(--hairline);
-  display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 20px; align-items: start;
+/* An activity's projects as cards (RequirementCards.jsx, 2026-10-10): a utility-card grid, no shadow. */
+.req-cards-page { flex: 1; overflow-y: auto; padding: 16px 32px 32px; border-top: 1px solid var(--hairline); }
+.req-cards-page > .section-header h2 { margin: 0; }
+.req-card-add { margin: 0 0 16px; max-width: 520px; }
+.req-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 16px; }
+.req-card {
+  display: flex; flex-direction: column; gap: 12px; padding: 20px; cursor: pointer; min-width: 0;
+  background: var(--canvas); border: 1px solid var(--hairline); border-radius: var(--rounded-lg);
 }
-@media (max-width: 1000px) { .requirements-tab { grid-template-columns: 1fr; } }
-.req-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.req-item {
-  display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 12px 14px; text-align: left; cursor: pointer;
-  border: 1px solid var(--hairline); border-radius: var(--rounded-md); background: var(--canvas); color: var(--ink);
+.req-card:hover { border-color: var(--primary); }
+.req-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.req-card-head { display: flex; align-items: flex-start; gap: 8px; }
+.req-card-title { flex: 1; min-width: 0; margin: 0; font-size: 17px; font-weight: 600; line-height: 1.3; word-break: break-word; }
+.req-card-details { white-space: nowrap; flex-shrink: 0; }
+.req-card-progress { display: flex; align-items: center; gap: 10px; }
+.req-card-progress .meter { flex: 1; }
+.req-card-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.req-card-meta .overdue { color: var(--danger); font-weight: 600; }
+.req-card-empty { margin: 0; }
+.req-card-statuses, .req-card-people { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.req-card-statuses b { font-weight: 600; }
+.req-card-people li { display: inline-flex; align-items: center; gap: 4px; }
+.req-card-count { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* The project a Board / List / Calendar / Timeline is filtered to (ProjectView.jsx), above the filters. */
+.project-focus { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 4px 32px 12px; }
+.project-focus-chip {
+  display: inline-flex; align-items: baseline; gap: 8px; min-width: 0; max-width: 100%; padding: 6px 14px;
+  background: var(--primary-tint); color: var(--primary-text); border-radius: var(--rounded-pill); font-size: 17px;
 }
-.req-item:active { transform: none; }
-.req-item:hover { background: var(--hover); }
-.req-item.active { border-color: var(--primary); background: var(--primary-tint); }
-.req-item-title { font-weight: 600; word-break: break-word; }
+.project-focus-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
 .req-progress { display: flex; align-items: center; gap: 10px; }
 .req-progress .meter { flex: 1; max-width: 220px; }
 .req-detail { display: flex; flex-direction: column; gap: 12px; }

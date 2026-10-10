@@ -78,7 +78,7 @@ router.delete('/attachments/:id', (req, res) => {
   if (!attachment.canDelete) {
     if (attachment.feedback_message_id || attachment.message_id) return forbidden(res, 'Chỉ người tải lên mới xoá được file này');
     if (attachment.feedback) return forbidden(res, 'Feedback đã được tiếp nhận nên không đổi được file nữa');
-    return forbidden(res, 'Chỉ người tải lên hoặc người quản lý task / project mới xoá được file này');
+    return forbidden(res, 'Chỉ người tải lên hoặc người quản lý task / dự án mới xoá được file này');
   }
   db.prepare('DELETE FROM attachments WHERE id = ?').run(attachment.id);
   rmSync(join(UPLOAD_DIR, attachment.stored_name), { force: true });

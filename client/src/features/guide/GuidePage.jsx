@@ -23,10 +23,10 @@ function sections(user) {
     },
     {
       id: 'projects',
-      title: tr('Hoạt động, project và task'),
+      title: tr('Hoạt động, dự án và task'),
       items: [
-        ['model', tr('Cách tổ chức'), tr('Mỗi hoạt động gồm các project (đầu việc lớn), mỗi project gồm các task, mỗi task có thể có subtask. Task nào cũng thuộc một project, nên hoạt động cần có project trước khi thêm task.')],
-        ['views', tr('Các cách xem'), tr('Trong hoạt động: Projects (tiến độ từng project và comments), Lịch (task theo hạn chót), Timeline (thanh từ ngày bắt đầu tới hạn chót), List (bảng) và Board (cột theo trạng thái). Bộ lọc theo project, người làm, team, kênh, trạng thái, hạn chót và ô tìm task dùng chung cho List, Board, Lịch và Timeline.')],
+        ['model', tr('Cách tổ chức'), tr('Mỗi hoạt động gồm các dự án (đầu việc lớn), mỗi dự án gồm các task, mỗi task có thể có subtask. Task nào cũng thuộc một dự án, nên hoạt động cần có dự án trước khi thêm task.')],
+        ['views', tr('Các cách xem'), tr('Mở một hoạt động là thấy các dự án của nó dạng thẻ: tiến độ, số task quá hạn, khoảng ngày, số task theo trạng thái và theo từng người. Bấm một thẻ để mở Board của riêng dự án đó (tên dự án hiện ở trên cùng, "← Tất cả dự án" để quay lại); "Chi tiết ↗" mở trang dự án (mô tả, file, comments). Các cách xem khác: Lịch (task theo hạn chót), Timeline (thanh từ ngày bắt đầu tới hạn chót), List (bảng) và Board (cột theo trạng thái). Bộ lọc theo dự án, người làm, team, kênh, trạng thái, hạn chót và ô tìm task dùng chung cho List, Board, Lịch và Timeline.')],
         ['views', tr('Bộ lọc đã lưu'), tr('Bấm "☆ Lưu bộ lọc" trên hoạt động, Task của tôi hoặc Theo dõi để lưu bộ lọc và cách xem đang dùng (vd. "Facebook tuần này của Team Content") thành một nút bấm nhanh ngay trên thanh lọc; bấm ✕ trên nút để xoá. Bộ lọc đã lưu chỉ mình bạn thấy, theo tài khoản nên mở máy khác vẫn còn.')],
         ['statuses', tr('4 trạng thái cố định'), tr('Planned, In-Progress, Completed, Pending có ở mọi hoạt động, không đổi tên hay xoá được. Đánh dấu ✓ xong thì task tự sang Completed; kéo task vào Completed cũng là đánh dấu xong.')],
         taskAdmin
@@ -39,8 +39,8 @@ function sections(user) {
       id: 'tasks',
       title: tr('Làm việc với task'),
       items: [
-        ['open', tr('Mở task'), tr('Bấm vào task để mở panel bên phải; bấm ⤢ để mở trang đầy đủ. Ở đó có mô tả, subtask, người làm, ngày bắt đầu, hạn chót, ưu tiên, project, kênh, file đính kèm và comments.')],
-        ['timeline', 'Timeline', tr('Tab Timeline của hoạt động vẽ mỗi task một thanh từ ngày bắt đầu tới hạn chót, nhóm theo project, trạng thái hoặc người làm; Ngày / Tuần / Tháng để đổi thang, "Hôm nay" để quay về hôm nay. Task quá hạn có ⚠, task xong màu xám. Ai sửa được task thì kéo cả thanh để dời ngày, kéo một đầu để đổi ngày bắt đầu hoặc hạn chót, kéo dọc dòng của task chưa có ngày để đặt ngày (iPad: giữ rồi kéo). Kéo task trên Lịch thì ngày bắt đầu dời theo.')],
+        ['open', tr('Mở task'), tr('Bấm vào task để mở panel bên phải; bấm ⤢ để mở trang đầy đủ. Ở đó có mô tả, subtask, người làm, ngày bắt đầu, hạn chót, ưu tiên, dự án, kênh, file đính kèm và comments.')],
+        ['timeline', 'Timeline', tr('Tab Timeline của hoạt động vẽ mỗi task một thanh từ ngày bắt đầu tới hạn chót, nhóm theo dự án, trạng thái hoặc người làm; Ngày / Tuần / Tháng để đổi thang, "Hôm nay" để quay về hôm nay. Task quá hạn có ⚠, task xong màu xám. Ai sửa được task thì kéo cả thanh để dời ngày, kéo một đầu để đổi ngày bắt đầu hoặc hạn chót, kéo dọc dòng của task chưa có ngày để đặt ngày (iPad: giữ rồi kéo). Kéo task trên Lịch thì ngày bắt đầu dời theo.')],
         ['drag', tr('Kéo thả'), tr('Kéo thẻ giữa các cột trên Board để đổi trạng thái, kéo task sang ngày khác trên Lịch để đổi hạn chót. Trên iPad: giữ ngón tay khoảng nửa giây rồi kéo.')],
         ['recurring', tr('Task lặp lại'), tr('Ô "Lặp lại" (hằng ngày, hằng tuần, mỗi 2 tuần, hằng tháng): xong task này thì app tự tạo bản kế tiếp ở Planned với hạn chót mới. Bấm "?" cạnh ô để xem chi tiết.')],
         ['channels', tr('Kênh'), tr('Gắn task với kênh (Facebook, TikTok…) để lọc và xem số liệu theo kênh trên Dashboard.')],
@@ -51,8 +51,8 @@ function sections(user) {
       id: 'comments',
       title: tr('Comments, nhắc tên và file'),
       items: [
-        ['comment', 'Comment', tr('Task và project đều có comments. Gõ @ rồi chọn tên để nhắc ai đó: họ nhận thông báo (chỉ nhắc được người xem được nội dung đó). Bạn sửa và xoá comment của mình.')],
-        ['file', 'File', tr('Dán ảnh (Ctrl+V), kéo thả hoặc bấm 📎 để gửi file kèm comment; mục "Đính kèm" của task / project nhận file tối đa 25 MB.')],
+        ['comment', 'Comment', tr('Task và dự án đều có comments. Gõ @ rồi chọn tên để nhắc ai đó: họ nhận thông báo (chỉ nhắc được người xem được nội dung đó). Bạn sửa và xoá comment của mình.')],
+        ['file', 'File', tr('Dán ảnh (Ctrl+V), kéo thả hoặc bấm 📎 để gửi file kèm comment; mục "Đính kèm" của task / dự án nhận file tối đa 25 MB.')],
         ['notify', tr('Thông báo'), can(user, 'notify.task_completed')
           ? tr('Chuông thông báo trên thanh bên báo khi bạn được giao task, được nhắc tên, task của người trong team bạn phụ trách đã xong, hoặc task bạn theo dõi có comment, đổi hạn chót, người làm hay trạng thái. Bạn tự theo dõi task mình làm, mình tạo hoặc đã comment; nút "🔔 Theo dõi" trên task để bật / tắt. 8 giờ sáng thứ Hai đến thứ Sáu, chuông nhắc số task của bạn đã quá hạn, đến hạn hôm nay và ngày làm việc kế tiếp. Thông báo đến ngay, không cần tải lại trang.')
           : tr('Chuông thông báo trên thanh bên báo khi bạn được giao task, được nhắc tên, hoặc task bạn theo dõi có comment, đổi hạn chót, người làm hay trạng thái. Bạn tự theo dõi task mình làm, mình tạo hoặc đã comment; nút "🔔 Theo dõi" trên task để bật / tắt. 8 giờ sáng thứ Hai đến thứ Sáu, chuông nhắc số task của bạn đã quá hạn, đến hạn hôm nay và ngày làm việc kế tiếp. Thông báo đến ngay, không cần tải lại trang.')],
@@ -65,7 +65,7 @@ function sections(user) {
         ['mytasks', tr('Task của tôi'), tr('Mọi task được giao cho bạn ở mọi hoạt động, chia theo Quá hạn, Hôm nay, 7 ngày tới…; nút Danh sách / Lịch để đổi cách xem, ô "Mọi kênh" để lọc theo kênh.')],
         ['dashboard', 'Dashboard', can(user, 'people.watch')
           ? tr('"Tổng quan" cho số liệu của các team bạn theo dõi: workload từng người, task hoàn thành 14 ngày, tiến độ hoạt động và kênh. Mỗi hoạt động cũng có dashboard riêng. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet kèm biểu đồ như trên màn hình.')
-          : tr('Mỗi hoạt động bạn tham gia có dashboard riêng: phần trăm hoàn thành, tiến độ từng project, workload thành viên, tiến độ theo trạng thái và kênh. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet kèm biểu đồ như trên màn hình.')],
+          : tr('Mỗi hoạt động bạn tham gia có dashboard riêng: phần trăm hoàn thành, tiến độ từng dự án, workload thành viên, tiến độ theo trạng thái và kênh. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet kèm biểu đồ như trên màn hình.')],
       ],
     },
     can(user, 'people.watch') && {
@@ -73,7 +73,7 @@ function sections(user) {
       title: tr('Theo dõi công việc'),
       items: [
         ['watch', tr('Theo team hoặc theo người'), tr('Màn theo dõi liệt kê task của các team bạn phụ trách; chọn một team hoặc một người để xem riêng, đổi sang Lịch để xem theo hạn chót.')],
-        ['dashboard', tr('Báo cáo'), tr('Mục Báo cáo trên thanh bên: chọn Tuần, Tháng hoặc Khoảng ngày để xem bất kỳ lúc nào 3 biểu đồ tròn của các task có làm trong kỳ (theo hoạt động hoặc project, theo độ ưu tiên, theo trạng thái), số task xong trong kỳ (so với kỳ trước cùng độ dài; tháng thì so với tháng trước), xong trễ hạn, quá hạn và đến hạn 7 ngày tới (tính tại ngày cuối kỳ, hoặc hôm nay nếu kỳ chưa hết) và ai đang quá tải. Ngoài ra 8:00 sáng thứ Hai app chốt báo cáo của tuần trước và báo trong chuông; các bản chốt xem lại ở "Bản chốt thứ Hai", đúng như lúc chốt.')],
+        ['dashboard', tr('Báo cáo'), tr('Mục Báo cáo trên thanh bên: chọn Tuần, Tháng hoặc Khoảng ngày để xem bất kỳ lúc nào 3 biểu đồ tròn của các task có làm trong kỳ (theo hoạt động hoặc dự án, theo độ ưu tiên, theo trạng thái), số task xong trong kỳ (so với kỳ trước cùng độ dài; tháng thì so với tháng trước), xong trễ hạn, quá hạn và đến hạn 7 ngày tới (tính tại ngày cuối kỳ, hoặc hôm nay nếu kỳ chưa hết) và ai đang quá tải. Ngoài ra 8:00 sáng thứ Hai app chốt báo cáo của tuần trước và báo trong chuông; các bản chốt xem lại ở "Bản chốt thứ Hai", đúng như lúc chốt.')],
       ],
     },
     can(user, 'projects.create') && {
@@ -81,8 +81,8 @@ function sections(user) {
       title: tr('Tạo và quản lý hoạt động'),
       items: [
         ['create', tr('Tạo hoạt động'), tr('Bấm "+" cạnh "Hoạt động theo team" ở thanh bên: đặt tên, chọn team phụ trách (không chọn = chung toàn phòng), có thể thêm cả team vào hoạt động.')],
-        ['model', tr('Sau khi tạo'), tr('Tạo project đầu tiên trong tab Projects, rồi thêm task. Đổi tên, đổi team, thêm / bỏ thành viên ở đầu trang hoạt động.')],
-        ['template', tr('Mẫu hoạt động'), tr('Bấm ⧉ ở đầu một hoạt động để lưu nó làm mẫu (trạng thái, project, task, subtask, người làm, kênh, lặp lại và khoảng cách giữa các hạn chót; không có comment, file). Khi tạo hoạt động, chọn mẫu ở ô "Bắt đầu từ" rồi chọn ngày bắt đầu hoặc ngày ra mắt: hạn chót của các task tự tính theo ngày đó. Mẫu dùng chung cho mọi người tạo được hoạt động; đổi tên / xoá mẫu ngay ở ô chọn.')],
+        ['model', tr('Sau khi tạo'), tr('Bấm "+ Thêm dự án" trên các thẻ dự án để tạo dự án đầu tiên, rồi thêm task. Đổi tên, đổi team, thêm / bỏ thành viên ở đầu trang hoạt động.')],
+        ['template', tr('Mẫu hoạt động'), tr('Bấm ⧉ ở đầu một hoạt động để lưu nó làm mẫu (trạng thái, dự án, task, subtask, người làm, kênh, lặp lại và khoảng cách giữa các hạn chót; không có comment, file). Khi tạo hoạt động, chọn mẫu ở ô "Bắt đầu từ" rồi chọn ngày bắt đầu hoặc ngày ra mắt: hạn chót của các task tự tính theo ngày đó. Mẫu dùng chung cho mọi người tạo được hoạt động; đổi tên / xoá mẫu ngay ở ô chọn.')],
       ],
     },
     can(user, 'teams.members') && !can(user, 'users.manage') && {

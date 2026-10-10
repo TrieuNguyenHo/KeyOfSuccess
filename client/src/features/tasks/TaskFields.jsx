@@ -24,9 +24,9 @@ export default function TaskFields({
     <div className="fields">
       {!task.parent_id && (
         <>
-          <label>{tr('Project')}</label>
+          <label>{tr('Dự án')}</label>
           {readOnly ? (
-            <button className="crumb" onClick={openRequirement} title={tr('Mở trang chi tiết project')}>
+            <button className="crumb" onClick={openRequirement} title={tr('Mở trang chi tiết dự án')}>
               {task.requirement_title} ↗
             </button>
           ) : (
@@ -35,7 +35,7 @@ export default function TaskFields({
                 className="grow"
                 value={task.requirement_id ?? ''}
                 onChange={(e) => update({ requirement_id: Number(e.target.value) })}
-                aria-label={tr('Project')}
+                aria-label={tr('Dự án')}
               >
                 {requirements.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -43,7 +43,7 @@ export default function TaskFields({
                   </option>
                 ))}
               </select>
-              <button className="icon-btn" onClick={openRequirement} title={tr('Mở trang chi tiết project')}>
+              <button className="icon-btn" onClick={openRequirement} title={tr('Mở trang chi tiết dự án')}>
                 ↗
               </button>
             </span>

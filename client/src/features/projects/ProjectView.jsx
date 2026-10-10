@@ -8,22 +8,22 @@ import TimelineView from './TimelineView.jsx';
 import MembersPanel from './MembersPanel.jsx';
 import ProjectHeader from './ProjectHeader.jsx';
 import TaskFilterBar, { matchesFilters } from './TaskFilterBar.jsx';
-import RequirementsPanel from '../requirements/RequirementsPanel.jsx';
+import RequirementCards from '../requirements/RequirementCards.jsx';
 import { askConfirm, askText } from '../../components/Dialog.jsx';
 import { ErrorBanner } from '../../components/Controls.jsx';
 import SavedFilters from '../../components/SavedFilters.jsx';
 import { useAllTeams, useChannels } from '../../components/hooks.js';
 import { tr } from '../../i18n.js';
 
-// initialTab / initialRequirementId let a notification open a requirement directly; with the board tab,
-// initialRequirementId filters the board to that requirement instead. initialFilters come from the URL.
+// An activity (a project in the code) opens on its projects (requirements) as cards (decided 2026-10-10); a card
+// opens the Board filtered to it. initialRequirementId with another tab filters it to that requirement. initialFilters come from the URL.
 // initialGroup: how the Timeline groups its rows. onShownChange({ tab, filters, group }) reports what is shown, so the
 // URL keeps it.
 export default function ProjectView({
   projectId,
   user,
   refreshKey,
-  initialTab = 'board',
+  initialTab = 'requirements',
   initialRequirementId,
   initialFilters,
   initialGroup = 'requirement',
@@ -38,7 +38,7 @@ export default function ProjectView({
   const [view, setView] = useState(initialTab);
   const [filters, setFilters] = useState(
     initialFilters ??
-      (initialTab === 'board' && initialRequirementId ? { ...EMPTY_FILTERS, requirement: String(initialRequirementId) } : EMPTY_FILTERS)
+      (initialTab !== 'requirements' && initialRequirementId ? { ...EMPTY_FILTERS, requirement: String(initialRequirementId) } : EMPTY_FILTERS)
   );
   const [group, setGroup] = useState(initialGroup);
   const [showMembers, setShowMembers] = useState(false);
@@ -160,7 +160,7 @@ export default function ProjectView({
   async function deleteProject() {
     const ok = await askConfirm({
       title: tr('Xoá hoạt động "{name}"?', { name: project.name }),
-      message: tr('Toàn bộ project, trạng thái và task của hoạt động sẽ bị xoá. Không hoàn tác được.'),
+      message: tr('Toàn bộ dự án, trạng thái và task của hoạt động sẽ bị xoá. Không hoàn tác được.'),
       confirmLabel: tr('Xoá hoạt động'),
       danger: true,
     });
@@ -174,6 +174,7 @@ export default function ProjectView({
   }
 
   const visibleTasks = tasks.filter((t) => matchesFilters(t, filters));
+  const focused = requirements.find((r) => String(r.id) === filters.requirement);
   // New tasks go to the filtered requirement, else the first one; the add form lets people change it.
   const taskViewProps = {
     requirements,
@@ -201,23 +202,44 @@ export default function ProjectView({
       {view === 'requirements' ? (
         <>
           <ErrorBanner error={error} onClose={() => setError('')} />
-          <RequirementsPanel
+          <RequirementCards
             project={project}
             requirements={requirements}
             tasks={tasks}
+            sections={sections}
             canEdit={canEditRequirements}
-            initialRequirementId={initialRequirementId}
             onChanged={reload}
-            onOpenTask={onOpenTask}
-            onOpenRequirementPage={onOpenRequirementPage}
-            onShowOnBoard={(requirementId) => {
+            onOpen={(requirementId) => {
               setFilters({ ...EMPTY_FILTERS, requirement: String(requirementId) });
               setView('board');
             }}
+            onDetails={onOpenRequirementPage}
           />
         </>
       ) : (
         <>
+          {focused && (
+            // The project being looked at, hard to miss; ← goes back to all the cards.
+            <div className="project-focus">
+              <button
+                className="link-btn"
+                onClick={() => {
+                  setFilters((f) => ({ ...f, requirement: '' }));
+                  setView('requirements');
+                }}
+              >
+                ← {tr('Tất cả dự án')}
+              </button>
+              <span className="project-focus-chip">
+                <span className="project-focus-label">{tr('Dự án')}</span>
+                <b className="ellipsis">{focused.title}</b>
+              </span>
+              <span className="muted small">{tr('{done}/{total} task', { done: focused.done_count, total: focused.task_count })}</span>
+              <button className="link-btn" onClick={() => onOpenRequirementPage(focused.id)}>
+                {tr('Chi tiết ↗')}
+              </button>
+            </div>
+          )}
           <SavedFilters screen="project" projectId={project.id} />
           <TaskFilterBar
             filters={filters}

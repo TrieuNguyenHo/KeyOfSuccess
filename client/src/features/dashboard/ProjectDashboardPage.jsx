@@ -11,7 +11,7 @@ function ProgressRow({ label, done, total, overdue, onClick }) {
     <div className="project-progress">
       <span className="cell">
         {onClick ? (
-          <button className="crumb" onClick={onClick} title={tr('Mở trang chi tiết project')}>
+          <button className="crumb" onClick={onClick} title={tr('Mở trang chi tiết dự án')}>
             {label}
           </button>
         ) : (
@@ -90,9 +90,9 @@ export default function ProjectDashboardPage({ projectId, onOpenProject, onOpenR
         </div>
 
         <section className="admin-card">
-          <h2>{tr('Theo project')}</h2>
-          <p className="muted card-sub">{tr('Tiến độ task của từng project. Bấm tên để mở project.')}</p>
-          {requirements.length === 0 && <p className="muted">{tr('Hoạt động chưa có project.')}</p>}
+          <h2>{tr('Theo dự án')}</h2>
+          <p className="muted card-sub">{tr('Tiến độ task của từng dự án. Bấm tên để mở dự án.')}</p>
+          {requirements.length === 0 && <p className="muted">{tr('Hoạt động chưa có dự án.')}</p>}
           {requirements.map((r) => (
             <ProgressRow
               key={r.id}

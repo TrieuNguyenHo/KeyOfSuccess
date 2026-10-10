@@ -3,8 +3,8 @@
 export default {
   'Đang tải…': 'Loading…',
   'Hoạt động': 'Activity',
-  'Project': 'Project',
-  'Projects': 'Projects',
+  'Dự án': 'Project',
+  'Các dự án': 'Projects',
   'Có lỗi xảy ra': 'Something went wrong',
   'Không tải lên được {name}': 'Could not upload {name}',
   'Không tải được file': 'Could not download the file',
@@ -115,8 +115,8 @@ export default {
   'Lặp lại: {p0}': 'Repeats: {p0}',
   'Task lặp lại': 'Recurring task',
   '+ Thêm task': '+ Add task',
-  '+ Tạo project trước khi thêm task': '+ Create a project before adding tasks',
-  'Project của task': 'Task\'s project',
+  '+ Tạo dự án trước khi thêm task': '+ Create a project before adding tasks',
+  'Dự án của task': 'Task\'s project',
   'Nhập tên rồi Enter, Esc để đóng': 'Type a name and press Enter, Esc to close',
   'Nhắc tới': 'Mention',
   'Không có ai tên "{name}" xem được nội dung này.': 'Nobody named "{name}" can see this.',
@@ -131,9 +131,9 @@ export default {
   'Xoá trạng thái': 'Delete status',
   'Tạo hoạt động': 'Create activity',
   'Lưu làm mẫu': 'Save as template',
-  'Đã lưu mẫu "{name}": {requirements} project, {tasks} task. Chọn mẫu này khi tạo hoạt động mới.':
+  'Đã lưu mẫu "{name}": {requirements} dự án, {tasks} task. Chọn mẫu này khi tạo hoạt động mới.':
     'Saved the template "{name}": {requirements} projects, {tasks} tasks. Pick it when you create an activity.',
-  'Mẫu giữ trạng thái, project, task, subtask (mô tả, ưu tiên, kênh, người làm, lặp lại) và khoảng cách giữa các hạn chót. Không giữ comment, file, lịch sử. Sửa hoạt động sau này không đổi mẫu, trừ khi lưu đè.':
+  'Mẫu giữ trạng thái, dự án, task, subtask (mô tả, ưu tiên, kênh, người làm, lặp lại) và khoảng cách giữa các hạn chót. Không giữ comment, file, lịch sử. Sửa hoạt động sau này không đổi mẫu, trừ khi lưu đè.':
     'A template keeps the statuses, projects, tasks and subtasks (description, priority, channels, assignee, repeat rule) and the gaps between due dates. Comments, files and history are not kept. Later changes to the activity do not change the template unless you save over it.',
   'Lưu thành': 'Save as',
   'Mẫu mới': 'A new template',
@@ -148,7 +148,7 @@ export default {
   'Bắt đầu từ': 'Start from',
   'Hoạt động trống': 'An empty activity',
   'Mẫu: {name}': 'Template: {name}',
-  '{requirements} project, {tasks} task, {subtasks} subtask': '{requirements} projects, {tasks} tasks, {subtasks} subtasks',
+  '{requirements} dự án, {tasks} task, {subtasks} subtask': '{requirements} projects, {tasks} tasks, {subtasks} subtasks',
   'lưu từ {name}': 'saved from {name}',
   'Đặt hạn chót theo': 'Set due dates from the',
   'Ngày bắt đầu': 'Start date',
@@ -160,7 +160,7 @@ export default {
   'Tháng': 'Month',
   'Bấm "☆ Lưu bộ lọc" trên hoạt động, Task của tôi hoặc Theo dõi để lưu bộ lọc và cách xem đang dùng (vd. "Facebook tuần này của Team Content") thành một nút bấm nhanh ngay trên thanh lọc; bấm ✕ trên nút để xoá. Bộ lọc đã lưu chỉ mình bạn thấy, theo tài khoản nên mở máy khác vẫn còn.':
     'Click "☆ Save filter" on an activity, My tasks or Work tracking to keep the filters and view in use (e.g. "Facebook this week for Team Content") as a quick button right above the filters; click ✕ on it to delete it. Saved filters are yours only and follow your account to other devices.',
-  'Mục Báo cáo trên thanh bên: chọn Tuần, Tháng hoặc Khoảng ngày để xem bất kỳ lúc nào 3 biểu đồ tròn của các task có làm trong kỳ (theo hoạt động hoặc project, theo độ ưu tiên, theo trạng thái), số task xong trong kỳ (so với kỳ trước cùng độ dài; tháng thì so với tháng trước), xong trễ hạn, quá hạn và đến hạn 7 ngày tới (tính tại ngày cuối kỳ, hoặc hôm nay nếu kỳ chưa hết) và ai đang quá tải. Ngoài ra 8:00 sáng thứ Hai app chốt báo cáo của tuần trước và báo trong chuông; các bản chốt xem lại ở "Bản chốt thứ Hai", đúng như lúc chốt.':
+  'Mục Báo cáo trên thanh bên: chọn Tuần, Tháng hoặc Khoảng ngày để xem bất kỳ lúc nào 3 biểu đồ tròn của các task có làm trong kỳ (theo hoạt động hoặc dự án, theo độ ưu tiên, theo trạng thái), số task xong trong kỳ (so với kỳ trước cùng độ dài; tháng thì so với tháng trước), xong trễ hạn, quá hạn và đến hạn 7 ngày tới (tính tại ngày cuối kỳ, hoặc hôm nay nếu kỳ chưa hết) và ai đang quá tải. Ngoài ra 8:00 sáng thứ Hai app chốt báo cáo của tuần trước và báo trong chuông; các bản chốt xem lại ở "Bản chốt thứ Hai", đúng như lúc chốt.':
     'Reports in the sidebar: pick Week, Month or Date range to see at any time three pie charts of the tasks worked on in that period (by activity or project, by priority, by status), the tasks done in it (against the period of the same length before it; a month against the month before), done late, overdue and due in the next 7 days (on the last day of the period, or today if it is not over) and who is overloaded. Besides, at 8:00 on Monday the app takes the report of the week before and tells you in the bell; those stay under "Monday reports", as they were taken.',
   'Lưu bộ lọc': 'Save filter',
   'Tên bộ lọc': 'Filter name',
@@ -188,6 +188,18 @@ export default {
   'Quá tải': 'Overloaded',
   'Tuần {range}': 'Week {range}',
   'Báo cáo': 'Reports',
+  // Project cards (RequirementCards.jsx) and the project in focus (ProjectView.jsx), 2026-10-10
+  'Tất cả dự án': 'All projects',
+  'Chi tiết ↗': 'Details ↗',
+  'Mở Board của dự án {title}': 'Open the Board of project {title}',
+  '{n} quá hạn': '{n} overdue',
+  'Từ ngày bắt đầu sớm nhất tới hạn chót muộn nhất của các task': 'From the earliest start date to the latest due date of its tasks',
+  'Chưa có task.': 'No tasks yet.',
+  'Task theo trạng thái': 'Tasks by status',
+  'Task theo người làm': 'Tasks by assignee',
+  '{name}: {count} task': '{name}: {count} tasks',
+  'Chưa giao: {n}': 'Unassigned: {n}',
+  '+ Thêm dự án': '+ Add project',
   'Khác ({n})': 'Other ({n})',
   'Không có task nào trong kỳ.': 'No tasks in this period.',
   '{count} task · {share}': '{count} tasks · {share}',
@@ -356,14 +368,14 @@ export default {
   'Huỷ thay đổi': 'Discard changes',
   'Giao diện và ngôn ngữ': 'Appearance and language',
   'Ngôn ngữ được lưu theo tài khoản, áp dụng trên mọi máy. Giao diện Sáng / Tối được nhớ trên từng máy.': 'The language is saved with your account and applies on every device. Light / Dark is remembered on each device.',
-  'Mở trang chi tiết project': 'Open the project page',
+  'Mở trang chi tiết dự án': 'Open the project page',
   'Lọc theo team': 'Filter by team',
   'Mọi team': 'All teams',
   'Mở hoạt động →': 'Open activity →',
   'Hoàn thành': 'Done',
-  'Theo project': 'By project',
-  'Tiến độ task của từng project. Bấm tên để mở project.': 'Task progress per project. Click a name to open it.',
-  'Hoạt động chưa có project.': 'The activity has no projects yet.',
+  'Theo dự án': 'By project',
+  'Tiến độ task của từng dự án. Bấm tên để mở dự án.': 'Task progress per project. Click a name to open it.',
+  'Hoạt động chưa có dự án.': 'The activity has no projects yet.',
   'của hoạt động': 'of the activity',
   'Task đang mở của từng người trong hoạt động này.': 'Open tasks of each person in this activity.',
   'Không có ai của team này trong hoạt động.': 'Nobody from this team is in the activity.',
@@ -378,16 +390,16 @@ export default {
   'Toàn bộ task đang ở trạng thái này cũng sẽ bị xoá. Không hoàn tác được.': 'Every task in this status will be deleted too. This cannot be undone.',
   'Đổi tên hoạt động': 'Rename activity',
   'Xoá hoạt động "{name}"?': 'Delete activity "{name}"?',
-  'Toàn bộ project, trạng thái và task của hoạt động sẽ bị xoá. Không hoàn tác được.': 'All of the activity\'s projects, statuses and tasks will be deleted. This cannot be undone.',
+  'Toàn bộ dự án, trạng thái và task của hoạt động sẽ bị xoá. Không hoàn tác được.': 'All of the activity\'s projects, statuses and tasks will be deleted. This cannot be undone.',
   'Xoá hoạt động': 'Delete activity',
   '{p0} · bấm để đổi team phụ trách': '{p0} · click to change the owning teams',
   'Thành viên': 'Members',
   '{count} thành viên': '{count} members',
-  'Projects và lịch': 'Projects and calendar',
+  'Dự án và lịch': 'Projects and calendar',
   'Lịch': 'Calendar',
   'Kiểu xem task': 'Task layout',
-  'Lọc theo project': 'Filter by project',
-  'Mọi project': 'All projects',
+  'Lọc theo dự án': 'Filter by project',
+  'Mọi dự án': 'All projects',
   'Lọc theo team của người làm': 'Filter by the assignee\'s team',
   'Lọc theo kênh': 'Filter by channel',
   'Mọi kênh': 'All channels',
@@ -403,25 +415,25 @@ export default {
   'Bạn thêm được task cho mình và sửa task được giao cho bạn. Giao việc, xoá task và sửa trạng thái do Manager hoặc Leader của team phụ trách làm.': 'You can add tasks for yourself and edit the tasks assigned to you. Assigning, deleting tasks and editing statuses is done by a Manager or a Leader of the owning teams.',
   'Bạn không thuộc team phụ trách hoạt động nên chỉ xem và comment; task chỉ giao cho người của team phụ trách. Cần làm việc ở đây thì nhờ Manager thêm team của bạn vào hoạt động.': 'You are not in a team that owns this activity, so you can view and comment; tasks only go to people of the owning teams. To work here, ask a Manager to add your team to the activity.',
   '← Quay lại': '← Back',
-  'Project này không còn tồn tại.': 'This project no longer exists.',
+  'Dự án này không còn tồn tại.': 'This project no longer exists.',
   'Mở hoạt động': 'Open activity',
   '{done}/{total} task': '{done}/{total} tasks',
   'Chưa có comments.': 'No comments yet.',
   'Gõ @ để nhắc ai đó, dán ảnh hoặc bấm 📎 để đính kèm': 'Type @ to mention someone, paste an image or click 📎 to attach',
-  'Xoá project "{title}"?': 'Delete project "{title}"?',
-  'Comments của project này cũng sẽ bị xoá.': 'This project\'s comments will be deleted too.',
-  'Xoá project': 'Delete project',
-  'Tiêu đề project': 'Project title',
+  'Xoá dự án "{title}"?': 'Delete project "{title}"?',
+  'Comments của dự án này cũng sẽ bị xoá.': 'This project\'s comments will be deleted too.',
+  'Xoá dự án': 'Delete project',
+  'Tiêu đề dự án': 'Project title',
   'Mục tiêu, phạm vi, tiêu chí hoàn thành, KPI…': 'Goals, scope, done criteria, KPIs…',
   'Mở trang ↗': 'Open page ↗',
-  'Chuyển hoặc xoá hết task của project này trước khi xoá': 'Move or delete this project\'s tasks before deleting it',
+  'Chuyển hoặc xoá hết task của dự án này trước khi xoá': 'Move or delete this project\'s tasks before deleting it',
   'Chưa có mô tả.': 'No description yet.',
   ' Bấm "Sửa" để viết mục tiêu, phạm vi, tiêu chí hoàn thành.': ' Click "Edit" to write the goals, scope and done criteria.',
   'Xem trên Board →': 'View on the Board →',
   'Chưa có task nào. Thêm task từ Board hoặc List.': 'No tasks yet. Add them from the Board or List.',
   '+ Thêm': '+ Add',
-  'Hoạt động chưa có project. Tạo project đầu tiên rồi mới thêm được task.': 'The activity has no projects yet. Create the first one, then you can add tasks.',
-  'Hoạt động chưa có project. Owner, Leader của team phụ trách hoặc Manager sẽ tạo project.': 'The activity has no projects yet. The owner, a Leader of the owning teams or a Manager will create them.',
+  'Hoạt động chưa có dự án. Tạo dự án đầu tiên rồi mới thêm được task.': 'The activity has no projects yet. Create the first one, then you can add tasks.',
+  'Hoạt động chưa có dự án. Owner, Leader của team phụ trách hoặc Manager sẽ tạo dự án.': 'The activity has no projects yet. The owner, a Leader of the owning teams or a Manager will create them.',
   'Hoạt động khác': 'Other activities',
   'Task của tôi': 'My tasks',
   'Tổng quan phòng': 'Department overview',
@@ -437,7 +449,7 @@ export default {
   'Khi task được đánh dấu xong (tick hoặc kéo vào Completed), app tự tạo': 'When the task is marked done (ticked or dragged into Completed), the app creates',
   'bản kế tiếp': 'the next occurrence',
   'ở trạng thái Planned, hạn chót là lần kế tiếp theo chu kỳ.': 'in the Planned status, due on the next day of the cycle.',
-  'Bản mới chép tên, mô tả, người làm, project, kênh, ưu tiên và subtask (chưa tick). Comments và file không được chép.': 'It copies the name, description, assignee, project, channels, priority and subtasks (unticked). Comments and files are not copied.',
+  'Bản mới chép tên, mô tả, người làm, dự án, kênh, ưu tiên và subtask (chưa tick). Comments và file không được chép.': 'It copies the name, description, assignee, project, channels, priority and subtasks (unticked). Comments and files are not copied.',
   'Xong trễ thì bản mới lấy lần gần nhất từ hôm nay, không tạo task quá hạn sẵn.': 'Done late? The next one takes the nearest day from today, never an already overdue date.',
   'Task hằng ngày xong không báo cho Leader / Manager.': 'Completing a daily task does not notify Leaders / Managers.',
   'Muốn dừng: chọn': 'To stop: pick',
@@ -495,7 +507,7 @@ export default {
   'hạn chót': 'due date',
   'ưu tiên': 'priority',
   '{prefix}chuyển trạng thái: {p1} → {p2}': '{prefix}moved status: {p1} → {p2}',
-  '{prefix}chuyển project: {p1} → {p2}': '{prefix}moved project: {p1} → {p2}',
+  '{prefix}chuyển dự án: {p1} → {p2}': '{prefix}moved project: {p1} → {p2}',
   'kênh': 'channels',
   'tắt lặp lại ({from})': 'stopped repeating ({from})',
   'lặp lại': 'repeat',
@@ -609,8 +621,8 @@ export default {
   'Toàn quyền task': 'Full rights on tasks',
   'Tạo, sửa, giao, xoá task và quản lý trạng thái. Không có quyền này: chỉ tạo task cho mình và sửa task giao cho mình.':
     'Create, edit, assign, delete tasks and manage statuses. Without it: only create tasks for oneself and edit one\'s own tasks.',
-  'Quản lý project': 'Manage projects',
-  'Tạo, sửa, xoá project (người quản lý hoạt động luôn làm được).': 'Create, edit, delete projects (activity managers always can).',
+  'Quản lý dự án': 'Manage projects',
+  'Tạo, sửa, xoá dự án (người quản lý hoạt động luôn làm được).': 'Create, edit, delete projects (activity managers always can).',
   'Xem task của người khác, màn Theo dõi và Dashboard tổng.': 'See other people\'s tasks, Work tracking and the overview dashboard.',
   'Xem hồ sơ cá nhân': 'Read personal profiles',
   'Ngày sinh, số điện thoại… của người khác (không bao giờ của vai trò cao hơn mình).': 'Other people\'s birthday, phone… (never of a higher role).',
@@ -674,10 +686,10 @@ export default {
   'Không tìm thấy mẫu': 'Template not found',
   'Cần chọn ngày để đặt hạn chót cho các task': 'Pick a date to set the due dates of the tasks',
   'Danh sách team không hợp lệ': 'Invalid team list',
-  'Chỉ owner, Leader của team phụ trách hoặc Manager mới quản lý được project': 'Only the owner, a Leader of the owning teams or a Manager manages projects',
-  'Cần nhập tiêu đề project': 'Enter a project title',
-  'Tiêu đề project không được để trống': 'The project title cannot be empty',
-  'Project còn {count} task. Hãy chuyển các task sang project khác hoặc xoá chúng trước.': 'The project still has {count} tasks. Move them to another project or delete them first.',
+  'Chỉ owner, Leader của team phụ trách hoặc Manager mới quản lý được dự án': 'Only the owner, a Leader of the owning teams or a Manager manages projects',
+  'Cần nhập tiêu đề dự án': 'Enter a project title',
+  'Tiêu đề dự án không được để trống': 'The project title cannot be empty',
+  'Dự án còn {count} task. Hãy chuyển các task sang dự án khác hoặc xoá chúng trước.': 'The project still has {count} tasks. Move them to another project or delete them first.',
   'Comment không được để trống': 'A comment cannot be empty',
   'Chỉ Manager mới đổi được team của hoạt động': 'Only a Manager can change an activity\'s teams',
   'Chưa có tài khoản đang hoạt động nào dùng email này': 'No active account uses this email',
@@ -691,10 +703,10 @@ export default {
   'Task cha không hợp lệ': 'Invalid parent task',
   'Trạng thái không hợp lệ': 'Invalid status',
   'Bạn không thuộc team phụ trách hoạt động nên không tự thêm task được; nhờ Manager hoặc Leader giao việc': 'You are not in a team that owns this activity, so you cannot add tasks yourself; ask a Manager or Leader to assign you work',
-  'Task phải thuộc một project của hoạt động': 'A task must belong to one of the activity\'s projects',
+  'Task phải thuộc một dự án của hoạt động': 'A task must belong to one of the activity\'s projects',
   'Tên task không được để trống': 'The task name cannot be empty',
   'Độ ưu tiên không hợp lệ': 'Invalid priority',
-  'Project không hợp lệ': 'Invalid project',
+  'Dự án không hợp lệ': 'Invalid project',
   'Chỉ Manager hoặc Leader của team tham gia hoạt động mới giao được task': 'Only a Manager or a Leader of a team in the activity assigns tasks',
   'Chỉ giao task được cho bạn hoặc người trong team của bạn tham gia hoạt động này': 'You can only assign tasks to yourself or to people of your teams in this activity',
   'Subtask không gắn kênh, kênh đi theo task cha': 'Subtasks have no channels; they follow the parent task\'s',
@@ -706,7 +718,7 @@ export default {
   'Chỉ người viết hoặc Manager mới xoá được nội dung này': 'Only the author or a Manager can delete this',
   'File trống hoặc không đọc được': 'The file is empty or unreadable',
   'Chỉ người viết mới đính kèm file vào nội dung này': 'Only the author can attach files to this',
-  'Chỉ người tải lên hoặc người quản lý task / project mới xoá được file này': 'Only the uploader or someone who manages the task / project can delete this file',
+  'Chỉ người tải lên hoặc người quản lý task / dự án mới xoá được file này': 'Only the uploader or someone who manages the task / project can delete this file',
   'File vượt quá {max} MB': 'The file is over {max} MB',
   'Lỗi server': 'Server error',
   'Tên hiển thị không được để trống': 'The display name cannot be empty',
@@ -771,13 +783,13 @@ export default {
   'Gửi link cho đồng nghiệp': 'Sending a link to a colleague',
   'Màn đang xem (kể cả bộ lọc và task đang mở) nằm trên địa chỉ trang. Tải lại trang vẫn đúng chỗ; sao chép địa chỉ để gửi cho người khác. Với một task, bấm 🔗 ở đầu panel task để sao chép link của nó; dán vào tin nhắn thì hiện thành thẻ tên task.':
     'The screen you are on (filters and the open task included) is in the page address. Reloading keeps you there; copy the address to send it to someone. For a task, click 🔗 at the top of its panel to copy its link; pasted in a message, it shows as the task\'s name.',
-  'Hoạt động, project và task': 'Activities, projects and tasks',
+  'Hoạt động, dự án và task': 'Activities, projects and tasks',
   'Cách tổ chức': 'How work is organised',
-  'Mỗi hoạt động gồm các project (đầu việc lớn), mỗi project gồm các task, mỗi task có thể có subtask. Task nào cũng thuộc một project, nên hoạt động cần có project trước khi thêm task.':
+  'Mỗi hoạt động gồm các dự án (đầu việc lớn), mỗi dự án gồm các task, mỗi task có thể có subtask. Task nào cũng thuộc một dự án, nên hoạt động cần có dự án trước khi thêm task.':
     'An activity holds projects (the big pieces of work), each project holds tasks, and a task may have subtasks. Every task belongs to a project, so an activity needs a project before tasks can be added.',
   'Các cách xem': 'Views',
-  'Trong hoạt động: Projects (tiến độ từng project và comments), Lịch (task theo hạn chót), Timeline (thanh từ ngày bắt đầu tới hạn chót), List (bảng) và Board (cột theo trạng thái). Bộ lọc theo project, người làm, team, kênh, trạng thái, hạn chót và ô tìm task dùng chung cho List, Board, Lịch và Timeline.':
-    'In an activity: Projects (each project\'s progress and comments), Calendar (tasks by due date), Timeline (a bar from the start date to the due date), List (a table) and Board (columns by status). The filters by project, assignee, team, channel, status, due date and the task search are shared by List, Board, Calendar and Timeline.',
+  'Mở một hoạt động là thấy các dự án của nó dạng thẻ: tiến độ, số task quá hạn, khoảng ngày, số task theo trạng thái và theo từng người. Bấm một thẻ để mở Board của riêng dự án đó (tên dự án hiện ở trên cùng, "← Tất cả dự án" để quay lại); "Chi tiết ↗" mở trang dự án (mô tả, file, comments). Các cách xem khác: Lịch (task theo hạn chót), Timeline (thanh từ ngày bắt đầu tới hạn chót), List (bảng) và Board (cột theo trạng thái). Bộ lọc theo dự án, người làm, team, kênh, trạng thái, hạn chót và ô tìm task dùng chung cho List, Board, Lịch và Timeline.':
+    'An activity opens on its projects as cards: progress, overdue tasks, the span of dates, tasks per status and per person. Click a card for the Board of that project alone (its name shows at the top, "← All projects" goes back); "Details ↗" opens the project page (description, files, comments). The other views: Calendar (tasks by due date), Timeline (a bar from the start date to the due date), List (a table) and Board (columns by status). The filters by project, assignee, team, channel, status, due date and the task search are shared by List, Board, Calendar and Timeline.',
   '4 trạng thái cố định': 'The 4 fixed statuses',
   'Planned, In-Progress, Completed, Pending có ở mọi hoạt động, không đổi tên hay xoá được. Đánh dấu ✓ xong thì task tự sang Completed; kéo task vào Completed cũng là đánh dấu xong.':
     'Planned, In-Progress, Completed and Pending exist in every activity and cannot be renamed or deleted. Ticking ✓ moves a task to Completed; dragging a task into Completed ticks it too.',
@@ -788,9 +800,9 @@ export default {
     'You create tasks for yourself and edit the tasks assigned to you. You can view and comment on other people\'s tasks. In activities outside your teams you view and comment only.',
   'Làm việc với task': 'Working on a task',
   'Mở task': 'Opening a task',
-  'Bấm vào task để mở panel bên phải; bấm ⤢ để mở trang đầy đủ. Ở đó có mô tả, subtask, người làm, ngày bắt đầu, hạn chót, ưu tiên, project, kênh, file đính kèm và comments.':
+  'Bấm vào task để mở panel bên phải; bấm ⤢ để mở trang đầy đủ. Ở đó có mô tả, subtask, người làm, ngày bắt đầu, hạn chót, ưu tiên, dự án, kênh, file đính kèm và comments.':
     'Click a task to open it in the right panel; click ⤢ for the full page. There you find the description, subtasks, assignee, start date, due date, priority, project, channels, attachments and comments.',
-  'Tab Timeline của hoạt động vẽ mỗi task một thanh từ ngày bắt đầu tới hạn chót, nhóm theo project, trạng thái hoặc người làm; Ngày / Tuần / Tháng để đổi thang, "Hôm nay" để quay về hôm nay. Task quá hạn có ⚠, task xong màu xám. Ai sửa được task thì kéo cả thanh để dời ngày, kéo một đầu để đổi ngày bắt đầu hoặc hạn chót, kéo dọc dòng của task chưa có ngày để đặt ngày (iPad: giữ rồi kéo). Kéo task trên Lịch thì ngày bắt đầu dời theo.':
+  'Tab Timeline của hoạt động vẽ mỗi task một thanh từ ngày bắt đầu tới hạn chót, nhóm theo dự án, trạng thái hoặc người làm; Ngày / Tuần / Tháng để đổi thang, "Hôm nay" để quay về hôm nay. Task quá hạn có ⚠, task xong màu xám. Ai sửa được task thì kéo cả thanh để dời ngày, kéo một đầu để đổi ngày bắt đầu hoặc hạn chót, kéo dọc dòng của task chưa có ngày để đặt ngày (iPad: giữ rồi kéo). Kéo task trên Lịch thì ngày bắt đầu dời theo.':
     'The activity\'s Timeline tab draws each task as a bar from its start date to its due date, grouped by project, status or assignee; Day / Week / Month change the scale, "Today" goes back to today. Overdue tasks carry ⚠, done ones are gray. Whoever can edit a task drags the whole bar to move its dates, one end to change the start or due date, or along the row of a task without dates to set them (iPad: hold, then drag). Dragging a task on the Calendar moves its start date along.',
   'Kéo thả': 'Drag and drop',
   'Kéo thẻ giữa các cột trên Board để đổi trạng thái, kéo task sang ngày khác trên Lịch để đổi hạn chót. Trên iPad: giữ ngón tay khoảng nửa giây rồi kéo.':
@@ -803,9 +815,9 @@ export default {
   'Cuối panel task là mọi thay đổi trong 30 ngày qua: ai đổi gì, lúc nào.':
     'The bottom of the task panel lists every change of the last 30 days: who changed what, and when.',
   'Comments, nhắc tên và file': 'Comments, mentions and files',
-  'Task và project đều có comments. Gõ @ rồi chọn tên để nhắc ai đó: họ nhận thông báo (chỉ nhắc được người xem được nội dung đó). Bạn sửa và xoá comment của mình.':
+  'Task và dự án đều có comments. Gõ @ rồi chọn tên để nhắc ai đó: họ nhận thông báo (chỉ nhắc được người xem được nội dung đó). Bạn sửa và xoá comment của mình.':
     'Tasks and projects both have comments. Type @ and pick a name to mention someone: they get a notification (you can only mention people who can see it). You edit and delete your own comments.',
-  'Dán ảnh (Ctrl+V), kéo thả hoặc bấm 📎 để gửi file kèm comment; mục "Đính kèm" của task / project nhận file tối đa 25 MB.':
+  'Dán ảnh (Ctrl+V), kéo thả hoặc bấm 📎 để gửi file kèm comment; mục "Đính kèm" của task / dự án nhận file tối đa 25 MB.':
     'Paste an image (Ctrl+V), drag and drop, or click 📎 to send files with a comment; the "Attachments" section of a task / project takes files up to 25 MB.',
   'Chuông thông báo trên thanh bên báo khi bạn được giao task, được nhắc tên, task của người trong team bạn phụ trách đã xong, hoặc task bạn theo dõi có comment, đổi hạn chót, người làm hay trạng thái. Bạn tự theo dõi task mình làm, mình tạo hoặc đã comment; nút "🔔 Theo dõi" trên task để bật / tắt. 8 giờ sáng thứ Hai đến thứ Sáu, chuông nhắc số task của bạn đã quá hạn, đến hạn hôm nay và ngày làm việc kế tiếp. Thông báo đến ngay, không cần tải lại trang.':
     'The bell in the sidebar tells you when a task is assigned to you, when you are mentioned, when a task of someone in the teams you lead is done, or when a task you follow gets a comment or a new due date, assignee or status. You follow the tasks you work on, created or commented on; the "🔔 Follow" button on a task turns it on or off. At 8 am, Monday to Friday, the bell counts your tasks that are overdue, due today and due the next work day. Notifications arrive at once, no reload needed.',
@@ -816,7 +828,7 @@ export default {
     'Every task assigned to you in every activity, grouped by Overdue, Today, Next 7 days…; the List / Calendar switch changes the view, "All channels" filters by channel.',
   '"Tổng quan" cho số liệu của các team bạn theo dõi: workload từng người, task hoàn thành 14 ngày, tiến độ hoạt động và kênh. Mỗi hoạt động cũng có dashboard riêng. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet kèm biểu đồ như trên màn hình.':
     '"Overview" shows the figures of the teams you watch: each person\'s workload, tasks completed over 14 days, activity and channel progress. Each activity has its own dashboard too. "Export to Excel" downloads the figures on screen as an Excel file, one sheet per part with the same charts as on screen.',
-  'Mỗi hoạt động bạn tham gia có dashboard riêng: phần trăm hoàn thành, tiến độ từng project, workload thành viên, tiến độ theo trạng thái và kênh. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet kèm biểu đồ như trên màn hình.':
+  'Mỗi hoạt động bạn tham gia có dashboard riêng: phần trăm hoàn thành, tiến độ từng dự án, workload thành viên, tiến độ theo trạng thái và kênh. Nút "Xuất Excel" tải số liệu đang xem về một file Excel, mỗi phần một sheet kèm biểu đồ như trên màn hình.':
     'Each activity you take part in has its own dashboard: percent complete, progress of each project, members\' workload, progress by status and by channel. "Export to Excel" downloads the figures on screen as an Excel file, one sheet per part with the same charts as on screen.',
   'Theo team hoặc theo người': 'By team or by person',
   'Màn theo dõi liệt kê task của các team bạn phụ trách; chọn một team hoặc một người để xem riêng, đổi sang Lịch để xem theo hạn chót.':
@@ -825,10 +837,10 @@ export default {
   'Bấm "+" cạnh "Hoạt động theo team" ở thanh bên: đặt tên, chọn team phụ trách (không chọn = chung toàn phòng), có thể thêm cả team vào hoạt động.':
     'Click "+" next to "Activities by team" in the sidebar: give a name, pick the teams in charge (none = department-wide), and optionally add the whole teams to the activity.',
   'Sau khi tạo': 'After creating it',
-  'Tạo project đầu tiên trong tab Projects, rồi thêm task. Đổi tên, đổi team, thêm / bỏ thành viên ở đầu trang hoạt động.':
-    'Create the first project in the Projects tab, then add tasks. Rename, change teams, add or remove members at the top of the activity page.',
+  'Bấm "+ Thêm dự án" trên các thẻ dự án để tạo dự án đầu tiên, rồi thêm task. Đổi tên, đổi team, thêm / bỏ thành viên ở đầu trang hoạt động.':
+    'Click "+ Add project" above the project cards to create the first one, then add tasks. Rename, change teams, add or remove members at the top of the activity page.',
   'Mẫu hoạt động': 'Activity templates',
-  'Bấm ⧉ ở đầu một hoạt động để lưu nó làm mẫu (trạng thái, project, task, subtask, người làm, kênh, lặp lại và khoảng cách giữa các hạn chót; không có comment, file). Khi tạo hoạt động, chọn mẫu ở ô "Bắt đầu từ" rồi chọn ngày bắt đầu hoặc ngày ra mắt: hạn chót của các task tự tính theo ngày đó. Mẫu dùng chung cho mọi người tạo được hoạt động; đổi tên / xoá mẫu ngay ở ô chọn.':
+  'Bấm ⧉ ở đầu một hoạt động để lưu nó làm mẫu (trạng thái, dự án, task, subtask, người làm, kênh, lặp lại và khoảng cách giữa các hạn chót; không có comment, file). Khi tạo hoạt động, chọn mẫu ở ô "Bắt đầu từ" rồi chọn ngày bắt đầu hoặc ngày ra mắt: hạn chót của các task tự tính theo ngày đó. Mẫu dùng chung cho mọi người tạo được hoạt động; đổi tên / xoá mẫu ngay ở ô chọn.':
     'Click ⧉ at the top of an activity to save it as a template (statuses, projects, tasks, subtasks, assignees, channels, repeat rules and the gaps between due dates; no comments or files). When you create an activity, pick the template under "Start from", then a start or launch date: the due dates of the tasks follow from it. Templates are shared by everyone who can create activities; rename or delete one right in the picker.',
   'Thành viên team': 'Team members',
   'Màn "Quản lý team": thêm người chưa có team, duyệt người tự đăng ký vào team của bạn, mời email mới (chờ Manager duyệt), bỏ Member khỏi team.':
@@ -1033,9 +1045,9 @@ export default {
   'Tạo task từ tin nhắn': 'Create a task from a message',
   'Task từ tin nhắn': 'Task from a message',
   'Chọn hoạt động': 'Choose an activity',
-  'Chọn project': 'Choose a project',
+  'Chọn dự án': 'Choose a project',
   'Bạn không thêm task được ở hoạt động này.': 'You cannot add tasks in this activity.',
-  'Hoạt động chưa có project nào, cần tạo project trước khi thêm task.': 'This activity has no project yet; one is needed before adding tasks.',
+  'Hoạt động chưa có dự án nào, cần tạo dự án trước khi thêm task.': 'This activity has no project yet; one is needed before adding tasks.',
   'Mô tả task là nội dung tin nhắn kèm link quay về tin.': 'The task description is the message with a link back to it.',
   'Mô tả task là nội dung tin nhắn kèm link quay về tin; {count} file của tin được chép vào task.':
     'The task description is the message with a link back to it; its {count} files are copied to the task.',
