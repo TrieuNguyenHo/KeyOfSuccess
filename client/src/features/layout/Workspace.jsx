@@ -329,9 +329,8 @@ export default function Workspace({ user, onLogout, onUserChange }) {
   } else if (view.type === 'report') {
     content = (
       <ReportPage
-        key={view.week ?? ''}
-        week={view.week}
-        onSelectWeek={(week) => navigate({ type: 'report', week })}
+        view={view}
+        onChange={(report) => navigate({ type: 'report', ...report })}
         onOpenPerson={(id) => navigate({ type: 'team', scope: `user:${id}` })}
       />
     );

@@ -11,7 +11,7 @@ import { nextPosition } from '../lib/util.js';
 const router = express.Router();
 
 const BUILT_IN = 'Không đổi tên hay xoá được trạng thái mặc định (Planned, In-Progress, Completed, Pending)';
-const SECTION_ADMINS = 'Chỉ Manager hoặc Leader của team tham gia project mới quản lý được trạng thái';
+const SECTION_ADMINS = 'Chỉ Manager hoặc Leader của team tham gia hoạt động mới quản lý được trạng thái';
 function loadSectionForAdmin(req, res) {
   const section = findSection(req.params.id);
   if (!section) {

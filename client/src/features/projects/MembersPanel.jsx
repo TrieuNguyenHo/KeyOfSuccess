@@ -36,11 +36,11 @@ export default function MembersPanel({ project, members, currentUser, canManage,
     const self = member.id === currentUser.id;
     const ok = await askConfirm(
       self
-        ? { title: tr('Rời khỏi project "{name}"?', { name: project.name }), confirmLabel: tr('Rời project'), danger: true }
+        ? { title: tr('Rời khỏi hoạt động "{name}"?', { name: project.name }), confirmLabel: tr('Rời hoạt động'), danger: true }
         : {
-            title: tr('Xoá {name} khỏi project?', { name: member.name }),
+            title: tr('Xoá {name} khỏi hoạt động?', { name: member.name }),
             message: tr('Task đang giao cho họ sẽ chuyển thành chưa giao.'),
-            confirmLabel: tr('Xoá khỏi project'),
+            confirmLabel: tr('Xoá khỏi hoạt động'),
             danger: true,
           }
     );
@@ -98,7 +98,7 @@ export default function MembersPanel({ project, members, currentUser, canManage,
                 ) : (
                   (canManage || self) && (
                     <button className="link-btn danger" onClick={() => remove(m)}>
-                      {self ? tr('Rời project') : tr('Xoá')}
+                      {self ? tr('Rời hoạt động') : tr('Xoá')}
                     </button>
                   )
                 )}
@@ -108,11 +108,11 @@ export default function MembersPanel({ project, members, currentUser, canManage,
         </ul>
 
         {!canManage && (
-          <p className="muted small">{tr('Chỉ owner hoặc Leader của team mới thêm/xoá thành viên, đổi tên hoặc xoá project.')}</p>
+          <p className="muted small">{tr('Chỉ owner hoặc Leader của team mới thêm/xoá thành viên, đổi tên hoặc xoá hoạt động.')}</p>
         )}
         <p className="muted small">
           {tr(
-            'Vai trò gán tay thắng luật theo team: Quản lý = toàn quyền task, sửa project và thành viên (không xoá project); Thành viên project = tự tạo task, sửa task của mình, được giao task kể cả khi ở team khác; Chỉ xem = xem và comment. "Theo team" = quyền tính theo team như bình thường.'
+            'Vai trò gán tay thắng luật theo team: Quản lý = toàn quyền task, sửa hoạt động và thành viên (không xoá hoạt động); Thành viên hoạt động = tự tạo task, sửa task của mình, được giao task kể cả khi ở team khác; Chỉ xem = xem và comment. "Theo team" = quyền tính theo team như bình thường.'
           )}
         </p>
       </div>
@@ -133,7 +133,7 @@ function MemberRole({ member, onChange }) {
       className="member-role"
       value={member.role ?? ''}
       onChange={(e) => onChange(e.target.value || null)}
-      aria-label={tr('Vai trò của {name} trong project', { name: member.name })}
+      aria-label={tr('Vai trò của {name} trong hoạt động', { name: member.name })}
     >
       <option value="">{byTeam}</option>
       {Object.entries(PROJECT_ROLES).map(([key, label]) => (

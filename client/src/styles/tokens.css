@@ -30,6 +30,17 @@
   /* Workload chart marks, validated as a pair with the dataviz palette script. */
   --overdue-mark: #b42318;
   --neutral-mark: #8e8e93; /* de-emphasized chart marks (open, not overdue) */
+  /* Report pie charts (2026-10-10), validated with the dataviz palette script on --canvas: six categorical hues in this
+     order (slices past six fold into "Khác", drawn in --neutral-mark) and a one-hue ordinal ramp for priority. */
+  --cat-1: #2a78d6;
+  --cat-2: #eb6834;
+  --cat-3: #1baf7a;
+  --cat-4: #eda100;
+  --cat-5: #e87ba4;
+  --cat-6: #008300;
+  --prio-low: #86b6ef;
+  --prio-medium: #3987e5;
+  --prio-high: #1c5cab;
 
   --sidebar: #c24e26;
   --hover: rgba(0, 0, 0, 0.05);
@@ -79,6 +90,12 @@
   --warn-text: #f2c063;
   --overdue-mark: #ef5350;
   --neutral-mark: #636366;
+  --cat-1: #3987e5;
+  --cat-2: #d95926;
+  --cat-3: #199e70;
+  --cat-4: #c98500;
+  --cat-5: #d55181;
+  --cat-6: #008300;
 
   --sidebar: #a8401c; /* deeper brand red: less glare on a dark screen, white text 6.2:1 */
   --hover: rgba(255, 255, 255, 0.08);

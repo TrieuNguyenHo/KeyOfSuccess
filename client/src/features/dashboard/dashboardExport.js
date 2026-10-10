@@ -91,7 +91,7 @@ export function exportOverview(data, scopeLabel, withTeam) {
       ...(withTeam ? [[tr('Chưa giao'), s.unassigned]] : []),
     ]),
     workloadSheet(data.people, withTeam),
-    progressSheet(tr('Theo project'), 'Project', data.projects.map((p) => ({ ...p, total: p.open + p.done }))),
+    progressSheet(tr('Theo hoạt động'), tr('Hoạt động'), data.projects.map((p) => ({ ...p, total: p.open + p.done }))),
     trendSheet(data.trend),
     channelSheet(data.channels, data.no_channel),
   ]);
@@ -109,7 +109,7 @@ export function exportProject(data, teamLabel, withTeam) {
       [tr('Hoàn thành 7 ngày qua'), s.done_7d],
       ...(withTeam ? [[tr('Chưa giao'), s.unassigned]] : []),
     ]),
-    progressSheet(tr('Theo requirement'), 'Requirement', data.requirements.map((r) => ({ ...r, name: r.title }))),
+    progressSheet(tr('Theo project'), tr('Project'), data.requirements.map((r) => ({ ...r, name: r.title }))),
     channelSheet(data.channels, data.no_channel),
     workloadSheet(data.people, withTeam),
     trendSheet(data.trend),

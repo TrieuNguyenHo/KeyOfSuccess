@@ -366,7 +366,7 @@ router.post('/chats/:id/pin', (req, res) => {
 router.post('/chats/:id/polls', (req, res) => {
   const conversation = loadConversation(req, res, req.params.id);
   if (!conversation) return;
-  if (conversation.kind === 'direct') return badRequest(res, 'Chỉ tạo bình chọn được trong nhóm, chat project hoặc chat team');
+  if (conversation.kind === 'direct') return badRequest(res, 'Chỉ tạo bình chọn được trong nhóm, chat hoạt động hoặc chat team');
   const raw = String(req.body?.question ?? '').trim();
   if (!raw) return badRequest(res, 'Cần nhập câu hỏi');
   if (raw.length > QUESTION_MAX) return badRequest(res, 'Câu hỏi quá dài');

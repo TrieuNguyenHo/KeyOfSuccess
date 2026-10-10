@@ -209,7 +209,7 @@ export default function DashboardPage({ user, onOpenPerson }) {
               </section>
 
               <section className="admin-card">
-                <h2>{tr('Theo project')}</h2>
+                <h2>{tr('Theo hoạt động')}</h2>
                 <p className="muted card-sub">{tr('Tiến độ các task trong phạm vi đang xem.')}</p>
                 {data.projects.length === 0 && <p className="muted">{tr('Chưa có task nào.')}</p>}
                 {data.projects.map((p) => {

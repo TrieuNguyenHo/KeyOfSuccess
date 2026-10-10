@@ -327,7 +327,7 @@ export default function ChatThread({ conversationId, focusMessageId, onBack, onC
   const lastOwn = messages.findLast((m) => m.user_id === me.id && !m.deleted_at && !m.kind);
   let subtitle = direct && chat.other ? personLine(chat.other) : '';
   if (chat.kind === 'group') subtitle = tr('Nhóm · {count} người', { count: chat.members.length });
-  if (chat.kind === 'project') subtitle = tr('Chat project · {count} người', { count: chat.members.length });
+  if (chat.kind === 'project') subtitle = tr('Chat hoạt động · {count} người', { count: chat.members.length });
   if (chat.kind === 'team') subtitle = tr('Chat team · {count} người', { count: chat.members.length });
   // In a group, project or team: each member's avatar under the last message they have read (not one of their own).
   const seenAt = new Map();

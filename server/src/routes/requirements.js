@@ -17,7 +17,7 @@ router.post('/projects/:id/requirements', (req, res) => {
   if (!project) return;
   if (!canEditRequirements(req.user, project)) return forbidden(res, REQUIREMENT_EDITORS);
   const title = req.body?.title?.trim();
-  if (!title) return badRequest(res, 'Cần nhập tiêu đề requirement');
+  if (!title) return badRequest(res, 'Cần nhập tiêu đề project');
   const description = req.body.description?.trim() || null;
   const { lastInsertRowid } = db
     .prepare('INSERT INTO requirements (project_id, title, description, position, created_by) VALUES (?, ?, ?, ?, ?)')
@@ -31,7 +31,7 @@ router.patch('/requirements/:id', (req, res) => {
   if (!requirement) return;
   const body = req.body ?? {};
   const title = body.title !== undefined ? String(body.title).trim() : requirement.title;
-  if (!title) return badRequest(res, 'Tiêu đề requirement không được để trống');
+  if (!title) return badRequest(res, 'Tiêu đề project không được để trống');
   const description = body.description !== undefined ? String(body.description ?? '').trim() || null : requirement.description;
   db.prepare('UPDATE requirements SET title = ?, description = ? WHERE id = ?').run(title, description, requirement.id);
   pushChange(req, { project_id: requirement.project_id, requirement_id: requirement.id });
@@ -43,7 +43,7 @@ router.delete('/requirements/:id', (req, res) => {
   const requirement = loadRequirement(req, res, req.params.id, { edit: true });
   if (!requirement) return;
   const { n } = db.prepare('SELECT COUNT(*) AS n FROM tasks WHERE requirement_id = ?').get(requirement.id);
-  if (n > 0) return badRequest(res, `Requirement còn ${n} task. Hãy chuyển các task sang requirement khác hoặc xoá chúng trước.`);
+  if (n > 0) return badRequest(res, `Project còn ${n} task. Hãy chuyển các task sang project khác hoặc xoá chúng trước.`);
   db.prepare('DELETE FROM requirements WHERE id = ?').run(requirement.id);
   sweepUploads();
   pushChange(req, { project_id: requirement.project_id, requirement_id: requirement.id });

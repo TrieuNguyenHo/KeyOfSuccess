@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { tr } from '../i18n.js';
 
-// The app's name. O is twice the size of the other letters, and K and S, KingSport's initials, twice the O
-// (see .brand in styles/base.css). Screen readers still read one word: "KeyOfSuccess".
+// The app's name, "K.S Management" (KeyOfSuccess before 2026-10-10): one size throughout, K and S, KingSport's
+// initials, in the brand red (see .brand in styles/base.css). Read as one label.
 export function Brand({ className = '' }) {
   return (
-    <span className={`brand ${className}`}>
-      <span className="ks">K</span>ey<span className="o">O</span>f<span className="ks">S</span>uccess
+    <span className={`brand ${className}`} role="img" aria-label="K.S Management">
+      <span className="ks">K</span>.<span className="ks">S</span> Management
     </span>
   );
 }

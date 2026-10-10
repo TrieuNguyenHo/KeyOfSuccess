@@ -211,6 +211,36 @@ img.avatar { object-fit: cover; }
 .workload-row.report-grid { grid-template-columns: minmax(160px, 1fr) repeat(5, 72px); }
 .overload-tag { flex-shrink: 0; color: var(--danger); background: var(--primary-tint); }
 .report-delta { display: block; margin-top: 4px; }
+/* What a report shows: Week / Month / Range / kept weekly reports, then ‹ week › , ‹ month › or two dates. */
+.report-period { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 0 32px 12px; }
+.report-period .tabs { max-width: 100%; overflow-x: auto; }
+.report-step { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.report-step > span { font-weight: 600; min-width: 0; }
+/* The report's three pie charts (ReportCharts.jsx): a ring and its legend each, side by side, wrapping on narrow screens. */
+.report-charts .section-header { flex-wrap: wrap; gap: 12px; }
+.report-charts > p { margin: 8px 0 16px; }
+.report-pies { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+.report-pie { position: relative; min-width: 0; }
+.report-pie h3 { font-size: 14px; font-weight: 600; margin: 0 0 10px; }
+.report-pie-body { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.report-pie svg { width: 160px; height: 160px; flex-shrink: 0; }
+.report-pie path { stroke: var(--canvas); stroke-width: 2; transition: opacity 0.15s; }
+.report-pie path.dim { opacity: 0.35; }
+.report-pie-total { font-size: 28px; font-weight: 600; fill: var(--ink); }
+.report-pie-unit { font-size: 12px; fill: var(--muted); }
+.report-pie-legend { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.report-pie-legend li { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border-radius: var(--rounded-sm); min-width: 0; }
+.report-pie-legend li.active { background: var(--parchment); }
+.report-pie-legend .swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.report-pie-legend .num { flex-shrink: 0; min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+.report-pie-tip {
+  position: absolute; z-index: 5; pointer-events: none; width: max-content; max-width: 240px; padding: 8px 10px; font-size: 13px;
+  background: var(--canvas); color: var(--ink); border: 1px solid var(--hairline); border-radius: var(--rounded-sm);
+}
+@media (prefers-reduced-motion: reduce) { .report-pie path { transition: none; } }
+.card-sub.report-sub { margin-top: 0; } /* the list scrolls, so a negative margin would hide its first line */
+.report-step input[type='date'] { padding: 6px 10px; border: 1px solid var(--hairline); border-radius: var(--rounded-sm); background: var(--canvas); }
+.report-period select { border-radius: var(--rounded-pill); padding: 8px 16px; }
 .report-thresholds { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
 .report-threshold input { width: 120px; }
 .workload-row.static:hover { background: none; }

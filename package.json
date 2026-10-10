@@ -10,6 +10,7 @@
     "build": "npm run build -w client",
     "start": "npm start -w server",
     "backup": "npm run backup -w server",
+    "seed:demo": "npm run seed:demo -w server --",
     "test": "npm test -w server"
   },
   "devDependencies": {

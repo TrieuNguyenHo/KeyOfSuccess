@@ -6,22 +6,22 @@ import { tr } from '../../i18n.js';
 // What each permission means, in the reader's language (the keys come from the server, lib/permissions.js).
 const PERMISSION_TEXT = {
   get 'projects.view'() {
-    return [tr('Xem project'), tr('Mở project mình không tham gia (xem và comment).')];
+    return [tr('Xem hoạt động'), tr('Mở hoạt động mình không tham gia (xem và comment).')];
   },
   get 'projects.manage'() {
-    return [tr('Quản lý project'), tr('Đổi tên, xoá, thêm / bỏ thành viên của project không do mình tạo.')];
+    return [tr('Quản lý hoạt động'), tr('Đổi tên, xoá, thêm / bỏ thành viên của hoạt động không do mình tạo.')];
   },
   get 'projects.create'() {
-    return [tr('Tạo project'), ''];
+    return [tr('Tạo hoạt động'), ''];
   },
   get 'projects.change_teams'() {
-    return [tr('Đổi team của project'), tr('"Team của mình": chỉ chọn trong team mình, ít nhất một team; các team khác của project giữ nguyên.')];
+    return [tr('Đổi team của hoạt động'), tr('"Team của mình": chỉ chọn trong team mình, ít nhất một team; các team khác của hoạt động giữ nguyên.')];
   },
   get 'tasks.admin'() {
     return [tr('Toàn quyền task'), tr('Tạo, sửa, giao, xoá task và quản lý trạng thái. Không có quyền này: chỉ tạo task cho mình và sửa task giao cho mình.')];
   },
   get 'requirements.manage'() {
-    return [tr('Quản lý requirement'), tr('Tạo, sửa, xoá requirement (người quản lý project luôn làm được).')];
+    return [tr('Quản lý project'), tr('Tạo, sửa, xoá project (người quản lý hoạt động luôn làm được).')];
   },
   get 'people.watch'() {
     return [tr('Theo dõi công việc'), tr('Xem task của người khác, màn Theo dõi và Dashboard tổng.')];

@@ -11,7 +11,7 @@ function ProgressRow({ label, done, total, overdue, onClick }) {
     <div className="project-progress">
       <span className="cell">
         {onClick ? (
-          <button className="crumb" onClick={onClick} title={tr('Mở trang chi tiết requirement')}>
+          <button className="crumb" onClick={onClick} title={tr('Mở trang chi tiết project')}>
             {label}
           </button>
         ) : (
@@ -70,7 +70,7 @@ export default function ProjectDashboardPage({ projectId, onOpenProject, onOpenR
           {tr('Xuất Excel')}
         </button>
         <button className="link-btn" onClick={() => onOpenProject(project.id)}>
-          {tr('Mở project →')}
+          {tr('Mở hoạt động →')}
         </button>
       </header>
 
@@ -90,9 +90,9 @@ export default function ProjectDashboardPage({ projectId, onOpenProject, onOpenR
         </div>
 
         <section className="admin-card">
-          <h2>{tr('Theo requirement')}</h2>
-          <p className="muted card-sub">{tr('Tiến độ task của từng requirement. Bấm tên để mở requirement.')}</p>
-          {requirements.length === 0 && <p className="muted">{tr('Project chưa có requirement.')}</p>}
+          <h2>{tr('Theo project')}</h2>
+          <p className="muted card-sub">{tr('Tiến độ task của từng project. Bấm tên để mở project.')}</p>
+          {requirements.length === 0 && <p className="muted">{tr('Hoạt động chưa có project.')}</p>}
           {requirements.map((r) => (
             <ProgressRow
               key={r.id}
@@ -105,7 +105,7 @@ export default function ProjectDashboardPage({ projectId, onOpenProject, onOpenR
           ))}
         </section>
 
-        <ChannelProgress channels={data.channels} noChannel={data.no_channel} scopeLabel={tr('của project')} />
+        <ChannelProgress channels={data.channels} noChannel={data.no_channel} scopeLabel={tr('của hoạt động')} />
 
         <section className="admin-card">
           <div className="section-header">
@@ -116,7 +116,7 @@ export default function ProjectDashboardPage({ projectId, onOpenProject, onOpenR
               <span className="swatch open-seg" /> {tr('Còn hạn')}
             </span>
           </div>
-          <p className="muted card-sub">{tr('Task đang mở của từng người trong project này.')}</p>
+          <p className="muted card-sub">{tr('Task đang mở của từng người trong hoạt động này.')}</p>
           <div className={`workload-row workload-head ${showTeam ? 'with-team' : ''}`}>
             <span>{tr('Người')}</span>
             {showTeam && <span>Team</span>}
@@ -145,14 +145,14 @@ export default function ProjectDashboardPage({ projectId, onOpenProject, onOpenR
             </div>
           ))}
           {people.length === 0 && (
-            <p className="muted">{teamId ? tr('Không có ai của team này trong project.') : tr('Project chưa có thành viên.')}</p>
+            <p className="muted">{teamId ? tr('Không có ai của team này trong hoạt động.') : tr('Hoạt động chưa có thành viên.')}</p>
           )}
         </section>
 
         <div className="dash-grid">
           <section className="admin-card">
             <h2>{tr('Hoàn thành mỗi ngày')}</h2>
-            <p className="muted card-sub">{tr('Số task của project đánh dấu xong trong 14 ngày qua.')}</p>
+            <p className="muted card-sub">{tr('Số task của hoạt động đánh dấu xong trong 14 ngày qua.')}</p>
             <CompletionTrend trend={trend} />
           </section>
 

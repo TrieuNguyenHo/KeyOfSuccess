@@ -219,13 +219,13 @@ export default function TaskDetail({
   const breadcrumb = (
     <div className="detail-project">
       <span className="dot" style={{ background: task.project_color }} />
-      <button className="crumb" onClick={() => onOpenProject(task.project_id)} title={tr('Mở project')}>
+      <button className="crumb" onClick={() => onOpenProject(task.project_id)} title={tr('Mở hoạt động')}>
         {task.project_name}
       </button>
       {task.requirement_id && (
         <>
           <span aria-hidden="true">›</span>
-          <button className="crumb" onClick={openRequirement} title={tr('Mở trang chi tiết requirement')}>
+          <button className="crumb" onClick={openRequirement} title={tr('Mở trang chi tiết project')}>
             {task.requirement_title}
           </button>
         </>

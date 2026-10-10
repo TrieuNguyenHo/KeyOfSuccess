@@ -147,7 +147,7 @@ export default function SystemConfigPage({ user, onLogout }) {
                 <section className="admin-card">
                   <p className="muted card-sub">
                     {tr(
-                      'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được project, task hay thông tin cá nhân của ai. Ở đây bạn thêm / sửa vai trò, đặt quyền cho từng vai trò, mời người dùng mới, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.'
+                      'Tài khoản root không thuộc công ty: chỉ cấu hình hệ thống, không xem được hoạt động, task hay thông tin cá nhân của ai. Ở đây bạn thêm / sửa vai trò, đặt quyền cho từng vai trò, mời người dùng mới, gán vai trò (kể cả Director), duyệt / khoá tài khoản và xếp team.'
                     )}
                   </p>
                 </section>

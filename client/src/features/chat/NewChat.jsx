@@ -37,7 +37,7 @@ export default function NewChat({ onDirect, onGroup, onRoom, onCancel }) {
         {[
           ['person', tr('Một người')],
           ['group', tr('Nhóm mới')],
-          ['room', tr('Project / Team')],
+          ['room', tr('Hoạt động / Team')],
         ].map(([key, label]) => (
           <button key={key} role="tab" aria-selected={tab === key} className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>
             {label}
@@ -78,7 +78,7 @@ export default function NewChat({ onDirect, onGroup, onRoom, onCancel }) {
               </button>
             </li>
           ))}
-          {rooms.projects.length > 0 && <li className="chat-list-label">Project</li>}
+          {rooms.projects.length > 0 && <li className="chat-list-label">{tr('Hoạt động')}</li>}
           {rooms.projects.map((p) => (
             <li key={`p${p.id}`}>
               <button className="chat-row" onClick={() => onRoom('project', p.id)}>
@@ -89,7 +89,7 @@ export default function NewChat({ onDirect, onGroup, onRoom, onCancel }) {
               </button>
             </li>
           ))}
-          {!rooms.teams.length && !rooms.projects.length && <li className="muted chat-note">{tr('Bạn chưa có team hay project nào.')}</li>}
+          {!rooms.teams.length && !rooms.projects.length && <li className="muted chat-note">{tr('Bạn chưa có team hay hoạt động nào.')}</li>}
         </ul>
       )}
     </div>

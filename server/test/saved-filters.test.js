@@ -22,7 +22,7 @@ after(() => server.stop());
 const save = (as, name, hash) => api.post('/saved-filters', as, { name, hash });
 
 test('a person saves filters of a project, My tasks and Work tracking, and sees only their own', async () => {
-  const a = await save(memA, 'Facebook tuần này', `#/project/${project}/board?channel=1&due=week`);
+  const a = await save(memA, 'Facebook tuần này', `#/activity/${project}/board?channel=1&due=week`);
   assert.equal(a.status, 201);
   assert.equal(`${a.body.screen}|${a.body.project_id}`, `project|${project}`);
   assert.equal((await save(memA, 'Của tôi', '#/my?layout=calendar')).body.screen, 'my');

@@ -8,8 +8,8 @@ import { badRequest, notFound } from '../lib/http.js';
 const router = express.Router();
 const NAME_MAX = 60;
 const PER_SCREEN = 20;
-// #/project/3/board?…, #/my?…, #/team?…, #/team/team:3?… (the task panel's ?task= is left out by the client).
-const HASH_RE = /^#\/(?:project\/(\d+)\/[a-z]+|my|team(?:\/[\w:%.-]+)?)(?:\?[^#\s]*)?$/;
+// #/activity/3/board?… (#/project/3/board?… before 2026-10-10), #/my?…, #/team?…, #/team/team:3?… (the task panel's ?task= is left out by the client).
+const HASH_RE = /^#\/(?:(?:activity|project)\/(\d+)\/[a-z]+|my|team(?:\/[\w:%.-]+)?)(?:\?[^#\s]*)?$/;
 
 router.get('/saved-filters', (req, res) => {
   res.json(db.prepare('SELECT id, screen, project_id, name, hash FROM saved_filters WHERE user_id = ? ORDER BY id').all(req.user.id));

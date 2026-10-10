@@ -24,9 +24,9 @@ export default function TaskFields({
     <div className="fields">
       {!task.parent_id && (
         <>
-          <label>Requirement</label>
+          <label>{tr('Project')}</label>
           {readOnly ? (
-            <button className="crumb" onClick={openRequirement} title={tr('Mở trang chi tiết requirement')}>
+            <button className="crumb" onClick={openRequirement} title={tr('Mở trang chi tiết project')}>
               {task.requirement_title} ↗
             </button>
           ) : (
@@ -35,7 +35,7 @@ export default function TaskFields({
                 className="grow"
                 value={task.requirement_id ?? ''}
                 onChange={(e) => update({ requirement_id: Number(e.target.value) })}
-                aria-label="Requirement"
+                aria-label={tr('Project')}
               >
                 {requirements.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -43,7 +43,7 @@ export default function TaskFields({
                   </option>
                 ))}
               </select>
-              <button className="icon-btn" onClick={openRequirement} title={tr('Mở trang chi tiết requirement')}>
+              <button className="icon-btn" onClick={openRequirement} title={tr('Mở trang chi tiết project')}>
                 ↗
               </button>
             </span>
@@ -104,7 +104,7 @@ export default function TaskFields({
           onChange={(e) => update({ assignee_id: e.target.value ? Number(e.target.value) : null })}
         >
           <option value="">{tr('Chưa giao')}</option>
-          <optgroup label={tr('Thành viên của project')}>
+          <optgroup label={tr('Thành viên của hoạt động')}>
             {assignees
               .filter((u) => u.is_member)
               .map((u) => (
@@ -114,7 +114,7 @@ export default function TaskFields({
               ))}
           </optgroup>
           {assignees.some((u) => !u.is_member) && (
-            <optgroup label={tr('Trong team phụ trách (sẽ được thêm vào project)')}>
+            <optgroup label={tr('Trong team phụ trách (sẽ được thêm vào hoạt động)')}>
               {assignees
                 .filter((u) => !u.is_member)
                 .map((u) => (

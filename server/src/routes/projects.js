@@ -51,7 +51,7 @@ router.post('/projects', requirePermission('projects.create'), (req, res) => {
   const me = req.user;
   const body = req.body ?? {};
   const name = body.name?.trim();
-  if (!name) return badRequest(res, 'Cần nhập tên project');
+  if (!name) return badRequest(res, 'Cần nhập tên hoạt động');
   const teamIds = parseTeamIds(body.team_ids ?? []);
   if (!teamIds) return badRequest(res, 'Danh sách team không hợp lệ');
   // With projects.change_teams 'team', the project belongs to one or more of the creator's own teams.
@@ -141,10 +141,10 @@ router.patch('/projects/:id', (req, res) => {
   const changesDetails = body.name !== undefined || body.color !== undefined;
   const project = loadProject(req, res, req.params.id, changesDetails ? 'manage' : 'view');
   if (!project) return;
-  if (changesTeams && !can(req.user, 'projects.change_teams')) return forbidden(res, 'Chỉ Manager mới đổi được team của project');
+  if (changesTeams && !can(req.user, 'projects.change_teams')) return forbidden(res, 'Chỉ Manager mới đổi được team của hoạt động');
 
   const name = body.name?.trim() ?? project.name;
-  if (!name) return badRequest(res, 'Cần nhập tên project');
+  if (!name) return badRequest(res, 'Cần nhập tên hoạt động');
   const changeScope = scopeOf(req.user, 'projects.change_teams');
   let teamIds = changesTeams ? parseTeamIds(body.team_ids) : null;
   if (changesTeams && !teamIds) return badRequest(res, 'Danh sách team không hợp lệ');
@@ -163,7 +163,7 @@ router.delete('/projects/:id', (req, res) => {
   const project = loadProject(req, res, req.params.id, 'manage');
   if (!project) return;
   // The project role 'admin' manages the project but does not delete it.
-  if (project.role === 'admin') return forbidden(res, 'Admin của project không xoá được project');
+  if (project.role === 'admin') return forbidden(res, 'Admin của hoạt động không xoá được hoạt động');
   db.prepare('DELETE FROM projects WHERE id = ?').run(project.id);
   sweepUploads();
   res.status(204).end();
@@ -208,10 +208,10 @@ router.patch('/projects/:id/members/:userId', (req, res) => {
   const userId = Number(req.params.userId);
   if (!isMember(project.id, userId)) return notFound(res);
   const role = req.body?.role ?? null;
-  if (role !== null && !PROJECT_ROLES.includes(role)) return badRequest(res, 'Vai trò trong project không hợp lệ');
+  if (role !== null && !PROJECT_ROLES.includes(role)) return badRequest(res, 'Vai trò trong hoạt động không hợp lệ');
   const user = findUser(userId);
-  if (roleFixed(user, project)) return badRequest(res, 'Không đặt vai trò cho owner hay người quản lý mọi project');
-  if (userId === req.user.id) return badRequest(res, 'Bạn không tự đổi vai trò của mình trong project');
+  if (roleFixed(user, project)) return badRequest(res, 'Không đặt vai trò cho owner hay người quản lý mọi hoạt động');
+  if (userId === req.user.id) return badRequest(res, 'Bạn không tự đổi vai trò của mình trong hoạt động');
   if (outranks(user, req.user)) return forbidden(res, 'Không đổi được vai trò của người có vai trò cao hơn bạn');
   db.prepare('UPDATE project_members SET role = ? WHERE project_id = ? AND user_id = ?').run(role, project.id, userId);
   pushChange(req, { project_id: project.id });
@@ -223,7 +223,7 @@ router.delete('/projects/:id/members/:userId', (req, res) => {
   const project = loadProject(req, res, req.params.id);
   if (!project) return;
   const userId = Number(req.params.userId);
-  if (userId === project.owner_id) return badRequest(res, 'Không thể xoá owner khỏi project');
+  if (userId === project.owner_id) return badRequest(res, 'Không thể xoá owner khỏi hoạt động');
   if (project.access !== 'manage' && userId !== req.user.id) {
     return forbidden(res, 'Chỉ owner hoặc Leader của team mới làm được việc này');
   }
