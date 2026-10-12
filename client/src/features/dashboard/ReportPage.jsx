@@ -170,7 +170,7 @@ function PeriodPicker({ view, range, weeks, onChange }) {
       )}
       {period === 'saved' && (
         <select value={view.week} onChange={(e) => onChange({ week: e.target.value })} aria-label={tr('Tuần')}>
-          {weeks.map((w) => (
+          {(weeks ?? [view.week]).map((w) => (
             <option key={w} value={w}>
               {tr('Tuần {range}', { range: weekLabel(w) })}
             </option>

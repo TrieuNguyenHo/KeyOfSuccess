@@ -5,7 +5,7 @@ File này được nạp tự động qua `.claude/CLAUDE.md`.
 
 **Cách cập nhật:** làm xong một việc thì chuyển nó từ "Cần làm" / "Đang làm" sang "Đã làm" (ghi ngày), và thêm vào "Ghi chú" những gì phiên sau cần biết. Đầu mỗi phiên, đọc file này rồi đề xuất bước tiếp theo theo mục "Đề xuất tiếp theo".
 
-_Cập nhật lần cuối: 2026-10-10 · Schema database: v41 · Test: `npm test`, 379/379 pass (khoảng 9 giây)_
+_Cập nhật lần cuối: 2026-10-12 · Schema database: v41 · Test: `npm test`, 379/379 pass (khoảng 9 giây)_
 
 ---
 
@@ -101,6 +101,9 @@ _Cập nhật lần cuối: 2026-10-10 · Schema database: v41 · Test: `npm tes
 - URL: `#/activity/3` mặc định `#/activity/3/projects` (lưới thẻ); `#/activity/3/projects/7` (link cũ có dự án đang chọn) và thông báo nhắc tên trong comment dự án mở trang dự án. Quay lại từ trang dự án về đúng chỗ (lưới thẻ hoặc Board đang lọc). Hướng dẫn mục "Các cách xem" và "Sau khi tạo" viết lại.
 - Sửa kèm: `npm run backup -- --name …` ở thư mục gốc mất `--name` (thiếu `--` khi chuyển xuống `server`), làm lỗi `EACCES` trên VPS; đã thêm `--`.
 - 379/379 test pass, `vite build` chạy được. Đã thử trên trình duyệt với dữ liệu demo (Lê Hoàng Nam): lưới 3 thẻ của "[Demo] Nhận diện thương hiệu 2027", bấm thẻ ra Board `?project=22` có thanh dự án, Chi tiết → Quay lại về Board đang lọc, ← Tất cả dự án về lưới thẻ. Chưa xem ở 375px và tiếng Anh.
+
+### Sửa lỗi mở báo cáo tuần từ thông báo (2026-10-12, không đổi schema / API)
+- Người dùng báo: bấm thông báo "Báo cáo tuần" thì trang trắng, console `TypeError: Cannot read properties of null (reading 'map')`. Nguyên nhân: mở thẳng `#/report/<thứ Hai>` thì ô chọn "Bản chốt thứ Hai" vẽ danh sách tuần trước khi `/api/reports` trả về (`weeks` còn `null`); đi từ menu không gặp vì danh sách đã tải. `ReportPage.jsx`: trong lúc chờ, ô chọn chỉ có tuần đang xem. Đã thử trên trình duyệt (Lê Hoàng Nam, báo cáo tuần 05/10 dev tự chốt sáng nay): F5 tại link và bấm từ chuông đều mở được, không lỗi console.
 
 ### Đổi tên app thành K.S Management (2026-10-10, không đổi schema / API)
 - Người dùng yêu cầu. `Brand.jsx`: cả tên cùng một cỡ, chữ K và S màu đỏ thương hiệu (bản đầu K, S to gấp 4 như tên cũ; người dùng chốt lại cùng cỡ ngay sau đó): 20px ở thanh bên và thanh trên cùng, 32px trên thẻ đăng nhập (26px trên điện thoại); trình đọc màn hình đọc một nhãn "K.S Management". Tên tab trình duyệt (`index.html`, kéo theo số chưa đọc "(3) K.S Management"), câu trên màn chờ duyệt (VI + EN). Tên nội bộ giữ "keyofsuccess" (thư mục `/opt/keyofsuccess`, service và user systemd, pm2 `keyofsuccess-dev`, repo) để không hỏng deploy; tài liệu deploy vẫn gọi theo tên đó.
